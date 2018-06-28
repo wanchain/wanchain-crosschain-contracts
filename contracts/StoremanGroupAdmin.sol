@@ -509,6 +509,7 @@ contract StoremanGroupAdmin is Halt {
 
     } 
     
+	
 ////////////////private function///////////////////////////////////////////////
   function deposit(uint coin,address smgAddr)
         private
