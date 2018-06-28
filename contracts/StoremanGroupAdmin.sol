@@ -493,7 +493,7 @@ contract StoremanGroupAdmin is Halt {
     /// @notice function for destroy contract
     function kill() 
         public
-	    isHalted
+        isHalted
         onlyOwner
     {
         selfdestruct(owner);
