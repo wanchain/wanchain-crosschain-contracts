@@ -316,25 +316,25 @@ contract StoremanGroupAdmin is Halt {
         
         require(msg.value >= mapCoinInfo[coin].defaultMinDeposit);
         require(originalChainAddr.length != 0);
-	    require(txFeeRatio > 0);
-	    require(smgWanAddr != address(0));
-	    require(mapCoinSmgInfo[coin][smgWanAddr].bonusBlockNumber == 0);
+        require(txFeeRatio > 0);
+        require(smgWanAddr != address(0));
+        require(mapCoinSmgInfo[coin][smgWanAddr].bonusBlockNumber == 0);
 
         if (mapCoinInfo[coin].useWhiteList) {
-		    assert(mapSmgWhiteList[coin][smgWanAddr]);
-		    mapSmgWhiteList[coin][smgWanAddr] = false;
+            assert(mapSmgWhiteList[coin][smgWanAddr]);
+            mapSmgWhiteList[coin][smgWanAddr] = false;
         }
         
         if (smgWanAddr == msg.sender){//if sender same with smgWanAddr,there are no initiator
             mapCoinSmgInfo[coin][smgWanAddr] = StoremanGroup(msg.value,originalChainAddr,0,txFeeRatio,block.number,address(0),0);
         } else {
-		    mapCoinSmgInfo[coin][smgWanAddr] = StoremanGroup(msg.value,originalChainAddr,0,txFeeRatio,block.number,msg.sender,0);
+            mapCoinSmgInfo[coin][smgWanAddr] = StoremanGroup(msg.value,originalChainAddr,0,txFeeRatio,block.number,msg.sender,0);
         }
         
-	    assert(deposit(coin,smgWanAddr));
+        assert(deposit(coin,smgWanAddr));
           
         //send event
-	    emit SmgRegister(smgWanAddr,originalChainAddr,coin,msg.value,getTokens(coin),txFeeRatio);
+        emit SmgRegister(smgWanAddr,originalChainAddr,coin,msg.value,getTokens(coin),txFeeRatio);
     }    
     
     /// @notice function for nonus
@@ -409,8 +409,8 @@ contract StoremanGroupAdmin is Halt {
         info.unregisterApplyTime = now;
 
         if ( mapCoinInfo[coin].startBonusBlk > 0 && info.punishPercent==0) {
-		    claimSystemBonus(coin);
-	    }
+            claimSystemBonus(coin);
+        }
 
         assert(applyUnregister(coin));
         //send event
@@ -465,7 +465,7 @@ contract StoremanGroupAdmin is Halt {
     {
         StoremanGroup storage smgInfo = mapCoinSmgInfo[coin][msg.sender];
         assert(smgInfo.bonusBlockNumber != 0);
-	    assert(smgInfo.unregisterApplyTime == 0);//can not claim after unregister applying
+        assert(smgInfo.unregisterApplyTime == 0);//can not claim after unregister applying
         claimSystemBonus(coin);
     }
 
@@ -519,7 +519,7 @@ contract StoremanGroupAdmin is Halt {
         
         uint tokenNumber = getTokens(coin);
         
-	    return tokenManagerAddr.call(methodId,smgAddr,tokenNumber);
+        return tokenManagerAddr.call(methodId,smgAddr,tokenNumber);
     }
     
 
