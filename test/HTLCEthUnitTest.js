@@ -7,7 +7,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-const HTLCLockedTime = 20;
+const HTLCLockedTime = 80;
 const HTLCRevokeFeeRatio = 400;
 const GasPrice = 200000000000;
 let RATIO_PRECISE = 0;
@@ -60,14 +60,16 @@ async function resetHalted (bHalted) {
     assert.equal(await HTLCETHInstance.halted(), bHalted, `Failed to setHalt`);
 }
 
-contract('HTLCETH', ([recipient, ign1, ign2, ign3, ign4, ign5, ign6, ign7, ign8, ign9, ign10, ign11, owner, storeman, user]) => {
+contract('HTLCETH', ([recipient, ign1, ign2, ign3, ign4, ign5, ign6, ign7,owner, storeman, user]) => {
 
     ownerAcc = owner;
 
     before(`init`, async () => {
-        // await web3.personal.unlockAccount(owner, 'wanglu', 99999)
-        // await web3.personal.unlockAccount(storeman, '1', 99999)
-        // await web3.personal.unlockAccount(user, '123', 99999)
+
+	await web3.personal.unlockAccount(recipient, 'wanglu', 99999)
+        await web3.personal.unlockAccount(owner, 'wanglu', 99999)
+        await web3.personal.unlockAccount(storeman, 'wanglu', 99999)
+        await web3.personal.unlockAccount(user, 'wanglu', 99999)
 
         // await web3.personal.unlockAccount(web3.eth.accounts[0], 'wanglu', 99999);
         // await web3.personal.unlockAccount(web3.eth.accounts[1], 'wanglu', 99999);
@@ -254,7 +256,7 @@ contract('HTLCETH', ([recipient, ign1, ign2, ign3, ign4, ign5, ign6, ign7, ign8,
     });
 
     it(`[HTLCETH-T1105]`, async() => {
-        await sleep((HTLCLockedTime+2)*2*1000);
+        await sleep((HTLCLockedTime+20)*2*1000);
 
         let retError;
         try {
