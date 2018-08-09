@@ -87,7 +87,7 @@ contract HTLCETH is HTLCBase {
         payable
         returns(bool) 
     {
-        addHTLCTx(TxDirection.Eth2Weth, msg.sender, storeman, xHash, msg.value, true, wanAddr);
+        addHTLCTx(TxDirection.Coin2Wtoken, msg.sender, storeman, xHash, msg.value, true, wanAddr);
         emit ETH2WETHLock(msg.sender, storeman, xHash, msg.value, wanAddr);
         return true;
     }
@@ -99,7 +99,7 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Eth2Weth);
+        bytes32 xHash = refundHTLCTx(x, TxDirection.Coin2Wtoken);
 
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -117,7 +117,7 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        revokeHTLCTx(xHash, TxDirection.Eth2Weth, false);
+        revokeHTLCTx(xHash, TxDirection.Coin2Wtoken, false);
 
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -146,7 +146,7 @@ contract HTLCETH is HTLCBase {
         payable 
         returns(bool) 
     {
-        addHTLCTx(TxDirection.Weth2Eth, msg.sender, user, xHash, msg.value, false, address(0x00));
+        addHTLCTx(TxDirection.Wtoken2Coin, msg.sender, user, xHash, msg.value, false, address(0x00));
         emit WETH2ETHLock(msg.sender, user, xHash, msg.value);
         return true;
     }
@@ -158,7 +158,7 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Weth2Eth);
+        bytes32 xHash = refundHTLCTx(x, TxDirection.Wtoken2Coin);
         
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -175,7 +175,7 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        revokeHTLCTx(xHash, TxDirection.Weth2Eth, false);
+        revokeHTLCTx(xHash, TxDirection.Wtoken2Coin, false);
 
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];

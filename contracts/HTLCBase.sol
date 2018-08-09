@@ -44,7 +44,7 @@ contract HTLCBase is Halt {
     enum TxStatus {None, Locked, Refunded, Revoked}
 
     /// @notice tx direction
-    enum TxDirection {Eth2Weth, Weth2Eth}
+    enum TxDirection {Coin2Wtoken, Wtoken2Coin}
 
     /**
     *
