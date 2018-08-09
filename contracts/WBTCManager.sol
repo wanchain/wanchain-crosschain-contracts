@@ -30,7 +30,7 @@ import './SafeMath.sol';
 import './Halt.sol';
 import './WBTC.sol';
 
-contract WETHManager is Halt {
+contract WBTCManager is Halt {
   using SafeMath for uint;
 
   /************************************************************
@@ -222,11 +222,11 @@ contract WETHManager is Halt {
     return true;
   }   
 
-  /// @notice Frozen WETH quota
-  /// @dev Frozen WETH quota
+  /// @notice Frozen WBTC quota
+  /// @dev Frozen WBTC quota
   /// @param storemanGroup Handler address 
   /// @param recipient Recipient's address, and it could be a storemanGroup applied unregistration
-  /// @param value Amout of WETH quota to be frozen
+  /// @param value Amout of WBTC quota to be frozen
   /// @return True if successful
   function lockQuota(address storemanGroup, address recipient, uint value)
     public

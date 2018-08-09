@@ -1,6 +1,6 @@
-const HTLCWETH = artifacts.require('./HTLCWETH.sol')
-const WETHManager = artifacts.require("./WETHManager.sol")
-const WETH = artifacts.require("./WETH.sol")
+const HTLCWBTC = artifacts.require('./HTLCWBTC.sol')
+const WBTCManager = artifacts.require("./WBTCManager.sol")
+const WBTC = artifacts.require("./WBTC.sol")
 const StoremanGroupAdmin = artifacts.require("./StoremanGroupAdmin.sol")
 require('truffle-test-utils').init()
 var BigNumber = require('bignumber.js');
@@ -21,10 +21,10 @@ let wan2CoinRatio;
 let txFeeRatio;
 
 
-let WETHInstance;
-let WETHManagerInstance;// = WETHManager.at("0x103ba1a2fad145f3a3e8b126ef88cb3e096a1990");
-let StoremanGroupAdminInstance;// = StoremanGroupAdmin.at("0x4b155d089245d126fd0695edd8df93c495fc5662");
-let HTLCWETHInstance;// = HTLCWETH.at('0x34a0cfbcbc1182721cc03466de5c841268a34856');
+let WBTCInstance;
+let WBTCManagerInstance;
+let StoremanGroupAdminInstance;
+let HTLCWBTCInstance;
 
 
 let ownerAcc;
@@ -91,55 +91,29 @@ function generatePrivateKey(){
 }
 
 async function resetHalted (bHalted) {
-    await HTLCWETHInstance.setHalt(bHalted, {from:ownerAcc});
-    assert.equal(await HTLCWETHInstance.halted(), bHalted, `Failed to setHalt`);
+    await HTLCWBTCInstance.setHalt(bHalted, {from:ownerAcc});
+    assert.equal(await HTLCWBTCInstance.halted(), bHalted, `Failed to setHalt`);
 }
 
-// async function emptyWETHManager() {
-//     validWETHManager = await HTLCWETHInstance.wethManager();
-//     console.log(validWETHManager);
-//     assert.notEqual(validWETHManager, emptyAddress, 'the wethManager address get from SC is invalid.');
-//
-//     await resetHalted(true);
-//     await HTLCWETHInstance.setWETHManager(emptyAddress, {from:ownerAcc});
-//     await resetHalted(false);
-//
-//     console.log(await HTLCWETHInstance.wethManager());
-//     assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, `failed to setWETHManager`);
-// }
-
-async function recoverWETHManager() {
+async function recoverWBTCManager() {
     await resetHalted(true);
-    await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:ownerAcc});
+    await HTLCWBTCInstance.setWBTCManager(WBTCManagerInstance.address, {from:ownerAcc});
     await resetHalted(false);
 
-    assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `failed to setWETHManager`);
+    assert.equal(await HTLCWBTCInstance.wbtcManager(), WBTCManagerInstance.address, `failed to setWBTCManager`);
 }
 
-// async function emptyStoremanGroupAdmin() {
-//     validStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
-//     console.log(validStoremanGroupAdmin);
-//     assert.notEqual(validStoremanGroupAdmin, emptyAddress, 'the storemanGroupAdmin address get from SC is invalid.');
-//
-//     await resetHalted(true);
-//     await HTLCWETHInstance.setStoremanGroupAdmin(emptyAddress, {from:ownerAcc});
-//     await resetHalted(false);
-//
-//     assert.equal(await HTLCWETHInstance.storemanGroupAdmin(), emptyAddress, `failed to setWETHManager`);
-// }
-//
 async function recoverStoremanGroupAdmin() {
     await resetHalted(true);
-    await HTLCWETHInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address, {from:ownerAcc});
+    await HTLCWBTCInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address, {from:ownerAcc});
     await resetHalted(false);
 
-    assert.equal(await HTLCWETHInstance.storemanGroupAdmin(), StoremanGroupAdminInstance.address, `failed to storemanGroupAdmin`);
+    assert.equal(await HTLCWBTCInstance.storemanGroupAdmin(), StoremanGroupAdminInstance.address, `failed to storemanGroupAdmin`);
 }
 
 
 
-// contract('HTLCWETH', ([recipient, owner, ign2, ign3, ign4, ign5, ign6, ign7, ign8, ign9, ign10, ign1,user ,ign11, storeman]) => {
-contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
+contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
    ownerAcc = owner;
 
@@ -150,28 +124,28 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
          await web3.personal.unlockAccount(user, 'wanglu', 99999)
 
        StoremanGroupAdminInstance = await StoremanGroupAdmin.new({from:owner})
-       HTLCWETHInstance = await HTLCWETH.new({from:owner})
+       HTLCWBTCInstance = await HTLCWBTC.new({from:owner})
 
-       WETHManagerInstance = await WETHManager.new(HTLCWETHInstance.address,StoremanGroupAdminInstance.address,{from:owner});
+       WBTCManagerInstance = await WBTCManager.new(HTLCWBTCInstance.address,StoremanGroupAdminInstance.address,{from:owner});
 
 
-       let wethAddr = await WETHManagerInstance.WETHToken();
-       WETHInstance = WETH.at(wethAddr);
-       console.log("wethAddr:", wethAddr);
+       let wbtcAddr = await WBTCManagerInstance.WBTCToken();
+       WBTCInstance = WBTC.at(wbtcAddr);
+       console.log("wbtcAddr:", wbtcAddr);
 
-       let ETHEREUM_ID = 0;
-       let ratio = 200000; //1 eth:20,it need to mul the precise 10000
+       let BTC_ID = 1;
+       let ratio = 200000; //1 btc:20 wan,it need to mul the precise 10000
        let defaultMinDeposit = web3.toWei(100);
        let htlcType = 1; //use contract
 
        let originalChainHtlc = '0x7452bcd07fc6bb75653de9d9459bd442ac3f5c52';
 
-       let wanchainHtlcAddr = HTLCWETHInstance.address;
-       let wanchainTokenAdminAddr = WETHManagerInstance.address;
+       let wanchainHtlcAddr = HTLCWBTCInstance.address;
+       let wanchainTokenAdminAddr = WBTCManagerInstance.address;
 
        let withdrawDelayTime = (3600*72);
        console.log("initializeCoin:");
-       res = await  StoremanGroupAdminInstance.initializeCoin(ETHEREUM_ID,
+       res = await  StoremanGroupAdminInstance.initializeCoin(BTC_ID,
            ratio,
            defaultMinDeposit,
            htlcType,
@@ -183,54 +157,53 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        );
 
        console.log("set ratio");
-       await StoremanGroupAdminInstance.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
+       await StoremanGroupAdminInstance.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
 
-
-       //console.log(coinInfo);
-       await StoremanGroupAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID, false, {from: owner});
+       console.log("set whitelist");
+       await StoremanGroupAdminInstance.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
 
        console.log("storemanGroupRegister");
        regDeposit = web3.toWei(2000);
 
        console.log("set halt");
        await StoremanGroupAdminInstance.setHalt(false,{from: owner});
-       await WETHManagerInstance.setHalt(false,{from:owner});
+       await WBTCManagerInstance.setHalt(false,{from:owner});
 
        preBal = web3.fromWei(web3.eth.getBalance(storeman));
        console.log("preBal" + preBal);
 
 
-       await  StoremanGroupAdminInstance.storemanGroupRegister(ETHEREUM_ID,storeman,10,{from:storeman,value:regDeposit,gas:4000000});
+       await  StoremanGroupAdminInstance.storemanGroupRegister(BTC_ID,storeman,10,{from:storeman,value:regDeposit,gas:4000000});
 
        // Reset lockedTime
        await resetHalted(true);
-       console.log("initialize group weth to set token admin");
+       console.log("initialize group wbtc to set token admin");
 
-       await HTLCWETHInstance.setWETHManager(wanchainTokenAdminAddr,{from: owner});
-       getTokenAdmin = await  HTLCWETHInstance.wethManager();
+       await HTLCWBTCInstance.setWBTCManager(wanchainTokenAdminAddr,{from: owner});
+       getTokenAdmin = await  HTLCWBTCInstance.wbtcManager();
        assert.equal(getTokenAdmin,wanchainTokenAdminAddr, 'wanchainTokenAdminAddr not match');
 
-       await HTLCWETHInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address,{from: owner});
-       smgAdminAddr = await  HTLCWETHInstance.storemanGroupAdmin();
+       await HTLCWBTCInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address,{from: owner});
+       smgAdminAddr = await  HTLCWBTCInstance.storemanGroupAdmin();
        assert.equal(smgAdminAddr,StoremanGroupAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
 
-       await HTLCWETHInstance.setLockedTime(HTLCLockedTime, {from:owner});
-       assert.equal((await HTLCWETHInstance.lockedTime()).toString(10), (HTLCLockedTime).toString(10), "setLockedTime fail");
+       await HTLCWBTCInstance.setLockedTime(HTLCLockedTime, {from:owner});
+       assert.equal((await HTLCWBTCInstance.lockedTime()).toString(10), (HTLCLockedTime).toString(10), "setLockedTime fail");
 
         // tmp
-       // await recoverWETHManager();
+       // await recoverWBTCManager();
        // await recoverStoremanGroupAdmin();
         // tmp
 
        // set revoke fee ratio
-       await HTLCWETHInstance.setRevokeFeeRatio(HTLCRevokeFeeRatio, {from:owner});
-       assert.equal(await HTLCWETHInstance.revokeFeeRatio(), HTLCRevokeFeeRatio, `setRecokeFeeRatio fail`);
+       await HTLCWBTCInstance.setRevokeFeeRatio(HTLCRevokeFeeRatio, {from:owner});
+       assert.equal(await HTLCWBTCInstance.revokeFeeRatio(), HTLCRevokeFeeRatio, `setRecokeFeeRatio fail`);
 
        // get RATIO_PRECISE
-       RATIO_PRECISE = await HTLCWETHInstance.RATIO_PRECISE();
-       wan2CoinRatio = (await StoremanGroupAdminInstance.mapCoinInfo(ETHEREUM_ID))[0];
-       txFeeRatio = (await StoremanGroupAdminInstance.mapCoinSmgInfo(ETHEREUM_ID, storeman))[3];
+       RATIO_PRECISE = await HTLCWBTCInstance.RATIO_PRECISE();
+       wan2CoinRatio = (await StoremanGroupAdminInstance.mapCoinInfo(BTC_ID))[0];
+       txFeeRatio = (await StoremanGroupAdminInstance.mapCoinSmgInfo(BTC_ID, storeman))[3];
        console.log(`RATIO_PRECISE`, RATIO_PRECISE);
        console.log(`wan2CoinRatio`, wan2CoinRatio);
        console.log(`txFeeRatio`, txFeeRatio);
@@ -240,81 +213,53 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    ////// eth2wethLock
-    it(`[HTLCWETH-T2001]`, async () => {
+    ////// btc2wbtcLock
+    it(`[HTLCWBTC-T2001]`, async () => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, 'eth2wethLock should fail while in halting');
+        assert.notEqual(retError, undefined, 'btc2wbtcLock should fail while in halting');
     });
 
 
-    // it(`[HTLCWETH-T2002]`, async () => {
-    //
-    //     let retError;
-    //     try {
-    //         await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman});
-    //     } catch (e) {
-    //         retError = e;
-    //     }
-    //
-    //     await recoverWETHManager();
-    //
-    //     assert.notEqual(retError, undefined, 'eth2wethLock should fail wethManager is uninitialized');
-    // });
-
-    // it(`[HTLCWETH-T2002-1]`, async () => {
-    //     let retError;
-    //     try {
-    //         await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman});
-    //     } catch (e) {
-    //         retError = e;
-    //     }
-    //
-    //     await recoverStoremanGroupAdmin();
-    //
-    //     assert.notEqual(retError, undefined, 'eth2wethLock should fail storemanGroupAdmin is uninitialized');
-    // });
-
-
-    it(`[HTLCWETH-T2003]`, async () => {
+    it(`[HTLCWBTC-T2003]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman, value:web3.toWei(1)});
+            await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
-        assert.notEqual(retError, undefined, 'eth2wethLock should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'btc2wbtcLock should fail while tx.value is not 0');
     });
 
 
-    it(`[HTLCWETH-T2007]`, async () => {
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
+    it(`[HTLCWBTC-T2007]`, async () => {
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        let ret = await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman});
+        let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman});
         assert.web3Event(ret, {
-            event: "ETH2WETHLock",
+            event: "BTC2WBTCLock",
             args: {
                 storeman:storeman,
                 wanAddr:user,
                 xHash:xHash1,
                 value:parseInt(web3.toWei(1))
             }
-        }, `eth2wethLock failed`);
+        }, `btc2wbtcLock failed`);
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
 
@@ -327,192 +272,172 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.toString(), "unexcept user token");
     });
 
-    it(`[HTLCWETH-T2109]`, async () => {
+    it(`[HTLCWBTC-T2109]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x1, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund can not replace eth2wethRefund');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund can not replace btc2wbtcRefund');
     });
 
-    it('[HTLCWETH-T2206]', async() => {
+    it('[HTLCWBTC-T2206]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while before HTLC timeout`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while before HTLC timeout`);
     });
 
-    it(`[HTLCWETH-T2004]`, async () => {
+    it(`[HTLCWBTC-T2004]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethLock(xHash1, user, web3.toWei(1), {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethLock should fail while xHash exist already');
+        assert.notEqual(retError, undefined, 'btc2wbtcLock should fail while xHash exist already');
     });
 
 
-    it(`[HTLCWETH-T2005]`, async () => {
+    it(`[HTLCWBTC-T2005]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethLock(xHash2, user, 0, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcLock(xHash2, user, 0, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethLock should fail while param.value is 0');
+        assert.notEqual(retError, undefined, 'btc2wbtcLock should fail while param.value is 0');
     });
 
 
-    it(`[HTLCWETH-T2006]`, async () => {
+    it(`[HTLCWBTC-T2006]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethLock(xHash2, user, web3.toWei(1000000), {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcLock(xHash2, user, web3.toWei(1000000), {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethLock should fail while storeman quatable value is not enough');
+        assert.notEqual(retError, undefined, 'btc2wbtcLock should fail while storeman quatable value is not enough');
     });
 
 
 
-    //////// eth2wethRefund
+    //////// btc2wbtcRefund
 
 
-    it(`[HTLCWETH-T2101]`, async () => {
+    it(`[HTLCWBTC-T2101]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:user, value:web3.toWei(1)});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while tx.value is not 0');
     });
 
 
-    it(`[HTLCWETH-T2102]`, async () => {
+    it(`[HTLCWBTC-T2102]`, async () => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while halted is true');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while halted is true');
     });
 
-    /*
 
-    it(`[HTLCWETH-T2103]`, async () => {
-        await HTLCWETHInstance.setWETHManager(emptyAddress, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, `failed to setWETHManager`);
-
+    it(`[HTLCWBTC-T2104]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `failed to setWETHManager`);
-
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while wethManager is uninitialized');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while xHash doesnt exist');
     });
 
-    */
-
-    it(`[HTLCWETH-T2104]`, async () => {
+    it(`[HTLCWBTC-T2105]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while xHash doesnt exist');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while sender is not user');
     });
 
-    it(`[HTLCWETH-T2105]`, async () => {
+    it(`[HTLCWBTC-T2105-2]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:owner});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while sender is not user');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while sender is not user');
     });
 
-    it(`[HTLCWETH-T2105-2]`, async () => {
-        let retError;
-        try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:storeman});
-        } catch (e) {
-            retError = e;
-        }
-
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while sender is not user');
-    });
-
-    it(`[HTLCWETH-T2106]`, async () => {
+    it(`[HTLCWBTC-T2106]`, async () => {
         await sleep((HTLCLockedTime+5)*1000);
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRefund should fail after HTLC timeout');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail after HTLC timeout');
     });
 
 
-    it(`[HTLCWETH-T2107]`, async () => {
-        let ret = await HTLCWETHInstance.eth2wethLock(xHash3, user, web3.toWei(10), {from:storeman});
+    it(`[HTLCWBTC-T2107]`, async () => {
+        let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash3, user, web3.toWei(10), {from:storeman});
         assert.web3Event(ret, {
-            event: "ETH2WETHLock",
+            event: "BTC2WBTCLock",
             args: {
                 storeman:storeman,
                 wanAddr:user,
                 xHash:xHash3,
                 value:parseInt(web3.toWei(10))
             }
-        }, `eth2wethLock failed`);
+        }, `btc2wbtcLock failed`);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        ret = await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
+        ret = await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
         assert.web3Event(ret, {
-            event: "ETH2WETHRefund",
+            event: "BTC2WBTCRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash3,
                 x: x3
             }
-        }, `eth2wethRefund fail`);
+        }, `btc2wbtcRefund fail`);
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
 
@@ -526,132 +451,112 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
-    it(`[HTLCWETH-T2108]`, async () => {
+    it(`[HTLCWBTC-T2108]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRefund should fail while repeat`);
+        assert.notEqual(retError, undefined, `btc2wbtcRefund should fail while repeat`);
     });
 
 
-    //////// eth2wethRevoke
+    //////// btc2wbtcRevoke
 
-    it(`[HTLCWETH-T2201]`, async()=> {
+    it(`[HTLCWBTC-T2201]`, async()=> {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:storeman, value:web3.toWei(1)});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, "eth2wethRevoke should fail while tx.value is not 0")
+        assert.notEqual(retError, undefined, "btc2wbtcRevoke should fail while tx.value is not 0")
     });
 
 
-    it('[HTLCWETH-T2202]', async() => {
+    it('[HTLCWBTC-T2202]', async() => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while is halting`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while is halting`);
     });
 
 
-    /*
-    it('[HTLCWETH-T2203]', async() => {
-        await HTLCWETHInstance.setWETHManager(emptyAddress, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, `setWETHManager fail`);
-
+    it('[HTLCWBTC-T2204]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xb, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `setWETHManager fail`);
-
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail wethManager is uninitialized`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while xHash doesnt exist`);
     });
-    */
 
 
-    it('[HTLCWETH-T2204]', async() => {
+    it('[HTLCWBTC-T2205]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xb, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while xHash doesnt exist`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while sender is not storeman`);
     });
 
-
-    it('[HTLCWETH-T2205]', async() => {
+    it('[HTLCWBTC-T2205]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:owner});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while sender is not storeman`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while sender is not storeman`);
     });
 
-    it('[HTLCWETH-T2205]', async() => {
+
+    it('[HTLCWBTC-T2209]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while sender is not storeman`);
+        assert.notEqual(retError, undefined, `wbtc2btcRevoke can not replace btc2wbtcRevoke`);
     });
 
 
-    it('[HTLCWETH-T2209]', async() => {
-        let retError;
-        try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash1, {from:storeman});
-        } catch (e) {
-            retError = e;
-        }
-
-        assert.notEqual(retError, undefined, `weth2ethRevoke can not replace eth2wethRevoke`);
-    });
-
-
-    it('[HTLCWETH-T2207]', async() => {
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
+    it('[HTLCWBTC-T2207]', async() => {
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        let ret = await HTLCWETHInstance.eth2wethRevoke(xHash1, {from:storeman});
+        let ret = await HTLCWBTCInstance.btc2wbtcRevoke(xHash1, {from:storeman});
         assert.web3Event(ret, {
-            event: "ETH2WETHRevoke",
+            event: "BTC2WBTCRevoke",
             args: {
                 storeman: storeman,
                 xHash: xHash1
             }
-        }, `eth2wethRevoke fail`);
+        }, `btc2wbtcRevoke fail`);
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
 
@@ -666,151 +571,132 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    it('[HTLCWETH-T2208]', async() => {
+    it('[HTLCWBTC-T2208]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(x1, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRevoke(x1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while repeated`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while repeated`);
     });
 
 
-    // //////// weth2ethLock
+    // //////// wbtc2btcLock
 
 
-    it(`[HTLCWETH-T2301]`, async () => {
+    it(`[HTLCWBTC-T2301]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(1), {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(1), {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while tx.value is 0');
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while tx.value is 0');
     })
 
 
-    it(`[HTLCWETH-T2302]`, async () => {
+    it(`[HTLCWBTC-T2302]`, async () => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(1), {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(1), {from:user});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while is halting');
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while is halting');
     });
 
 
-    /*
-    it(`[HTLCWETH-T2303]`, async () => {
-        await HTLCWETHInstance.setWETHManager(emptyAddress, { from: owner })
-        assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, `Failed to setWETHManager`);
-
+    it(`[HTLCWBTC-T2304]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(1), {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash1, storeman, recipient, web3.toWei(1), {from:user});
         } catch (e) {
             retError = e;
         }
 
-        await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, { from: owner })
-        assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `Failed to setWETHManager`);
-
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while wethManager is uninitialized');
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while xHash exist already');
     });
-    */
 
-    it(`[HTLCWETH-T2304]`, async () => {
+
+    it(`[HTLCWBTC-T2305]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash1, storeman, recipient, web3.toWei(1), {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, 0, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while xHash exist already');
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while param.value is 0');
     });
 
-
-    it(`[HTLCWETH-T2305]`, async () => {
+    it(`[HTLCWBTC-T2306]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, 0, {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(100000), {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while param.value is 0');
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while storeman tokenable value not enough');
     });
 
-    it(`[HTLCWETH-T2306]`, async () => {
+    it(`[HTLCWBTC-T2308]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(100000), {from:user});
+            await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(0.00000019)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while storeman tokenable value not enough');
-    });
-
-    it(`[HTLCWETH-T2308]`, async () => {
-        let retError;
-        try {
-            await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(0.00000019)});
-        } catch (e) {
-            retError = e;
-        }
-
-        assert.notEqual(retError, undefined, 'weth2ethLock should fail while fee is not enough')
+        assert.notEqual(retError, undefined, 'wbtc2btcLock should fail while fee is not enough')
     });
 
 
-    it(`[HTLCWETH-T2307]`, async () => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it(`[HTLCWBTC-T2307]`, async () => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
         console.log("beforeSCToken:", beforeSCToken);
 
         let beforeUserBalance = await web3.eth.getBalance(user);
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("beforeUserBalance:", beforeUserBalance);
         console.log("beforeSCBalance:", beforeSCBalance);
 
-        let ret = await HTLCWETHInstance.weth2ethLock(xHash4, storeman, recipient, web3.toWei(1), {from:user, value:Weth2EthLockFee, gasPrice:'0x'+GasPrice.toString(16)});
+        let ret = await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(1), {from:user, value:wbtc2btcLockFee, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHLock",
+            event: "WBTC2BTCLock",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash4,
                 value: parseInt(web3.toWei(1)),
-                ethAddr: recipient,
-                fee: parseInt(Weth2EthLockFee)
+                btcAddr: recipient,
+                fee: parseInt(wbtc2btcLockFee)
             }
         })
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
         console.log("afterSCToken:", afterSCToken);
 
         let afterUserBalance = await web3.eth.getBalance(user);
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("afterUserBalance:", afterUserBalance);
         console.log("afterSCBalance:", afterSCBalance);
 
@@ -826,71 +712,71 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.sub(web3.toWei(1)).toString(), "unexcept user token");
         assert.equal(afterSCToken.toString(), beforeSCToken.add(web3.toWei(1)).toString(), "unexcept SC token");
 
-        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(Weth2EthLockFee).toString(), "unexpect user balance");
-        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(Weth2EthLockFee).toString(), "unexpect SC balance");
+        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(wbtc2btcLockFee).toString(), "unexpect user balance");
+        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(wbtc2btcLockFee).toString(), "unexpect SC balance");
     });
 
 
 
-    it(`[HTLCWETH-T2307-2]`, async () => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it(`[HTLCWBTC-T2307-2]`, async () => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-        let ret = await HTLCWETHInstance.eth2wethLock(xHash8, user, web3.toWei(1), {from:storeman});
+        let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash8, user, web3.toWei(1), {from:storeman});
         assert.web3Event(ret, {
-            event: "ETH2WETHLock",
+            event: "BTC2WBTCLock",
             args: {
                 storeman:storeman,
                 wanAddr:user,
                 xHash:xHash8,
                 value:parseInt(web3.toWei(1))
             }
-        }, `eth2wethLock failed`);
+        }, `btc2wbtcLock failed`);
 
-        ret = await HTLCWETHInstance.eth2wethRefund(x8, {from:user});
+        ret = await HTLCWBTCInstance.btc2wbtcRefund(x8, {from:user});
         assert.web3Event(ret, {
-            event: "ETH2WETHRefund",
+            event: "BTC2WBTCRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash8,
                 x: x8
             }
-        }, `eth2wethRefund fail`);
+        }, `btc2wbtcRefund fail`);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
         console.log("beforeSCToken:", beforeSCToken);
 
         let beforeUserBalance = await web3.eth.getBalance(user);
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("beforeUserBalance:", beforeUserBalance);
         console.log("beforeSCBalance:", beforeSCBalance);
 
-        ret = await HTLCWETHInstance.weth2ethLock(xHash9, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(30), gasPrice:'0x'+GasPrice.toString(16)});
+        ret = await HTLCWBTCInstance.wbtc2btcLock(xHash9, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(30), gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHLock",
+            event: "WBTC2BTCLock",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash9,
                 value: parseInt(web3.toWei(1)),
-                ethAddr: recipient,
-                fee: parseInt(Weth2EthLockFee)
+                btcAddr: recipient,
+                fee: parseInt(wbtc2btcLockFee)
             }
         })
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
         console.log("afterSCToken:", afterSCToken);
 
         let afterUserBalance = await web3.eth.getBalance(user);
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("afterUserBalance:", afterUserBalance);
         console.log("afterSCBalance:", afterSCBalance);
 
@@ -906,48 +792,48 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.sub(web3.toWei(1)).toString(), "unexcept user token");
         assert.equal(afterSCToken.toString(), beforeSCToken.add(web3.toWei(1)).toString(), "unexcept SC token");
 
-        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(Weth2EthLockFee).toString(), "unexpect user balance");
-        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(Weth2EthLockFee).toString(), "unexpect SC balance");
+        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(wbtc2btcLockFee).toString(), "unexpect user balance");
+        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(wbtc2btcLockFee).toString(), "unexpect SC balance");
     });
 
 
-    it(`[HTLCWETH-T2307-3]`, async () => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it(`[HTLCWBTC-T2307-3]`, async () => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
         console.log("beforeSCToken:", beforeSCToken);
 
         let beforeUserBalance = await web3.eth.getBalance(user);
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("beforeUserBalance:", beforeUserBalance);
         console.log("beforeSCBalance:", beforeSCBalance);
 
-        let ret = await HTLCWETHInstance.weth2ethLock(xHasha, storeman, recipient, web3.toWei(1), {from:user, value:Weth2EthLockFee, gasPrice:'0x'+GasPrice.toString(16)});
+        let ret = await HTLCWBTCInstance.wbtc2btcLock(xHasha, storeman, recipient, web3.toWei(1), {from:user, value:wbtc2btcLockFee, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHLock",
+            event: "WBTC2BTCLock",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHasha,
                 value: parseInt(web3.toWei(1)),
-                ethAddr: recipient,
-                fee: parseInt(Weth2EthLockFee)
+                btcAddr: recipient,
+                fee: parseInt(wbtc2btcLockFee)
             }
         })
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
         console.log("afterSCToken:", afterSCToken);
 
         let afterUserBalance = await web3.eth.getBalance(user);
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("afterUserBalance:", afterUserBalance);
         console.log("afterSCBalance:", afterSCBalance);
 
@@ -963,208 +849,188 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.sub(web3.toWei(1)).toString(), "unexcept user token");
         assert.equal(afterSCToken.toString(), beforeSCToken.add(web3.toWei(1)).toString(), "unexcept SC token");
 
-        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(Weth2EthLockFee).toString(), "unexpect user balance");
-        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(Weth2EthLockFee).toString(), "unexpect SC balance");
+        assert.equal(afterUserBalance.toString(), beforeUserBalance.sub(gasPrice.mul(gasUsed)).sub(wbtc2btcLockFee).toString(), "unexpect user balance");
+        assert.equal(afterSCBalance.toString(), beforeSCBalance.add(wbtc2btcLockFee).toString(), "unexpect SC balance");
     });
 
 
-    it('[HTLCWETH-T2409]', async() => {
+    it('[HTLCWBTC-T2409]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRefund(x4, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRefund can not replace weth2ethRefund`);
+        assert.notEqual(retError, undefined, `btc2wbtcRefund can not replace wbtc2btcRefund`);
     });
 
 
-    it('[HTLCWETH-T2506]', async() => {
+    it('[HTLCWBTC-T2506]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(x4, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRevoke(x4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `weth2ethRevoke should fail while before HTLC timeout`);
+        assert.notEqual(retError, undefined, `wbtc2btcRevoke should fail while before HTLC timeout`);
     });
 
 
 
-    //////// weth2ethRefund
+    //////// wbtc2btcRefund
 
-    it(`[HTLCWETH-T2401]`, async () => {
+    it(`[HTLCWBTC-T2401]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman, value:web3.toWei(1)});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while tx.value is not 0');
     });
 
 
 
-    it(`[HTLCWETH-T2402]`, async () => {
+    it(`[HTLCWBTC-T2402]`, async () => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while halted is true');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while halted is true');
     });
 
 
-    /*
-    it(`[HTLCWETH-T2403]`, async () => {
-        await  HTLCWETHInstance.setWETHManager(emptyAddress, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, "fail to setHalt");
-
+    it(`[HTLCWBTC-T2404]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        await  HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, "fail to setHalt");
-
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while wethManager is uninitialized');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while xHash does not exist');
     });
-    */
 
 
-    it(`[HTLCWETH-T2404]`, async () => {
+    it(`[HTLCWBTC-T2405]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while xHash does not exist');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while sender is not storeman');
     });
 
 
-    it(`[HTLCWETH-T2405]`, async () => {
+    it(`[HTLCWBTC-T2405-2]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:owner});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while sender is not storeman');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while sender is not storeman');
     });
 
 
-    it(`[HTLCWETH-T2405-2]`, async () => {
-        let retError;
-        try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:user});
-        } catch (e) {
-            retError = e;
-        }
-
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while sender is not storeman');
-    });
-
-
-    it(`[HTLCWETH-T2406]`, async () => {
+    it(`[HTLCWBTC-T2406]`, async () => {
         await sleep((HTLCLockedTime*2+5)*1000);
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while HTLC timeout already');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while HTLC timeout already');
     });
 
 
-    it(`[HTLCWETH-T2407]`, async () => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it(`[HTLCWBTC-T2407]`, async () => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-         let ret = await HTLCWETHInstance.eth2wethLock(xHash7, user, web3.toWei(1), {from:storeman});
+         let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash7, user, web3.toWei(1), {from:storeman});
          assert.web3Event(ret, {
-             event: "ETH2WETHLock",
+             event: "BTC2WBTCLock",
              args: {
                  storeman:storeman,
                  wanAddr:user,
                  xHash:xHash7,
                  value:parseInt(web3.toWei(1))
              }
-         }, `eth2wethLock failed`);
+         }, `btc2wbtcLock failed`);
 
-         ret = await HTLCWETHInstance.eth2wethRefund(x7, {from:user});
+         ret = await HTLCWBTCInstance.btc2wbtcRefund(x7, {from:user});
          assert.web3Event(ret, {
-             event: "ETH2WETHRefund",
+             event: "BTC2WBTCRefund",
              args: {
                  wanAddr: user,
                  storeman: storeman,
                  xHash: xHash7,
                  x: x7
              }
-         }, `eth2wethRefund fail`);
+         }, `btc2wbtcRefund fail`);
 
-        ret = await HTLCWETHInstance.weth2ethLock(xHash5, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(20)});
+        ret = await HTLCWBTCInstance.wbtc2btcLock(xHash5, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(20)});
         assert.web3Event(ret, {
-            event: "WETH2ETHLock",
+            event: "WBTC2BTCLock",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash5,
                 value: parseInt(web3.toWei(1)),
-                ethAddr: recipient,
-                fee: parseInt(Weth2EthLockFee)
+                btcAddr: recipient,
+                fee: parseInt(wbtc2btcLockFee)
             }
-        }, `weth2ethLock fail`);
+        }, `wbtc2btcLock fail`);
 
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
-        let beforeStoremanToken = await WETHInstance.balanceOf(storeman);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
+        let beforeStoremanToken = await WBTCInstance.balanceOf(storeman);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeSCToken:", beforeSCToken);
         console.log("beforeStoremanToken:", beforeStoremanToken);
 
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let beforeStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("beforeSCBalance:", beforeSCBalance);
         console.log("beforeStoremanBalance:", beforeStoremanBalance);
 
 
-        ret = await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
+        ret = await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHRefund",
+            event: "WBTC2BTCRefund",
             args: {
                 storeman: storeman,
                 wanAddr: user,
                 xHash: xHash5,
                 x: x5
             }
-        }, `weth2ethRefund fail`);
+        }, `wbtc2btcRefund fail`);
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
-        let afterStoremanToken = await WETHInstance.balanceOf(storeman);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
+        let afterStoremanToken = await WBTCInstance.balanceOf(storeman);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterSCToken:", afterSCToken);
         console.log("afterStoremanToken:", afterStoremanToken);
 
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let afterStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("afterSCBalance:", afterSCBalance);
         console.log("afterStoremanBalance:", afterStoremanBalance);
@@ -1181,143 +1047,124 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterSCToken.toString(), beforeSCToken.sub(web3.toWei(1)).toString(), "unexcept SC token");
         assert.equal(afterStoremanToken.toString(), beforeStoremanToken.toString(), "unexcept storeman token");
 
-        assert.equal(afterSCBalance.toString(), beforeSCBalance.sub(Weth2EthLockFee).toString(), "unexpect SC balance");
-        assert.equal(afterStoremanBalance.toString(), beforeStoremanBalance.add(Weth2EthLockFee).sub(gasPrice.mul(gasUsed)).toString(), "unexpect storeman balance");
+        assert.equal(afterSCBalance.toString(), beforeSCBalance.sub(wbtc2btcLockFee).toString(), "unexpect SC balance");
+        assert.equal(afterStoremanBalance.toString(), beforeStoremanBalance.add(wbtc2btcLockFee).sub(gasPrice.mul(gasUsed)).toString(), "unexpect storeman balance");
 
     });
 
-    it(`[HTLCWETH-T2408]`, async () => {
+    it(`[HTLCWBTC-T2408]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while repeated');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while repeated');
     });
 
 
-    //////// weth2ethRevoke
+    //////// wbtc2btcRevoke
 
-    it(`[HTLCWETH-T2501]`, async()=> {
+    it(`[HTLCWBTC-T2501]`, async()=> {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:user, value:web3.toWei(1)});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash4, {from:user, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, "weth2ethRevoke should fail while tx.value is not 0")
+        assert.notEqual(retError, undefined, "wbtc2btcRevoke should fail while tx.value is not 0")
     });
 
-    it('[HTLCWETH-T2502]', async() => {
+    it('[HTLCWBTC-T2502]', async() => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash4, {from:user});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, `weth2ethRevoke should fail while is halting`);
+        assert.notEqual(retError, undefined, `wbtc2btcRevoke should fail while is halting`);
     });
 
 
-    /*
-    it('[HTLCWETH-T2503]', async() => {
-        await HTLCWETHInstance.setWETHManager(emptyAddress, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), emptyAddress, `setWETHManager fail`);
-
-        let retError;
-        try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:user});
-        } catch (e) {
-            retError = e;
-        }
-
-        await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
-        assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `setWETHManager fail`);
-
-        assert.notEqual(retError, undefined, `weth2ethRevoke should fail while wethManager is uninitialized`);
-    });
-    */
-
-    it('[HTLCWETH-T2504]', async() => {
+    it('[HTLCWBTC-T2504]', async() => {
         await sleep((HTLCLockedTime+5)*1000);
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash6, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash6, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke should fail while xHash doesnt exist`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke should fail while xHash doesnt exist`);
     });
 
 
-    it('[HTLCWETH-T2505]', async() => {
+    it('[HTLCWBTC-T2505]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:owner});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash4, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `weth2ethRevoke should fail while sender is not user`);
+        assert.notEqual(retError, undefined, `wbtc2btcRevoke should fail while sender is not user`);
     });
 
-    it('[HTLCWETH-T2510]', async() => {
+    it('[HTLCWBTC-T2510]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRevoke(xHash4, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRevoke(xHash4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRevoke can not replace weth2ethRevoke`);
+        assert.notEqual(retError, undefined, `btc2wbtcRevoke can not replace wbtc2btcRevoke`);
     });
 
 
-    it('HTLCWETH-T2507]', async() => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it('HTLCWBTC-T2507]', async() => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
         console.log("beforeSCToken:", beforeSCToken);
 
         let beforeUserBalance = await web3.eth.getBalance(user);
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let beforeStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("beforeUserBalance:", beforeUserBalance);
         console.log("beforeSCBalance:", beforeSCBalance);
         console.log("beforeStoremanBalance:", beforeStoremanBalance);
 
 
-        let ret = await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:user, gasPrice:'0x'+GasPrice.toString(16)});
+        let ret = await HTLCWBTCInstance.wbtc2btcRevoke(xHash4, {from:user, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHRevoke",
+            event: "WBTC2BTCRevoke",
             args: {
                 wanAddr: user,
                 xHash: xHash4
             }
-        }, `weth2ethRevoke fail`)
+        }, `wbtc2btcRevoke fail`)
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
         console.log("afterSCToken:", afterSCToken);
 
         let afterUserBalance = await web3.eth.getBalance(user);
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let afterStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("afterUserBalance:", afterUserBalance);
         console.log("afterSCBalance:", afterSCBalance);
@@ -1335,11 +1182,11 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.add(web3.toWei(1)).toString(), "unexcept user token");
         assert.equal(afterSCToken.toString(), beforeSCToken.sub(web3.toWei(1)).toString(), "unexcept SC token");
 
-        let revokeFee = Weth2EthLockFee.mul(HTLCRevokeFeeRatio).div(RATIO_PRECISE);
-        let leftFee = Weth2EthLockFee.sub(revokeFee);
+        let revokeFee = wbtc2btcLockFee.mul(HTLCRevokeFeeRatio).div(RATIO_PRECISE);
+        let leftFee = wbtc2btcLockFee.sub(revokeFee);
         let exceptUserBalance = beforeUserBalance.sub(gasPrice.mul(gasUsed)).add(leftFee);
         let exceptStoremanBalance = beforeStoremanBalance.add(revokeFee);
-        let exceptSCBalance = beforeSCBalance.sub(Weth2EthLockFee);
+        let exceptSCBalance = beforeSCBalance.sub(wbtc2btcLockFee);
         console.log("revokeFee:", revokeFee);
         console.log("leftFee:", leftFee);
         console.log("exceptUserBalance:", exceptUserBalance);
@@ -1354,42 +1201,42 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    it('HTLCWETH-T2508]', async() => {
-        let Weth2EthLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
+    it('HTLCWBTC-T2508]', async() => {
+        let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
 
-        let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let beforeUserToken = await WETHInstance.balanceOf(user);
-        let beforeSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let beforeUserToken = await WBTCInstance.balanceOf(user);
+        let beforeSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
         console.log("beforeSCToken:", beforeSCToken);
 
         let beforeUserBalance = await web3.eth.getBalance(user);
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let beforeStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("beforeUserBalance:", beforeUserBalance);
         console.log("beforeSCBalance:", beforeSCBalance);
         console.log("beforeStoremanBalance:", beforeStoremanBalance);
 
 
-        let ret = await HTLCWETHInstance.weth2ethRevoke(xHasha, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
+        let ret = await HTLCWBTCInstance.wbtc2btcRevoke(xHasha, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHRevoke",
+            event: "WBTC2BTCRevoke",
             args: {
                 wanAddr: user,
                 xHash: xHasha
             }
-        }, `weth2ethRevoke fail`)
+        }, `wbtc2btcRevoke fail`)
 
-        let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
-        let afterUserToken = await WETHInstance.balanceOf(user);
-        let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
+        let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+        let afterUserToken = await WBTCInstance.balanceOf(user);
+        let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
         console.log("afterStoremanInfo:", afterStoremanInfo);
         console.log("afterUserToken:", afterUserToken);
         console.log("afterSCToken:", afterSCToken);
 
         let afterUserBalance = await web3.eth.getBalance(user);
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let afterStoremanBalance = await web3.eth.getBalance(storeman);
         console.log("afterUserBalance:", afterUserBalance);
         console.log("afterSCBalance:", afterSCBalance);
@@ -1407,11 +1254,11 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterUserToken.toString(), beforeUserToken.add(web3.toWei(1)).toString(), "unexcept user token");
         assert.equal(afterSCToken.toString(), beforeSCToken.sub(web3.toWei(1)).toString(), "unexcept SC token");
 
-        let revokeFee = Weth2EthLockFee.mul(HTLCRevokeFeeRatio).div(RATIO_PRECISE);
-        let leftFee = Weth2EthLockFee.sub(revokeFee);
+        let revokeFee = wbtc2btcLockFee.mul(HTLCRevokeFeeRatio).div(RATIO_PRECISE);
+        let leftFee = wbtc2btcLockFee.sub(revokeFee);
         let exceptUserBalance = beforeUserBalance.add(leftFee);
         let exceptStoremanBalance = beforeStoremanBalance.add(revokeFee).sub(gasPrice.mul(gasUsed));
-        let exceptSCBalance = beforeSCBalance.sub(Weth2EthLockFee);
+        let exceptSCBalance = beforeSCBalance.sub(wbtc2btcLockFee);
         console.log("revokeFee:", revokeFee);
         console.log("leftFee:", leftFee);
         console.log("exceptUserBalance:", exceptUserBalance);
@@ -1425,30 +1272,30 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
-    it('[HTLCWETH-T2509]', async() => {
+    it('[HTLCWBTC-T2509]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRevoke(xHash4, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRevoke(xHash4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `weth2ethRevoke should fail while repeated`);
+        assert.notEqual(retError, undefined, `wbtc2btcRevoke should fail while repeated`);
     });
 
 
-    it('[HTLCWETH-T2701]', async() => {
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+    it('[HTLCWBTC-T2701]', async() => {
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log("beforeSCBalance:", beforeSCBalance);
 
         let retError;
         try {
-            await HTLCWETHInstance.sendTransaction({from:storeman, value:web3.toWei(1)});
+            await HTLCWBTCInstance.sendTransaction({from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         console.log(`afterSCBalance:`, afterSCBalance);
 
         assert.equal(beforeSCBalance.toString(), afterSCBalance.toString(), `SC balance should not be changed`)
@@ -1456,34 +1303,34 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
-    it('[HTLCWETH-T2702]', async() => {
+    it('[HTLCWBTC-T2702]', async() => {
         await resetHalted(false);
 
         let retError;
         try {
-            await HTLCWETHInstance.setHalt(true, {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setHalt(true, {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
-        let afterHalted = await HTLCWETHInstance.halted();
+        let afterHalted = await HTLCWBTCInstance.halted();
         console.log(`afterHaled:`, afterHalted);
 
         assert.equal(false, afterHalted, `halted should not be changed`);
         assert.notEqual(retError, undefined, `setHalt should fail while called by non owner`);
     });
 
-    it('[HTLCWETH-T2703]', async() => {
+    it('[HTLCWBTC-T2703]', async() => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setHalt(false, {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setHalt(false, {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
-        let afterHalted = await HTLCWETHInstance.halted();
+        let afterHalted = await HTLCWBTCInstance.halted();
         console.log(`afterHaled:`, afterHalted);
 
         await resetHalted(false);
@@ -1492,128 +1339,128 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
-    it('[HTLCWETH-T2704]', async() => {
-        let beforeLockedTime = await HTLCWETHInstance.lockedTime();
+    it('[HTLCWBTC-T2704]', async() => {
+        let beforeLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`beforeLockedTime:`, beforeLockedTime);
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setLockedTime(beforeLockedTime.mul(2), {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setLockedTime(beforeLockedTime.mul(2), {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterLockedTime = await HTLCWETHInstance.lockedTime();
+        let afterLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`afterLockedTime:`, afterLockedTime);
 
         assert.equal(beforeLockedTime.toString(), afterLockedTime.toString(), `lockedTime should not be changed`);
         assert.notEqual(retError, undefined, `setLockedTime should fail while called by non owner`);
     });
 
-    it('[HTLCWETH-T2705]', async() => {
-        let beforeLockedTime = await HTLCWETHInstance.lockedTime();
+    it('[HTLCWBTC-T2705]', async() => {
+        let beforeLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`beforeLockedTime:`, beforeLockedTime);
 
         let retError;
         try {
-            await HTLCWETHInstance.setLockedTime(beforeLockedTime.mul(2), {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setLockedTime(beforeLockedTime.mul(2), {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
-        let afterLockedTime = await HTLCWETHInstance.lockedTime();
+        let afterLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`afterLockedTime:`, afterLockedTime);
 
         assert.equal(beforeLockedTime.toString(), afterLockedTime.toString(), `lockedTime should not be changed`);
         assert.notEqual(retError, undefined, `setLockedTime should fail while halted is false`);
     });
 
-    it('[HTLCWETH-T2706]', async() => {
-        let beforeLockedTime = await HTLCWETHInstance.lockedTime();
+    it('[HTLCWBTC-T2706]', async() => {
+        let beforeLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`beforeLockedTime:`, beforeLockedTime);
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setLockedTime(beforeLockedTime.mul(2), {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setLockedTime(beforeLockedTime.mul(2), {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterLockedTime = await HTLCWETHInstance.lockedTime();
+        let afterLockedTime = await HTLCWBTCInstance.lockedTime();
         console.log(`afterLockedTime:`, afterLockedTime);
 
         assert.equal(beforeLockedTime.mul(2).toString(), afterLockedTime.toString(), `lockedTime should be changed`);
         assert.equal(retError, undefined, `setLockedTime fail`);
     });
 
-    it(`[HTLCWETH-T2707]`, async() => {
-        let beforeRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+    it(`[HTLCWBTC-T2707]`, async() => {
+        let beforeRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`beforeRevokeFeeRatio:`, beforeRevokeFeeRatio);
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+        let afterRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`afterRevokeFeeRatio:`, afterRevokeFeeRatio);
 
         assert.equal(afterRevokeFeeRatio.toString(), beforeRevokeFeeRatio.toString(), `revokeFeeRatio should not be changed`);
         assert.notEqual(retError, undefined, `setRevokeFeeRatio should fail while called by non owner`)
     })
 
-    it(`[HTLCWETH-T2708]`, async() => {
-        let beforeRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+    it(`[HTLCWBTC-T2708]`, async() => {
+        let beforeRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`beforeRevokeFeeRatio:`, beforeRevokeFeeRatio);
 
         await resetHalted(false);
 
         let retError;
         try {
-            await HTLCWETHInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(true);
 
-        let afterRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+        let afterRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`afterRevokeFeeRatio:`, afterRevokeFeeRatio);
 
         assert.equal(afterRevokeFeeRatio.toString(), beforeRevokeFeeRatio.toString(), `revokeFeeRatio should not be changed`);
         assert.notEqual(retError, undefined, `setRevokeFeeRatio should fail while halted is false`)
     })
 
-    it(`[HTLCWETH-T2709]`, async() => {
-        let beforeRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+    it(`[HTLCWBTC-T2709]`, async() => {
+        let beforeRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`beforeRevokeFeeRatio:`, beforeRevokeFeeRatio);
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setRevokeFeeRatio(beforeRevokeFeeRatio.add(1), {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterRevokeFeeRatio = await HTLCWETHInstance.revokeFeeRatio();
+        let afterRevokeFeeRatio = await HTLCWBTCInstance.revokeFeeRatio();
         console.log(`afterRevokeFeeRatio:`, afterRevokeFeeRatio);
 
         assert.equal(afterRevokeFeeRatio.toString(), beforeRevokeFeeRatio.add(1).toString(), `revokeFeeRatio should be changed`);
@@ -1621,75 +1468,75 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     })
 
 
-    it(`[HTLCWETH-T2710]`, async() => {
-        let beforeWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`beforeWethManager:`, beforeWethManager);
-        let newWethManager = '0x0000000000000000000000000000000000000011';
+    it(`[HTLCWBTC-T2710]`, async() => {
+        let beforeWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`beforeWbtcManager:`, beforeWbtcManager);
+        let newWbtcManager = '0x0000000000000000000000000000000000000011';
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setWETHManager(newWethManager, {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setWBTCManager(newWbtcManager, {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`afterWethManager:`, afterWethManager);
+        let afterWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`afterWbtcManager:`, afterWbtcManager);
 
-        assert.equal(beforeWethManager, afterWethManager, `wethManager should not be changed`);
-        assert.notEqual(retError, undefined, `setWETHManager should fail while called by non owner`)
+        assert.equal(beforeWbtcManager, afterWbtcManager, `wbtcManager should not be changed`);
+        assert.notEqual(retError, undefined, `setWBTCManager should fail while called by non owner`)
     })
 
-    it(`[HTLCWETH-T2711]`, async() => {
-        let beforeWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`beforeWethManager:`, beforeWethManager);
-        let newWethManager = '0x0000000000000000000000000000000000000011';
+    it(`[HTLCWBTC-T2711]`, async() => {
+        let beforeWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`beforeWbtcManager:`, beforeWbtcManager);
+        let newWbtcManager = '0x0000000000000000000000000000000000000011';
 
         let retError;
         try {
-            await HTLCWETHInstance.setWETHManager(newWethManager, {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setWBTCManager(newWbtcManager, {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
-        let afterWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`afterWethManager:`, afterWethManager);
+        let afterWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`afterWbtcManager:`, afterWbtcManager);
 
-        assert.equal(beforeWethManager, afterWethManager, `wethManager should not be changed`);
-        assert.notEqual(retError, undefined, `setWETHManager should fail while halted is true`)
+        assert.equal(beforeWbtcManager, afterWbtcManager, `wbtcManager should not be changed`);
+        assert.notEqual(retError, undefined, `setWBTCManager should fail while halted is true`)
     })
 
 
-    it(`[HTLCWETH-T2712]`, async() => {
-        let beforeWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`beforeWethManager:`, beforeWethManager);
-        let newWethManager = '0x0000000000000000000000000000000000000011';
+    it(`[HTLCWBTC-T2712]`, async() => {
+        let beforeWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`beforeWbtcManager:`, beforeWbtcManager);
+        let newWbtcManager = '0x0000000000000000000000000000000000000011';
 
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.setWETHManager(newWethManager, {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setWBTCManager(newWbtcManager, {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterWethManager = await HTLCWETHInstance.wethManager();
-        console.log(`afterWethManager:`, afterWethManager);
+        let afterWbtcManager = await HTLCWBTCInstance.wbtcManager();
+        console.log(`afterWbtcManager:`, afterWbtcManager);
 
-        assert.equal(newWethManager, afterWethManager, `wethManager should be changed`);
-        assert.equal(retError, undefined, `setWETHManager fail`)
+        assert.equal(newWbtcManager, afterWbtcManager, `wbtcManager should be changed`);
+        assert.equal(retError, undefined, `setWBTCManager fail`)
     })
 
 
-    it(`[HTLCWETH-T2713]`, async() => {
-        let beforeStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+    it(`[HTLCWBTC-T2713]`, async() => {
+        let beforeStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`beforeStoremanGroupAdmin:`, beforeStoremanGroupAdmin);
         let newAddress = '0x0000000000000000000000000000000000000011';
 
@@ -1697,14 +1544,14 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.setStoremanGroupAdmin(newAddress, {from:storeman, gas:4000000});
+            await HTLCWBTCInstance.setStoremanGroupAdmin(newAddress, {from:storeman, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+        let afterStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`afterStoremanGroupAdmin:`, afterStoremanGroupAdmin);
 
         assert.equal(beforeStoremanGroupAdmin, afterStoremanGroupAdmin, `storemanGroupAdmin should not be changed`);
@@ -1712,19 +1559,19 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     })
 
 
-    it(`[HTLCWETH-T2714]`, async() => {
-        let beforeStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+    it(`[HTLCWBTC-T2714]`, async() => {
+        let beforeStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`beforeStoremanGroupAdmin:`, beforeStoremanGroupAdmin);
         let newAddress = '0x0000000000000000000000000000000000000011';
 
         let retError;
         try {
-            await HTLCWETHInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
-        let afterStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+        let afterStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`afterStoremanGroupAdmin:`, afterStoremanGroupAdmin);
 
         assert.equal(beforeStoremanGroupAdmin, afterStoremanGroupAdmin, `storemanGroupAdmin should not be changed`);
@@ -1732,8 +1579,8 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     })
 
 
-    it(`[HTLCWETH-T2715]`, async() => {
-        let beforeStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+    it(`[HTLCWBTC-T2715]`, async() => {
+        let beforeStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`beforeStoremanGroupAdmin:`, beforeStoremanGroupAdmin);
         let newAddress = '0x0000000000000000000000000000000000000011';
 
@@ -1741,14 +1588,14 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        let afterStoremanGroupAdmin = await HTLCWETHInstance.storemanGroupAdmin();
+        let afterStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
         console.log(`afterStoremanGroupAdmin:`, afterStoremanGroupAdmin);
 
         assert.equal(newAddress, afterStoremanGroupAdmin, `storemanGroupAdmin should be changed`);
@@ -1756,12 +1603,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     })
 
 
-    it('[HTLCWETH-T2601]', async() => {
+    it('[HTLCWBTC-T2601]', async() => {
         await resetHalted(true);
 
         let retError;
         try {
-            await HTLCWETHInstance.kill({from:storeman});
+            await HTLCWBTCInstance.kill({from:storeman});
         } catch (e) {
             retError = e;
         }
@@ -1772,10 +1619,10 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
-    it('[HTLCWETH-T2602]', async() => {
+    it('[HTLCWBTC-T2602]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.kill({from:owner});
+            await HTLCWBTCInstance.kill({from:owner});
         } catch (e) {
             retError = e;
         }
@@ -1783,22 +1630,22 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.notEqual(retError, undefined, `kill should fail while halted is true`);
     });
 
-    it('[HTLCWETH-T2603]', async() => {
+    it('[HTLCWBTC-T2603]', async() => {
         await resetHalted(true);
 
-        let beforeSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let beforeSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let beforeOwnerBalance = await web3.eth.getBalance(owner);
         console.log("beforeSCBalance:", beforeSCBalance);
         console.log("beforeOwnerBalance:", beforeOwnerBalance);
 
-        let ret = await HTLCWETHInstance.kill({from:owner, gasPrice:"0x"+GasPrice.toString(16)});
-        assert.equal(ret.receipt.status, '0x1', 'kill HTLCWETH SC fail');
+        let ret = await HTLCWBTCInstance.kill({from:owner, gasPrice:"0x"+GasPrice.toString(16)});
+        assert.equal(ret.receipt.status, '0x1', 'kill HTLCWBTC SC fail');
 
-        let scCode = await web3.eth.getCode(HTLCWETHInstance.address);
+        let scCode = await web3.eth.getCode(HTLCWBTCInstance.address);
         console.log("scCode:", scCode);
         assert.equal(scCode, '0x', 'code data should be empoty');
 
-        let afterSCBalance = await web3.eth.getBalance(HTLCWETHInstance.address);
+        let afterSCBalance = await web3.eth.getBalance(HTLCWBTCInstance.address);
         let afterOwnerBalance = await web3.eth.getBalance(owner);
         console.log("afterSCBalance:", afterSCBalance);
         console.log("afterOwnerBalance:", afterOwnerBalance);
@@ -1809,7 +1656,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterSCBalance.toString(), "0", "unexcept SC balance");
         assert.equal(afterOwnerBalance.toString(), beforeOwnerBalance.add(beforeSCBalance).sub(gasPrice.mul(gasUsed)).toString(), "unexcept owner balance");
 
-        assert.equal(await HTLCWETHInstance.lockedTime(), 0, "unexcept locked time");
+        assert.equal(await HTLCWBTCInstance.lockedTime(), 0, "unexcept locked time");
     });
 
 })
