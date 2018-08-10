@@ -136,9 +136,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
        let BTC_ID = 1;
        let ratio = 200000; //1 btc:20 wan,it need to mul the precise 10000
        let defaultMinDeposit = web3.toWei(100);
-       let htlcType = 1; //use contract
-
-       let originalChainHtlc = '0x7452bcd07fc6bb75653de9d9459bd442ac3f5c52';
+       let htlcType = 1; //use script
 
        let wanchainHtlcAddr = HTLCWBTCInstance.address;
        let wanchainTokenAdminAddr = WBTCManagerInstance.address;
@@ -149,7 +147,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
            ratio,
            defaultMinDeposit,
            htlcType,
-           originalChainHtlc,
+           null,
            wanchainHtlcAddr,
            wanchainTokenAdminAddr,
            withdrawDelayTime,

@@ -162,7 +162,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        let ETHEREUM_ID = 0;
        let ratio = 200000; //1 eth:20,it need to mul the precise 10000
        let defaultMinDeposit = web3.toWei(100);
-       let htlcType = 1; //use contract
+       let htlcType = 0; //use contract
 
        let originalChainHtlc = '0x7452bcd07fc6bb75653de9d9459bd442ac3f5c52';
 
