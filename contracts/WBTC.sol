@@ -38,7 +38,7 @@ contract WBTC is StandardToken, Owned {
 
   string public constant name = "Wanchain Btc Crosschain Token";
   string public constant symbol = "WBTC";
-  uint8 public constant decimals = 18;
+  uint8 public constant decimals = 8;
 
   /// WBTC manager address
   address public tokenManager;

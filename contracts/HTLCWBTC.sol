@@ -36,6 +36,20 @@ contract HTLCWBTC is HTLCBase {
 
     /**
     *
+    * STRUCTURES
+    *
+    */
+
+    struct BtcLockedNotice {
+        address storeman;
+        address userAddr;
+        bytes32 txHash;
+        uint lockedTimestamp;
+    }
+
+
+    /**
+    *
     * VARIABLES
     *
     */
@@ -49,6 +63,9 @@ contract HTLCWBTC is HTLCBase {
     /// @notice transaction fee
     mapping(bytes32 => uint) public mapXHashFee;
 
+    /// @notice notices of having locked on bitcoin blockchain
+    mapping(bytes32 => BtcLockedNotice) public mapXHash2BtcLockedNotice;
+
     /// @notice token index of WBTC
     uint public constant BTC_INDEX = 1;
 
@@ -58,6 +75,13 @@ contract HTLCWBTC is HTLCBase {
     *
     **/
 
+    /// @notice            event of wallet submit that has locked on bitcoin blockchain
+    /// @param storeman    address of storeman
+    /// @param userWanAddr user address of wanchain, used to receive WBTC
+    /// @param xHash       hash of HTLC random number
+    /// @param txHash      transaction hash on bitcoin blockchain
+    /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
+    event BTC2WBTCLockNotice(address indexed storeman, address indexed userWanAddr, bytes32 indexed xHash, bytes32 txHash,  uint lockedTimestamp);
     /// @notice            event of exchange WBTC with BTC request
     /// @param storeman    address of storeman
     /// @param wanAddr     address of wanchain, used to receive WBTC
@@ -82,6 +106,13 @@ contract HTLCWBTC is HTLCBase {
     /// @param btcAddr     address of btc, used to receive BTC
     /// @param fee         exchange fee
     event WBTC2BTCLock(address indexed wanAddr, address indexed storeman, bytes32 indexed xHash, uint value, address btcAddr, uint fee);
+    /// @notice            event of storeman submit that has locked on bitcoin blockchain
+    /// @param storeman    address of storeman
+    /// @param userBtcAddr user address of wanchain, used to receive BTC
+    /// @param xHash       hash of HTLC random number
+    /// @param txHash      transaction hash on bitcoin blockchain
+    /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
+    event WBTC2BTCLockNotice(address indexed storeman, address indexed userBtcAddr, bytes32 indexed xHash, bytes32 txHash,  uint lockedTimestamp);
     /// @notice            event of refund WBTC from exchange BTC with WBTC HTLC transaction
     /// @param storeman    address of storeman, used to receive WBTC
     /// @param wanAddr     address of user, where the WBTC come from
@@ -115,8 +146,8 @@ contract HTLCWBTC is HTLCBase {
     /// @notice         set WBTCManager SC address(only owner have the right)
     /// @param  addr    WBTCManager SC address
     function setWBTCManager(address addr)
-        public 
-        onlyOwner 
+        public
+        onlyOwner
         isHalted
         returns (bool)
     {
@@ -138,15 +169,39 @@ contract HTLCWBTC is HTLCBase {
         return true;
     }
 
+    /// @notice            wallet submit that has locked on bitcoin blockchain
+    /// @param storeman    address of storeman
+    /// @param userWanAddr address of wanchain, used to receive WBTC
+    /// @param xHash       hash of HTLC random number
+    /// @param txHash      transaction hash on bitcoin blockchain
+    /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
+    function btc2wbtcLockNotice(address storeman, address userWanAddr, bytes32 xHash, bytes32 txHash, uint lockedTimestamp)
+        public
+        initialized
+        notHalted
+        returns(bool)
+    {
+        require(mapXHash2BtcLockedNotice[xHash].lockedTimestamp == 0);
+        require(storeman != address(0x00));
+        require(userWanAddr != address(0x00));
+        require(xHash != byte32(0x00));
+        require(txHash != byte32(0x00));
+        require(lockedTimestamp != 0);
+
+        mapXHash2BtcLockedNotice[xHash] = BtcLockedNotice(storeman, userWanAddr, txHash, lockedTimestamp);
+        emit BTC2WBTCLockNotice(storeman, userWanAddr, xHash, txHash, lockedTimestamp);
+        return true;
+    }
+
     /// @notice         request exchange WBTC with BTC(to prevent collision, x must be a 256bit random bigint)
     /// @param xHash    hash of HTLC random number
     /// @param wanAddr  address of user, used to receive WBTC
     /// @param value    exchange value
     function btc2wbtcLock(bytes32 xHash, address wanAddr, uint value)
-        public 
-        initialized 
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         addHTLCTx(TxDirection.Coin2Wtoken, msg.sender, wanAddr, xHash, value, false, address(0x00));
         if (!WTokenManagerInterface(wbtcManager).lockQuota(msg.sender, wanAddr, value)) {
@@ -160,10 +215,10 @@ contract HTLCWBTC is HTLCBase {
     /// @notice  refund WBTC from the HTLC transaction of exchange WBTC with BTC(must be called before HTLC timeout)
     /// @param x HTLC random number
     function btc2wbtcRefund(bytes32 x)
-        public 
-        initialized 
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         bytes32 xHash= refundHTLCTx(x, TxDirection.Coin2Wtoken);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -178,10 +233,10 @@ contract HTLCWBTC is HTLCBase {
     /// @notice revoke HTLC transaction of exchange WBTC with BTC(must be called after HTLC timeout)
     /// @param  xHash  hash of HTLC random number
     function btc2wbtcRevoke(bytes32 xHash)
-        public 
-        initialized 
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         revokeHTLCTx(xHash, TxDirection.Coin2Wtoken, false);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -199,14 +254,14 @@ contract HTLCWBTC is HTLCBase {
     /// @param btcAddr  address of BTC, used to receive BTC
     /// @param value    exchange value
     function wbtc2btcLock(bytes32 xHash, address storeman, address btcAddr, uint value)
-        public 
+        public
         initialized
         notHalted
         payable
-        returns(bool) 
+        returns(bool)
     {
         require(!isContract(msg.sender));
-        
+
         // check withdraw fee
         uint fee = getWbtc2BtcFee(storeman, value);
         require(msg.value >= fee);
@@ -215,9 +270,9 @@ contract HTLCWBTC is HTLCBase {
         if (!WTokenManagerInterface(wbtcManager).lockToken(storeman, msg.sender, value)) {
             revert();
         }
-        
+
         mapXHashFee[xHash] = fee;
-        
+
         // restore the extra cost
         uint left = msg.value.sub(fee);
         if (left != 0) {
@@ -228,13 +283,37 @@ contract HTLCWBTC is HTLCBase {
         return true;
     }
 
+    /// @notice            storeman submit that has locked on bitcoin blockchain
+    /// @param storeman    address of storeman
+    /// @param userBtcAddr address of wanchain, used to receive WBTC
+    /// @param xHash       hash of HTLC random number
+    /// @param txHash      transaction hash on bitcoin blockchain
+    /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
+    function wbtc2btcLockNotice(address storeman, address userBtcAddr, bytes32 xHash, bytes32 txHash, uint lockedTimestamp)
+        public
+        initialized
+        notHalted
+        returns(bool)
+    {
+        require(mapXHash2BtcLockedNotice[xHash].lockedTimestamp == 0);
+        require(storeman != address(0x00));
+        require(userBtcAddr != address(0x00));
+        require(xHash != byte32(0x00));
+        require(txHash != byte32(0x00));
+        require(lockedTimestamp != 0);
+
+        mapXHash2BtcLockedNotice[xHash] = BtcLockedNotice(storeman, userBtcAddr, txHash, lockedTimestamp);
+        emit WBTC2BTCLockNotice(storeman, userBtcAddr, xHash, txHash, lockedTimestamp);
+        return true;
+    }
+
     /// @notice  refund WBTC from the HTLC transaction of exchange BTC with WBTC(must be called before HTLC timeout)
     /// @param x HTLC random number
     function wbtc2btcRefund(bytes32 x)
-        public 
-        initialized 
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         bytes32 xHash = refundHTLCTx(x, TxDirection.Wtoken2Coin);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -251,10 +330,10 @@ contract HTLCWBTC is HTLCBase {
     /// @notice        the revoking fee will be sent to storeman
     /// @param  xHash  hash of HTLC random number
     function wbtc2btcRevoke(bytes32 xHash)
-        public 
-        initialized 
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         revokeHTLCTx(xHash, TxDirection.Wtoken2Coin, true);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -268,15 +347,15 @@ contract HTLCWBTC is HTLCBase {
         if (revokeFee > 0) {
             info.destination.transfer(revokeFee);
         }
-        
+
         if (left > 0) {
             info.source.transfer(left);
         }
-        
+
         emit WBTC2BTCRevoke(info.source, xHash);
         return true;
     }
-    
+
     /// @notice          getting wbtc 2 btc fee
     /// @param  storeman address of storeman
     /// @param  value    HTLC tx value
@@ -296,17 +375,17 @@ contract HTLCWBTC is HTLCBase {
     /// @notice      internal function to determine if an address is a contract
     /// @param  addr the address being queried
     /// @return      true if `addr` is a contract
-    function isContract(address addr) 
-        internal 
-        view 
-        returns(bool) 
+    function isContract(address addr)
+        internal
+        view
+        returns(bool)
     {
         uint size;
         if (addr == 0) return false;
         assembly {
             size := extcodesize(addr)
         }
-        
+
         return size > 0;
     }
 
