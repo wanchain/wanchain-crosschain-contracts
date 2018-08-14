@@ -184,8 +184,8 @@ contract HTLCWBTC is HTLCBase {
         require(mapXHash2BtcLockedNotice[xHash].lockedTimestamp == 0);
         require(storeman != address(0x00));
         require(userWanAddr != address(0x00));
-        require(xHash != byte32(0x00));
-        require(txHash != byte32(0x00));
+        require(xHash != 0);
+        require(txHash != 0);
         require(lockedTimestamp != 0);
 
         mapXHash2BtcLockedNotice[xHash] = BtcLockedNotice(storeman, userWanAddr, txHash, lockedTimestamp);
@@ -298,8 +298,8 @@ contract HTLCWBTC is HTLCBase {
         require(mapXHash2BtcLockedNotice[xHash].lockedTimestamp == 0);
         require(storeman != address(0x00));
         require(userBtcAddr != address(0x00));
-        require(xHash != byte32(0x00));
-        require(txHash != byte32(0x00));
+        require(xHash != 0);
+        require(txHash != 0);
         require(lockedTimestamp != 0);
 
         mapXHash2BtcLockedNotice[xHash] = BtcLockedNotice(storeman, userBtcAddr, txHash, lockedTimestamp);
