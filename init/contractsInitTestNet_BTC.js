@@ -52,7 +52,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
     wbtcTokenAddr = await wbtcManagerInst.WBTCToken();
     wbtcInst = WBTC.at(wbtcTokenAddr);
     console.log("\n")
-    console.log("\nvar WBTCTokenAbi=" + JSON.stringify(wbtcInst.abi) + ";");
+    console.log("\nvar WBTCTokenAbi=web3.eth.contract(" + JSON.stringify(wbtcInst.abi) + ");");
     console.log("var WBTCTokenInt=WBTCTokenAbi.at(\'" + wbtcTokenAddr + "\');");
     console.log("WBTCTokenInt.setHalt(true,{from:\'"+ owner +"\'})");
 

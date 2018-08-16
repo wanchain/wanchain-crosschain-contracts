@@ -165,7 +165,8 @@ contract HTLCWETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash= refundHTLCTx(x, TxDirection.Coin2Wtoken);
+        bytes32 xHash = keccak256(x);
+        refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         if (!WTokenManagerInterface(wethManager).mintToken(info.source, info.destination, info.value)) {
             revert();
@@ -236,7 +237,8 @@ contract HTLCWETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Wtoken2Coin);
+        bytes32 xHash = keccak256(x);
+        refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         if (!WTokenManagerInterface(wethManager).burnToken(info.destination, info.value)) {
             revert();

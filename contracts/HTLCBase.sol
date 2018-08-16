@@ -195,15 +195,12 @@ contract HTLCBase is Halt {
     }
     
     /// @notice             refund coins from HTLC transaction
-    /// @param  x           random number of HTLC
+    /// @param  xHash       hash of HTLC random number
     /// @param  direction   HTLC transaction direction
     /// @return xHash       return hash of HTLC random number
-    function refundHTLCTx(bytes32 x, TxDirection direction)
+    function refundHTLCTx(bytes32 xHash, TxDirection direction)
         internal
-        returns(bytes32 xHash)
     {
-        xHash = keccak256(x);
-        
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         require(info.status == TxStatus.Locked);
         require(info.direction == direction);
@@ -211,7 +208,6 @@ contract HTLCBase is Halt {
         require(now < info.beginLockedTime.add(info.lockedTime));
         
         info.status = TxStatus.Refunded;
-        return (xHash);
     }
     
     /// @notice             revoke HTLC transaction

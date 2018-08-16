@@ -99,7 +99,8 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Coin2Wtoken);
+        bytes32 xHash = keccak256(x);
+        refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
 
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -158,7 +159,8 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Wtoken2Coin);
+        bytes32 xHash = keccak256(x);
+        refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
         
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];

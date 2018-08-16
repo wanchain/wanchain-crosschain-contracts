@@ -220,7 +220,8 @@ contract HTLCWBTC is HTLCBase {
         notHalted
         returns(bool)
     {
-        bytes32 xHash= refundHTLCTx(x, TxDirection.Coin2Wtoken);
+        bytes32 xHash = sha256(x);
+        refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         if (!WTokenManagerInterface(wbtcManager).mintToken(info.source, info.destination, info.value)) {
             revert();
@@ -315,7 +316,8 @@ contract HTLCWBTC is HTLCBase {
         notHalted
         returns(bool)
     {
-        bytes32 xHash = refundHTLCTx(x, TxDirection.Wtoken2Coin);
+        bytes32 xHash = sha256(x);
+        refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         if (!WTokenManagerInterface(wbtcManager).burnToken(info.destination, info.value)) {
             revert();
