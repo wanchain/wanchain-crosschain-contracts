@@ -97,7 +97,6 @@ contract HTLCWBTC is HTLCBase {
     /// @param xHash       hash of HTLC random number
     /// @param x           HTLC random number
     event BTC2WBTCRefund(address indexed wanAddr, address indexed storeman, bytes32 indexed xHash, bytes32 x);
-//    event BTC2WBTCRefund(address indexed userWanAddr, address indexed stmWanAddr, bytes32 indexed xHash, address userBtcAddr, bytes32 txHash, uint lockedTimestamp, bytes32 x);
     /// @notice            event of revoke exchange WBTC with BTC HTLC transaction
     /// @param storeman    address of storeman
     /// @param xHash       hash of HTLC random number
@@ -224,9 +223,6 @@ contract HTLCWBTC is HTLCBase {
         notHalted
         returns(bool)
     {
-        BtcLockedNotice noticeInfo = mapXHash2BtcLockedNotice[xHash];
-        require(noticeInfo.stmWanAddr != address(0x00));
-
         bytes32 xHash = sha256(x);
         refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
 
@@ -294,11 +290,12 @@ contract HTLCWBTC is HTLCBase {
 
     /// @notice            storeman submit that has locked on bitcoin blockchain
     /// @param stmBtcAddr  storeman bitcoin address
-    /// @param userBtcAddr address of wanchain, used to receive WBTC
+    /// @param userWanAddr user wanchain address
+    /// @param userBtcAddr user btc ripemd160 address, used to receive BTC
     /// @param xHash       hash of HTLC random number
     /// @param txHash      transaction hash on bitcoin blockchain
     /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
-    function wbtc2btcLockNotice(address stmBtcAddr,address userWanAddr,address userBtcAddr, bytes32 xHash, bytes32 txHash, uint lockedTimestamp)
+    function wbtc2btcLockNotice(address stmBtcAddr, address userWanAddr, address userBtcAddr, bytes32 xHash, bytes32 txHash, uint lockedTimestamp)
         public
         initialized
         notHalted
