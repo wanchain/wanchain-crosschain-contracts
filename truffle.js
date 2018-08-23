@@ -3,12 +3,12 @@
 module.exports = {
   networks: {
     development: {
-      host: "192.168.1.58",
-      port: 18545,
+      host: "18.236.235.133",
+      port: 8545,
       network_id: "*", // Match any network id
       gas: 4710000,
       gasPrice: 180e9,
-      from: "0x9da26fc2e1d6ad9fdd46138906b0104ae68a65d8",
+      from: "0xb755dc08ee919f9d80ecac014ad0a7e1d0b3b231",
     },
 	
     rinkeby: {

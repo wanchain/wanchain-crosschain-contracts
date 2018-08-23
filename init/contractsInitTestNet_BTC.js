@@ -22,7 +22,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
   let defaultMinDeposit = web3.toWei(100);
   let htlcType = 1; //use script
   let withdrawDelayTime = (3600*72);
-  let ratio = 1600000*2; //1 eth:20,it need to mul the precise 10000,there are a discount 50% for quota caculation,the the quota is deposit/(ratio)
+  let ratio = 10000//600000*2; //1 eth:20,it need to mul the precise 10000,there are a discount 50% for quota caculation,the the quota is deposit/(ratio)
   let storeManTxFeeRatio = 10;//1/1000,need to mul the precie 10000
   let precise = 10000;
 
@@ -115,7 +115,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
     await smgAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
 
     console.log("set delay time");
-    await smgAdminInst.setWithdrawDepositDelayTime(BTC_ID,60,{from: owner});
+    await smgAdminInst.setWithdrawDepositDelayTime(BTC_ID,7200,{from: owner});
 
     console.log("set halt");
     await smgAdminInst.setHalt(false,{from: owner});
@@ -142,55 +142,55 @@ contract('deploy donctracts',  ([miner, owner]) => {
     assert.equal(wbtcManageAddrGot,wbtcManagerInst.address)
   })
 
-  // it('register storeman', async () => {
-  //
-  //     let storeManWanAddr = '0x00';
-  //     let storeManBTCAddr = '0x00';
-  //
-  //     await smgAdminInst.setHalt(true, {from: owner});
-  //     await smgAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
-  //     await smgAdminInst.setSystemEnableBonus(BTC_ID, false, 0, {from: owner});
-  //     await smgAdminInst.setHalt(false, {from: owner});
-  //
-  //     console.log("storemanGroupRegister 1");
-  //
-  //     regDeposit = web3.toWei(400 * ratio / precise);//400 is quota,ration is coin2wan ration,2 is discount,the result is needed wancoin
-  //
-  //     await  smgAdminInst.storemanGroupRegisterByDelegate(BTC_ID, storeManWanAddr, storeManBtcAddr, storeManTxFeeRatio, {
-  //       from: owner,
-  //       value: regDeposit,
-  //       gas: 4000000
-  //     });
-  //
-  //     getCoinSmgInfo = await smgAdminInst.mapCoinSmgInfo(BTC_ID, storeManWanAddr);
-  //     console.log(getCoinSmgInfo);
-  //
-  //     getDeposit = getCoinSmgInfo[0].toString(10);
-  //     getOriginalChainAddr = getCoinSmgInfo[1].toString();
-  //     getUnregisterApplyTime = getCoinSmgInfo[2].toString();
-  //     gettxFeeRatio = getCoinSmgInfo[3].toString();
-  //     getbonusBlockNumber = getCoinSmgInfo[4].toString();
-  //     getinitiator = getCoinSmgInfo[5].toString();
-  //     getPunished = getCoinSmgInfo[6];
-  //
-  //     assert.equal(getDeposit, regDeposit, 'regDeposit not match');
-  //     assert.equal(getOriginalChainAddr, storeManBtcAddr, 'storeManBtcAddr not match');
-  //     assert.equal(getUnregisterApplyTime, 0, 'apply time not match');
-  //
-  //     assert.equal(gettxFeeRatio, storeManTxFeeRatio, 'gettxFeeRatio not match');
-  //     assert.notEqual(getbonusBlockNumber, 0, 'getbonusBlockNumber not match');
-  //     assert.equal(getPunished, false, 'getPunished not match');
-  //     assert.equal(getinitiator, owner, 'getinitiator not match');
-  //
-  //     console.log("wbtcManager getStoremanGroup");
-  //     btcAdminInfo = await wbtcManagerInst.getStoremanGroup(storeManWanAddr);
-  //
-  //     console.log(btcAdminInfo);
-  //
-  //     getQuota = parseInt(btcAdminInfo[0].toString());
-  //
-  //     assert.equal(web3.fromWei(getQuota), web3.fromWei((regDeposit / ratio) * precise), 'quota not match');
-  //
-  // })
+  it('register storeman', async () => {
+
+      let storeManWanAddr = '0xd0b327d711dbf1f6d5de93777cdee724a6577042';
+      let storeManBTCAddr = '0xd3a80a8e8bf8fbfea8eee3193dc834e61f257dfe';
+
+      await smgAdminInst.setHalt(true, {from: owner});
+      await smgAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
+      await smgAdminInst.setSystemEnableBonus(BTC_ID, false, 0, {from: owner});
+      await smgAdminInst.setHalt(false, {from: owner});
+
+      console.log("storemanGroupRegister 1");
+
+      regDeposit = web3.toWei(200 * ratio / precise);//400 is quota,ration is coin2wan ration,2 is discount,the result is needed wancoin
+
+      await  smgAdminInst.storemanGroupRegisterByDelegate(BTC_ID, storeManWanAddr, storeManBTCAddr, storeManTxFeeRatio, {
+        from: owner,
+        value: regDeposit,
+        gas: 4000000
+      });
+
+      getCoinSmgInfo = await smgAdminInst.mapCoinSmgInfo(BTC_ID, storeManWanAddr);
+      console.log(getCoinSmgInfo);
+
+      getDeposit = getCoinSmgInfo[0].toString(10);
+      getOriginalChainAddr = getCoinSmgInfo[1].toString();
+      getUnregisterApplyTime = getCoinSmgInfo[2].toString();
+      gettxFeeRatio = getCoinSmgInfo[3].toString();
+      getbonusBlockNumber = getCoinSmgInfo[4].toString();
+      getinitiator = getCoinSmgInfo[5].toString();
+      getPunished = getCoinSmgInfo[6];
+
+      assert.equal(getDeposit, regDeposit, 'regDeposit not match');
+      assert.equal(getOriginalChainAddr, storeManBtcAddr, 'storeManBtcAddr not match');
+      assert.equal(getUnregisterApplyTime, 0, 'apply time not match');
+
+      assert.equal(gettxFeeRatio, storeManTxFeeRatio, 'gettxFeeRatio not match');
+      assert.notEqual(getbonusBlockNumber, 0, 'getbonusBlockNumber not match');
+      assert.equal(getPunished, false, 'getPunished not match');
+      assert.equal(getinitiator, owner, 'getinitiator not match');
+
+      console.log("wbtcManager getStoremanGroup");
+      btcAdminInfo = await wbtcManagerInst.getStoremanGroup(storeManWanAddr);
+
+      console.log(btcAdminInfo);
+
+      getQuota = parseInt(btcAdminInfo[0].toString());
+
+      assert.equal(web3.fromWei(getQuota), web3.fromWei((regDeposit / ratio) * precise), 'quota not match');
+
+  })
 
 })
