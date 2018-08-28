@@ -149,6 +149,17 @@ contract WETHManager is Halt {
    ** MANIPULATIONS
    **
    ****************************************************************************/
+    function setStoremanGroupAdmin(address addr)
+        public
+        onlyOwner
+        isHalted
+        returns (bool)
+    {
+        require(addr != address(0));
+        storemanGroupAdmin = addr;
+        return true;
+    }
+   
 
   /// @notice Register a storemanGroup
   /// @dev Register a storemanGroup

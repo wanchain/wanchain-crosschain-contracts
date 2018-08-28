@@ -27,7 +27,7 @@
 pragma solidity ^0.4.11;
 
 import "./HTLCBase.sol";
-import "./StoremanGroupAdminInterface.sol";
+import "./AdminInterface.sol";
 import "./WTokenManagerInterface.sol";
 
 
@@ -58,6 +58,9 @@ contract HTLCWBTC is HTLCBase {
 
     /// @notice storeman group admin address
     address public storemanGroupAdmin;
+
+    /// @notice storeman group admin address
+    address public coinAdmin;
 
     /// @notice transaction fee
     mapping(bytes32 => uint) public mapXHashFee;
@@ -160,15 +163,19 @@ contract HTLCWBTC is HTLCBase {
     }
 
     /// @notice         set storeman group admin SC address(only owner have the right)
-    /// @param  addr    storeman group admin SC address
-    function setStoremanGroupAdmin(address addr)
+    /// @param  smgAdminAddr    storeman group admin SC address
+    function setAdmin(address smgAdminAddr,address coinAdminAddr)
         public
         onlyOwner
         isHalted
         returns (bool)
     {
-        require(addr != address(0));
-        storemanGroupAdmin = addr;
+        require(smgAdminAddr != address(0));
+        require(coinAdminAddr != address(0));
+
+        storemanGroupAdmin = smgAdminAddr;
+        coinAdmin = coinAdminAddr;
+
         return true;
     }
 
@@ -375,9 +382,11 @@ contract HTLCWBTC is HTLCBase {
         view
         returns(uint)
     {
-        StoremanGroupAdminInterface smga = StoremanGroupAdminInterface(storemanGroupAdmin);
-        uint defaultPrecise = smga.DEFAULT_PRECISE();
-        var (coin2WanRatio,,,,,,,,,,,) = smga.mapCoinInfo(BTC_INDEX);
+        CoinAdminInterface cadmin = CoinAdminInterface(coinAdmin);
+        uint defaultPrecise = cadmin.DEFAULT_PRECISE();
+        var (coin2WanRatio,,,,,,,,,,,) = cadmin.mapCoinInfo(BTC_INDEX);
+
+        SmgAdminInterface smga = SmgAdminInterface(storemanGroupAdmin);
         var (,,,txFeeratio,,,) = smga.mapCoinSmgInfo(BTC_INDEX, storeman);
         return value.mul(coin2WanRatio).mul(txFeeratio).div(defaultPrecise).div(defaultPrecise);
     }
