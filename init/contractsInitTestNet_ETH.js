@@ -7,7 +7,7 @@ const web3 = global.web3
 //var compiled = solc.compile(content, 1);
 //var icoContract = web3.eth.contract(JSON.parse(compiled.contracts[':WanchainContribution'].interface));
 
-
+const coinAdmin = artifacts.require('./CoinAdmin.sol')
 const smgAdmin = artifacts.require('./StoremanGroupAdmin.sol')
 
 const WETH = artifacts.require('./WETH.sol')
@@ -35,6 +35,7 @@ contract('deploy donctracts',  ()=> {
   let smgAdminInst;
   let htlcWETHInst;
   let wethManagerInst;
+  let coinAdminInst;
 
   let ETHEREUM_ID = 0;
 
@@ -46,7 +47,13 @@ contract('deploy donctracts',  ()=> {
   let precise = 10000;
 
   before('set up contract before test', async () => {
-    await web3.personal.unlockAccount(owner, 'wanglu', 99999)
+    await web3.personal.unlockAccount(owner, 'wanglu', 99999);
+
+    coinAdminInst =  await coinAdmin.new({from:owner})
+    console.log("\n")
+    console.log("\nvar coinAdminAbi=web3.eth.contract(" + JSON.stringify(coinAdminInst.abi)  + ");");
+    console.log("var coinAdminInst=coinAdminAbi.at(\'" + coinAdminInst.address + "\');");
+    console.log("coinAdminInst.setHalt(true,{from:\'"+ owner +"\'})");
 
     smgAdminInst = await smgAdmin.new({from:owner})
     console.log("\n")
@@ -83,12 +90,8 @@ contract('deploy donctracts',  ()=> {
     console.log("smgAdmin         address:" + smgAdminInst.address );
     console.log("HTLCETH          address:" + HTLCETHAddr );
     console.log("HTLCWETH         address:" + htlcWETHInst.address );
-    console.log("WETHToken        address:" + HTLCETHAddr );
+    console.log("WETHToken        address:" + wethTokenAddr );
     console.log("WETHTokenManager address:" + wethManagerInst.address);
-  })
-
-  it('initialize contracts step 1', async () => {
-
   })
 
 
@@ -98,15 +101,17 @@ contract('deploy donctracts',  ()=> {
     let originalChainHtlc = HTLCETHAddr;
     let wanchainHtlcAddr = htlcWETHInst.address;
     let wanchainTokenManagerAddr = wethManagerInst.address
+    let coinAdminAddr = coinAdminInst.address;
 
     console.log("originalChainHtlc:"+ originalChainHtlc);
     console.log("wanchainHtlcAddr:"+ wanchainHtlcAddr);
     console.log("wanchainTokenManagerAddr:"+ wanchainTokenManagerAddr);
+    console.log("coinAdminAddr:"+ coinAdminAddr);
     console.log("smgAdminInstAddr:"+ smgAdminInst.address);
 
     console.log(withdrawDelayTime);
 
-    res = await  smgAdminInst.initializeCoin(ETHEREUM_ID,
+    res = await  coinAdminInst.initializeCoin(ETHEREUM_ID,
                                             ratio,
                                             defaultMinDeposit,
                                             htlcType,
@@ -118,7 +123,7 @@ contract('deploy donctracts',  ()=> {
                                           );
     console.log(res);
 
-    coinInfo = await smgAdminInst.mapCoinInfo(ETHEREUM_ID);
+    coinInfo = await coinAdminInst.mapCoinInfo(ETHEREUM_ID);
 
     console.log(coinInfo);
 
@@ -139,19 +144,29 @@ contract('deploy donctracts',  ()=> {
     assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
     console.log("set ratio");
-    await smgAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
+    await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
 
     console.log("set delay time");
-    await smgAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,60,{from: owner});
+    await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,60,{from: owner});
 
     console.log("set halt");
-    await smgAdminInst.setHalt(false,{from: owner});
+    await coinAdminInst.setHalt(false,{from: owner});
     console.log(coinInfo);
+
+    console.log("set coinAdmin in smgAdmin");
+    res = await smgAdminInst.setCoinAdmin(coinAdminAddr,{from:owner});
+    console.log(res);
+
+    let gotCoinAdminAddr = await smgAdminInst.coinAminAddr();
+    assert.equal(gotCoinAdminAddr,coinAdminAddr,"the coinAdmin address is not match");
+
+    console.log("smgAdmin set halt");
+    await smgAdminInst.setHalt(false,{from: owner});
 
   })
 
   it('initialize contracts step 2', async () => {
-    await htlcWETHInst.setStoremanGroupAdmin(smgAdminInst.address,{from: owner})
+    await htlcWETHInst.setAdmin(smgAdminInst.address,coinAdminInst.address,{from: owner})
     smgAminAddrGot = await htlcWETHInst.storemanGroupAdmin()
     assert.equal(smgAdminInst.address,smgAminAddrGot)
 
@@ -174,10 +189,10 @@ contract('deploy donctracts',  ()=> {
 
   it('register storeman', async () => {
 
-      await smgAdminInst.setHalt(true, {from: owner});
-      await smgAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID, false, {from: owner});
-      await smgAdminInst.setSystemEnableBonus(ETHEREUM_ID, false, 0, {from: owner});
-      await smgAdminInst.setHalt(false, {from: owner});
+      await coinAdminInst.setHalt(true, {from: owner});
+      await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID, false, {from: owner});
+      await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID, false, 0, {from: owner});
+      await coinAdminInst.setHalt(false, {from: owner});
 
       console.log("storemanGroupRegister 1");
 
