@@ -33,8 +33,7 @@ import "./AdminInterface.sol";
 contract StoremanGroupAdmin is Halt {
     using SafeMath for uint;
 
-    uint public constant USE_CONTRACT = 0;
-    address conAminAddr;
+    address public coinAminAddr;
 
     struct StoremanGroup {
         uint        deposit;			//the storeman group deposit
@@ -115,8 +114,8 @@ contract StoremanGroupAdmin is Halt {
     /// @notice modifier for checking if contract is initialized
     /// @param coin   coin name
     modifier initialized(uint coin) {
-        require(conAminAddr!=address(0x0));
-        require(CoinAdminInterface(conAminAddr).isInitialized(coin));
+        require(coinAminAddr!=address(0x0));
+        require(CoinAdminInterface(coinAminAddr).isInitialized(coin));
         _;
     }
 
@@ -140,7 +139,7 @@ contract StoremanGroupAdmin is Halt {
         returns (bool)
     {
         require(addr != address(0));
-        conAminAddr = addr;
+        coinAminAddr = addr;
         return true;
     }
 
@@ -169,7 +168,7 @@ contract StoremanGroupAdmin is Halt {
         notHalted
     {
 
-        var (coin2WanRatio,defaultMinDeposit, , , ,wanchainTokenManager,,useWhiteList, , , , ) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+        var (coin2WanRatio,defaultMinDeposit, , , ,wanchainTokenManager,,useWhiteList, , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         require(msg.value >= defaultMinDeposit);
         require(originalChainAddr.length != 0);
@@ -189,8 +188,8 @@ contract StoremanGroupAdmin is Halt {
             mapCoinSmgInfo[coin][smgWanAddr] = StoremanGroup(msg.value,originalChainAddr,0,txFeeRatio,block.number,msg.sender,0);
         }
 
-        uint tokens = getTokens(coin,coin2WanRatio,CoinAdminInterface(conAminAddr).DEFAULT_PRECISE());
-        assert(deposit(coin,smgWanAddr,tokens,wanchainTokenManager));
+        uint tokens = getTokens(coin2WanRatio,CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());
+        assert(deposit(smgWanAddr,tokens,wanchainTokenManager));
 
         //send event
         emit SmgRegister(smgWanAddr,originalChainAddr,coin,msg.value,tokens,txFeeRatio);
@@ -206,7 +205,7 @@ contract StoremanGroupAdmin is Halt {
     {
         require(msg.value > 0);
 
-        var (, , , , , , , ,startBonusBlk, , , ) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+        var (, , , , , , , ,startBonusBlk, , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         require(startBonusBlk > 0);
         bonusTotal[coin] = bonusTotal[coin].add(msg.value);
@@ -225,7 +224,7 @@ contract StoremanGroupAdmin is Halt {
     {
         require(smgAddr!=address(0));
 
-        var (coin2WanRatio, , htlcType, originalChainHtlc,wanchainHtlc, wanchainTokenManager, , , , , , ) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+       // var (coin2WanRatio, , htlcType, originalChainHtlc,wanchainHtlc, wanchainTokenManager, , , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         require(mapCoinSmgInfo[coin][smgAddr].bonusBlockNumber == 0);
         require(!mapSmgWhiteList[coin][smgAddr]);
@@ -288,13 +287,13 @@ contract StoremanGroupAdmin is Halt {
         assert(mapCoinSmgInfo[coin][smgAddr].unregisterApplyTime == 0);
 
         mapCoinSmgInfo[coin][smgAddr].unregisterApplyTime = now;
-        var (, , , , ,tokenManagerAddr, , ,startBonusBlk, , ,) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+        var (, , , , ,tokenManagerAddr, , ,startBonusBlk, , ,) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         if ( startBonusBlk > 0 &&  mapCoinSmgInfo[coin][smgAddr].punishPercent==0) {
             claimSystemBonus(coin,smgAddr);
         }
 
-        assert(applyUnregister(coin,tokenManagerAddr));
+        assert(applyUnregister(tokenManagerAddr));
         //send event
         emit SmgApplyUnRegister(msg.sender,coin,now);//event
     }
@@ -328,13 +327,13 @@ contract StoremanGroupAdmin is Halt {
     {
         StoremanGroup storage smgInfo = mapCoinSmgInfo[coin][smgAddr];
 
-        var (, , , , ,wanchainTokenManager,withdrawDelayTime, , , , , ) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+        var (, , , , ,wanchainTokenManager,withdrawDelayTime, , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         assert(now > smgInfo.unregisterApplyTime.add(withdrawDelayTime));
         //check smg existing
         assert(smgInfo.deposit > 0);
 
-        assert(smgWithdrawAble(coin,wanchainTokenManager));
+       assert(smgWithdrawAble(wanchainTokenManager));
 
        uint restBalance = smgInfo.deposit;
        if (smgInfo.punishPercent > 0) {
@@ -420,10 +419,8 @@ contract StoremanGroupAdmin is Halt {
     {
         owner.transfer(this.balance);
     }
-
-
 ////////////////private function///////////////////////////////////////////////
-  function deposit(uint coin,address smgAddr,uint tokenNumber,address tokenManagerAddr)
+  function deposit(address smgAddr,uint tokenNumber,address tokenManagerAddr)
         private
         returns (bool)
     {
@@ -432,25 +429,23 @@ contract StoremanGroupAdmin is Halt {
     }
 
 
-    function applyUnregister(uint coin,address tokenManagerAddr)
+    function applyUnregister(address tokenManagerAddr)
         private
-        initialized(coin)
         returns (bool)
     {
         bytes4 methodId = bytes4(keccak256("applyUnregistration(address)"));
         return tokenManagerAddr.call(methodId,msg.sender);
     }
 
-    function smgWithdrawAble(uint coin,address tokenManagerAddr)
+    function smgWithdrawAble(address tokenManagerAddr)
         private
-        initialized(coin)
         returns (bool)
     {
         bytes4 methodId = bytes4(keccak256("unregisterStoremanGroup(address)"));
         return tokenManagerAddr.call(methodId,msg.sender);
     }
 
-    function getTokens(uint coin,uint coin2WanRatio,uint defaultPrecise)
+    function getTokens(uint coin2WanRatio,uint defaultPrecise)
         private
         view
         returns(uint)
@@ -465,7 +460,7 @@ contract StoremanGroupAdmin is Halt {
         initialized(coin)
         notHalted
     {
-        var (, , , , , , , ,startBonusBlk, , bonusPeriodBlks, bonusRatio) = CoinAdminInterface(conAminAddr).mapCoinInfo(coin);
+        var (, , , , , , , ,startBonusBlk, , bonusPeriodBlks, bonusRatio) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         StoremanGroup storage smgInfo = mapCoinSmgInfo[coin][smgAddr];
         if(smgInfo.punishPercent != 0 || startBonusBlk == 0){
@@ -483,7 +478,7 @@ contract StoremanGroupAdmin is Halt {
 
             smgInfo.bonusBlockNumber = smgInfo.bonusBlockNumber.add(cycles.mul(bonusPeriodBlks));
 
-            uint  bonus = smgInfo.deposit.mul(bonusRatio).div(CoinAdminInterface(conAminAddr).DEFAULT_PRECISE());
+            uint  bonus = smgInfo.deposit.mul(bonusRatio).div(CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());
             bonus = bonus.mul(cycles);
 
             if(bonusTotal[coin] >= bonus && bonus > 0){
@@ -498,13 +493,8 @@ contract StoremanGroupAdmin is Halt {
             } else {
                   SmgClaimSystemBonus(msg.sender, coin, 0);
             }
-
       }
 
     }
-
-
-
-
 }
 

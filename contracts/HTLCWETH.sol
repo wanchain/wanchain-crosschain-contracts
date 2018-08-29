@@ -16,12 +16,12 @@
 
 */
 
-//                            _           _           _            
+//                            _           _           _
 //  __      ____ _ _ __   ___| |__   __ _(_)_ __   __| | _____   __
 //  \ \ /\ / / _` | '_ \ / __| '_ \ / _` | | '_ \@/ _` |/ _ \ \ / /
-//   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V / 
-//    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/  
-//    
+//   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
+//    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
+//
 //  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
 pragma solidity ^0.4.11;
@@ -114,11 +114,12 @@ contract HTLCWETH is HTLCBase {
     *
     */
 
+
     /// @notice         set weth manager SC address(only owner have the right)
     /// @param  addr    weth manager SC address
     function setWETHManager(address addr)
-        public 
-        onlyOwner 
+        public
+        onlyOwner
         isHalted
         returns (bool)
     {
@@ -144,15 +145,15 @@ contract HTLCWETH is HTLCBase {
         return true;
     }
 
-    /// @notice         request exchange WETH with ETH(to prevent collision, x must be a 256bit random bigint) 
+    /// @notice         request exchange WETH with ETH(to prevent collision, x must be a 256bit random bigint)
     /// @param xHash    hash of HTLC random number
     /// @param wanAddr  address of user, used to receive WETH
     /// @param value    exchange value
-    function eth2wethLock(bytes32 xHash, address wanAddr, uint value) 
-        public 
-        initialized 
+    function eth2wethLock(bytes32 xHash, address wanAddr, uint value)
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         addHTLCTx(TxDirection.Coin2Wtoken, msg.sender, wanAddr, xHash, value, false, address(0x00));
         if (!WTokenManagerInterface(wethManager).lockQuota(msg.sender, wanAddr, value)) {
@@ -165,11 +166,11 @@ contract HTLCWETH is HTLCBase {
 
     /// @notice  refund WETH from the HTLC transaction of exchange WETH with ETH(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function eth2wethRefund(bytes32 x) 
-        public 
-        initialized 
+    function eth2wethRefund(bytes32 x)
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         bytes32 xHash = keccak256(x);
         refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
@@ -184,11 +185,11 @@ contract HTLCWETH is HTLCBase {
 
     /// @notice revoke HTLC transaction of exchange WETH with ETH(must be called after HTLC timeout)
     /// @param  xHash  hash of HTLC random number
-    function eth2wethRevoke(bytes32 xHash) 
-        public 
-        initialized 
+    function eth2wethRevoke(bytes32 xHash)
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         revokeHTLCTx(xHash, TxDirection.Coin2Wtoken, false);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -205,15 +206,15 @@ contract HTLCWETH is HTLCBase {
     /// @param storeman address of storeman, where the ETH come from
     /// @param ethAddr  address of ethereum, used to receive ETH
     /// @param value    exchange value
-    function weth2ethLock(bytes32 xHash, address storeman, address ethAddr, uint value) 
-        public 
+    function weth2ethLock(bytes32 xHash, address storeman, address ethAddr, uint value)
+        public
         initialized
         notHalted
         payable
-        returns(bool) 
+        returns(bool)
     {
         require(!isContract(msg.sender));
-        
+
         // check withdraw fee
         uint fee = getWeth2EthFee(storeman, value);
         require(msg.value >= fee);
@@ -222,9 +223,9 @@ contract HTLCWETH is HTLCBase {
         if (!WTokenManagerInterface(wethManager).lockToken(storeman, msg.sender, value)) {
             revert();
         }
-        
+
         mapXHashFee[xHash] = fee;
-        
+
         // restore the extra cost
         uint left = msg.value.sub(fee);
         if (left != 0) {
@@ -237,11 +238,11 @@ contract HTLCWETH is HTLCBase {
 
     /// @notice  refund WETH from the HTLC transaction of exchange ETH with WETH(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function weth2ethRefund(bytes32 x) 
-        public 
-        initialized 
+    function weth2ethRefund(bytes32 x)
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         bytes32 xHash = keccak256(x);
         refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
@@ -258,11 +259,11 @@ contract HTLCWETH is HTLCBase {
     /// @notice        revoke HTLC transaction of exchange ETH with WETH(must be called after HTLC timeout)
     /// @notice        the revoking fee will be sent to storeman
     /// @param  xHash  hash of HTLC random number
-    function weth2ethRevoke(bytes32 xHash) 
-        public 
-        initialized 
+    function weth2ethRevoke(bytes32 xHash)
+        public
+        initialized
         notHalted
-        returns(bool) 
+        returns(bool)
     {
         revokeHTLCTx(xHash, TxDirection.Wtoken2Coin, true);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -276,15 +277,15 @@ contract HTLCWETH is HTLCBase {
         if (revokeFee > 0) {
             info.destination.transfer(revokeFee);
         }
-        
+
         if (left > 0) {
             info.source.transfer(left);
         }
-        
+
         emit WETH2ETHRevoke(info.source, xHash);
         return true;
     }
-    
+
     /// @notice          getting weth 2 eth fee
     /// @param  storeman address of storeman
     /// @param  value    HTLC tx value
@@ -306,17 +307,17 @@ contract HTLCWETH is HTLCBase {
     /// @notice      internal function to determine if an address is a contract
     /// @param  addr the address being queried
     /// @return      true if `addr` is a contract
-    function isContract(address addr) 
-        internal 
-        view 
-        returns(bool) 
+    function isContract(address addr)
+        internal
+        view
+        returns(bool)
     {
         uint size;
         if (addr == 0) return false;
         assembly {
             size := extcodesize(addr)
         }
-        
+
         return size > 0;
     }
 

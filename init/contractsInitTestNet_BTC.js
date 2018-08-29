@@ -2,6 +2,7 @@ var solc = require('solc');
 var fs = require('fs');
 var path = require('path');
 
+const coinAdmin = artifacts.require('./CoinAdmin.sol')
 const smgAdmin = artifacts.require('./StoremanGroupAdmin.sol')
 const WBTC = artifacts.require('./WBTC.sol')
 const WBTCManager = artifacts.require('./WBTCManager.sol')
@@ -13,6 +14,7 @@ const web3 = global.web3
 
 contract('deploy donctracts',  ([miner, owner]) => {
 
+  let coinAdminInst;
   let smgAdminInst;
   let htlcWBTCInst;
   let wbtcManagerInst;
@@ -27,7 +29,14 @@ contract('deploy donctracts',  ([miner, owner]) => {
   let precise = 10000;
 
   before('set up contract before test', async () => {
+
     await web3.personal.unlockAccount(owner, 'wanglu', 99999)
+
+    coinAdminInst =  await coinAdmin.new({from:owner})
+    console.log("\n")
+    console.log("\nvar coinAdminAbi=web3.eth.contract(" + JSON.stringify(coinAdminInst.abi)  + ");");
+    console.log("var coinAdminInst=coinAdminAbi.at(\'" + coinAdminInst.address + "\');");
+    console.log("coinAdminInst.setHalt(true,{from:\'"+ owner +"\'})");
 
     smgAdminInst = await smgAdmin.new({from:owner})
     console.log("\n")
@@ -71,15 +80,17 @@ contract('deploy donctracts',  ([miner, owner]) => {
     let originalChainHtlc = '0x00';
     let wanchainHtlcAddr = htlcWBTCInst.address;
     let wanchainTokenManagerAddr = wbtcManagerInst.address
+    let coinAdminAddr = coinAdminInst.address;
 
     console.log("originalChainHtlc:"+ originalChainHtlc);
     console.log("wanchainHtlcAddr:"+ wanchainHtlcAddr);
     console.log("wanchainTokenManagerAddr:"+ wanchainTokenManagerAddr);
+    console.log("coinAdminAddr:"+ coinAdminAddr);
     console.log("smgAdminInstAddr:"+ smgAdminInst.address);
 
     console.log(withdrawDelayTime);
 
-    res = await  smgAdminInst.initializeCoin(BTC_ID,
+    res = await  coinAdminInst.initializeCoin(BTC_ID,
                                             ratio,
                                             defaultMinDeposit,
                                             htlcType,
@@ -91,7 +102,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
                                           );
     console.log(res);
 
-    coinInfo = await smgAdminInst.mapCoinInfo(BTC_ID);
+    coinInfo = await coinAdminInst.mapCoinInfo(BTC_ID);
 
     console.log(coinInfo);
 
@@ -112,19 +123,29 @@ contract('deploy donctracts',  ([miner, owner]) => {
     assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
     console.log("set ratio");
-    await smgAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
+    await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
 
     console.log("set delay time");
-    await smgAdminInst.setWithdrawDepositDelayTime(BTC_ID,7200,{from: owner});
+    await coinAdminInst.setWithdrawDepositDelayTime(BTC_ID,7200,{from: owner});
 
-    console.log("set halt");
+    console.log("coinAdmin set halt");
+    await coinAdminInst.setHalt(false,{from: owner});
+
+    console.log("set coinAdmin in smgAdmin");
+    res = await smgAdminInst.setCoinAdmin(coinAdminAddr,{from:owner});
+    console.log(res);
+
+    let gotCoinAdminAddr = await smgAdminInst.coinAminAddr();
+    assert.equal(gotCoinAdminAddr,coinAdminAddr,"the coinAdmin address is not match");
+
+    console.log("smgAdmin set halt");
     await smgAdminInst.setHalt(false,{from: owner});
-    console.log(coinInfo);
 
   })
 
+
   it('initialize contracts step 2', async () => {
-    await htlcWBTCInst.setStoremanGroupAdmin(smgAdminInst.address,{from: owner})
+    await htlcWBTCInst.setAdmin(smgAdminInst.address,coinAdminInst.address,{from: owner})
     smgAminAddrGot = await htlcWBTCInst.storemanGroupAdmin()
     assert.equal(smgAdminInst.address,smgAminAddrGot)
 
@@ -147,10 +168,10 @@ contract('deploy donctracts',  ([miner, owner]) => {
       let storeManWanAddr = '0xd0b327d711dbf1f6d5de93777cdee724a6577042';
       let storeManBTCAddr = '0xd3a80a8e8bf8fbfea8eee3193dc834e61f257dfe';
 
-      await smgAdminInst.setHalt(true, {from: owner});
-      await smgAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
-      await smgAdminInst.setSystemEnableBonus(BTC_ID, false, 0, {from: owner});
-      await smgAdminInst.setHalt(false, {from: owner});
+      await coinAdminInst.setHalt(true, {from: owner});
+      await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
+      await coinAdminInst.setSystemEnableBonus(BTC_ID, false, 0, {from: owner});
+      await coinAdminInst.setHalt(false, {from: owner});
 
       console.log("storemanGroupRegister 1");
 
@@ -174,7 +195,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
       getPunished = getCoinSmgInfo[6];
 
       assert.equal(getDeposit, regDeposit, 'regDeposit not match');
-      assert.equal(getOriginalChainAddr, storeManBtcAddr, 'storeManBtcAddr not match');
+      assert.equal(getOriginalChainAddr, storeManBTCAddr, 'storeManBTCAddr not match');
       assert.equal(getUnregisterApplyTime, 0, 'apply time not match');
 
       assert.equal(gettxFeeRatio, storeManTxFeeRatio, 'gettxFeeRatio not match');

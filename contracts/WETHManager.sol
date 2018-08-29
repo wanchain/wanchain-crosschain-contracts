@@ -159,7 +159,6 @@ contract WETHManager is Halt {
         storemanGroupAdmin = addr;
         return true;
     }
-   
 
   /// @notice Register a storemanGroup
   /// @dev Register a storemanGroup
