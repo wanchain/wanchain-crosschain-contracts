@@ -293,16 +293,15 @@ contract StoremanGroupAdmin is Halt {
             claimSystemBonus(coin,smgAddr);
         }
 
-        assert(applyUnregister(tokenManagerAddr));
+        assert(applyUnregister(tokenManagerAddr,smgAddr));
         //send event
-        emit SmgApplyUnRegister(msg.sender,coin,now);//event
+        emit SmgApplyUnRegister(smgAddr,coin,now);//event
     }
 
     /// @notice function for storeman withdraw deposit
     /// @param coin   coin name
     function storemanGroupWithdrawDeposit(uint coin)
         public
-        notHalted
     {
         withdrawDeposit(coin,msg.sender);
     }
@@ -311,7 +310,6 @@ contract StoremanGroupAdmin is Halt {
     /// @param coin   coin name
     function smgWithdrawDepositByDelegate(uint coin,address smgAddr)
         public
-        notHalted
     {
         assert( mapCoinSmgInfo[coin][smgAddr].initiator == msg.sender);
 
@@ -333,7 +331,7 @@ contract StoremanGroupAdmin is Halt {
         //check smg existing
         assert(smgInfo.deposit > 0);
 
-       assert(smgWithdrawAble(wanchainTokenManager));
+        assert(smgWithdrawAble(wanchainTokenManager,smgAddr));
 
        uint restBalance = smgInfo.deposit;
        if (smgInfo.punishPercent > 0) {
@@ -429,20 +427,20 @@ contract StoremanGroupAdmin is Halt {
     }
 
 
-    function applyUnregister(address tokenManagerAddr)
+    function applyUnregister(address tokenManagerAddr,address smgAddr)
         private
         returns (bool)
     {
         bytes4 methodId = bytes4(keccak256("applyUnregistration(address)"));
-        return tokenManagerAddr.call(methodId,msg.sender);
+        return tokenManagerAddr.call(methodId,smgAddr);
     }
 
-    function smgWithdrawAble(address tokenManagerAddr)
+    function smgWithdrawAble(address tokenManagerAddr,address smgAddr)
         private
         returns (bool)
     {
         bytes4 methodId = bytes4(keccak256("unregisterStoremanGroup(address)"));
-        return tokenManagerAddr.call(methodId,msg.sender);
+        return tokenManagerAddr.call(methodId,smgAddr);
     }
 
     function getTokens(uint coin2WanRatio,uint defaultPrecise)

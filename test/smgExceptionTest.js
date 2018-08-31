@@ -1,5 +1,5 @@
 const smgAdmin = artifacts.require('./StoremanGroupAdmin.sol')
-
+const coinAdmin = artifacts.require('./CoinAdmin.sol')
 const WETH = artifacts.require('./WETH.sol')
 const WETHAdmin = artifacts.require('./WETHManager.sol')
 
@@ -47,6 +47,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   let WETHInstance;
   let WETHAdminInstance;
+  let coinAdminInst;
 
 
   let smgAdminInstance;
@@ -68,6 +69,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     await web3.personal.unlockAccount(storeManWanAddr3, 'wanglu', 99999)
     await web3.eth.sendTransaction({from:account1,to:storeManWanAddr2,value:web3.toWei(101)})
 
+    coinAdminInst =  await coinAdmin.new({from:owner})
     smgAdminInstance = await smgAdmin.new({from:owner})
     groupWethProxyInst = await groupWethProxy.new({from:owner})
 
@@ -88,7 +90,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       let originalChainHtlc = '0x7452bcd07fc6bb75653de9d9459bd442ac3f5c52';
 
       let wanchainHtlcAddr = groupWethProxyInst.address;
-      let wanchainTokenAddr = WETHInstance.address;
+      let wanchainTokenAddr = await WETHAdminInstance.WETHToken();
       let wanchainTokenAdminAddr = WETHAdminInstance.address;
 
       let withdrawDelayTime = (3600*72);
@@ -103,19 +105,19 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
 
 
-      res = await  smgAdminInstance.initializeCoin(ETHEREUM_ID,
-        ratio,
-        defaultMinDeposit,
-        htlcType,
-        originalChainHtlc,
-        wanchainHtlcAddr,
-        wanchainTokenAdminAddr,
-        withdrawDelayTime,
-        {from:account1,gas:4000000}
+      res = await  coinAdminInst.initializeCoin(ETHEREUM_ID,
+          ratio,
+          defaultMinDeposit,
+          htlcType,
+          originalChainHtlc,
+          wanchainHtlcAddr,
+          wanchainTokenAdminAddr,
+          withdrawDelayTime,
+          {from:account1,gas:4000000}
       );
       //console.log(res);
 
-      coinInfo = await smgAdminInstance.mapCoinInfo(ETHEREUM_ID);
+      coinInfo = await coinAdminInst.mapCoinInfo(ETHEREUM_ID);
 
       console.log(coinInfo);
 
@@ -136,24 +138,24 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
       console.log("set ratio");
-      await smgAdminInstance.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
+      await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
 
       console.log("set delay time");
-      await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,delayTime,{from: account1});
+      await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,delayTime,{from: account1});
 
-      console.log("set halt");
-      await smgAdminInstance.setHalt(false);
-      //console.log(coinInfo);
+      console.log("coin admin set halt");
+      await coinAdminInst.setHalt(false,{from: account1});
 
-      console.log("initialize token admin's proxy address");
-      getProxyAddr = await  WETHAdminInstance.HTLCWETH();
-      assert.equal(getProxyAddr,groupWethProxyInst.address, 'wanchainTokenAddr not match');
+      console.log("set coinAdmin in smgAdmin")
+      res = await smgAdminInstance.setCoinAdmin(coinAdminInst.address,{from:account1});
 
-      console.log("initialize token admin's smgAdmin address");
-      getAdminAddr = await  WETHAdminInstance.storemanGroupAdmin();
-      assert.equal(getAdminAddr,smgAdminInstance.address, 'wanchainTokenAddr not match');
+      let gotCoinAdminAddr = await smgAdminInstance.coinAminAddr();
+      assert.equal(gotCoinAdminAddr,coinAdminInst.address,"the coinAdmin address is not match");
 
-      await WETHAdminInstance.setHalt(false);
+      console.log("smgAdmin set halt");
+      await smgAdminInstance.setHalt(false,{from: owner});
+
+      await WETHAdminInstance.setHalt(false,{from:account1});
 
       console.log("initialize group weth to set token admin");
 
@@ -161,11 +163,12 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       getTokenAdmin = await  groupWethProxyInst.wethManager();
       assert.equal(getTokenAdmin,wanchainTokenAdminAddr, 'wanchainTokenAdminAddr not match');
 
-      await groupWethProxyInst.setStoremanGroupAdmin(smgAdminInstance.address,{from: account1});
+      await groupWethProxyInst.setAdmin(smgAdminInstance.address,coinAdminInst.address,{from: account1});
       smgAdminAddr = await  groupWethProxyInst.storemanGroupAdmin();
       assert.equal(smgAdminAddr,smgAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
       await groupWethProxyInst.setHalt(false);
+
 
       await smgPrepare1();
 
@@ -175,10 +178,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     async function smgPrepare1() {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-      await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,1,{from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+      await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,1,{from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       console.log("storemanGroupRegister");
       regDeposit = web3.toWei(100);
@@ -208,16 +211,18 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   async function smgPrepare2() {
 
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-    await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,60*60,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+    await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,60*60,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     await smgAdminInstance.setHalt(false,{from: account1});
-
+    
     console.log("storemanGroupRegister");
     regDeposit = web3.toWei(100);
 
     preBal = web3.fromWei(web3.eth.getBalance(smgAdminInstance.address));
     console.log("preBal" + preBal);
+
     await  smgAdminInstance.storemanGroupRegister(0,storeManEthAddr1,storeManTxFeeRatio,{from:storeManWanAddr1,value:regDeposit,gas:4000000});
 
     getCoinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr1);
@@ -231,15 +236,15 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(getUnregisterApplyTime,0, 'regDeposit not match');
 
   }
-
+ 
   it('initializeCoin - [smgAmin-T00101]',async () => {
     let setErr;
 
     try {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
 
-      res = await  smgAdminInstance.initializeCoin(3,
+      res = await  coinAdminInst.initializeCoin(3,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -250,7 +255,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         {from:storeManWanAddr1,gas:4000000}
       );
 
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -262,11 +267,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('initializeCoin - [smgAmin-T00102]',async () => {
     let setErr;
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     try {
 
-      res = await  smgAdminInstance.initializeCoin(3,
+      res = await  coinAdminInst.initializeCoin(3,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -288,7 +293,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -310,7 +315,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         0,
         defaultMinDeposit,
         htlcType,
@@ -332,7 +337,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         9,
         originalChainHtlc,
@@ -354,7 +359,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         2,
@@ -376,7 +381,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -398,7 +403,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         0,
@@ -420,7 +425,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -442,7 +447,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     let setErr;
 
     try {
-      res = await  smgAdminInstance.initializeCoin(0,
+      res = await  coinAdminInst.initializeCoin(0,
         ratio,
         defaultMinDeposit,
         htlcType,
@@ -464,11 +469,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setWithdrawDepositDelayTime - [smgAmin-T00211]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,7200,{from: account2});
+      res =  await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,7200,{from: account2});
 
     } catch (err) {
       setErr = err;
@@ -481,10 +486,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setWithdrawDepositDelayTime - [smgAmin-T00212]',async () => {
     let setErr;
-
+    await coinAdminInst.setHalt(false,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,7200,{from: account1});
+      res =  await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,7200,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -496,33 +501,33 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setWithdrawDepositDelayTime - [smgAmin-T00213]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setWithdrawDepositDelayTime(3,7200,{from: account1});
+      res =  await coinAdminInst.setWithdrawDepositDelayTime(3,7200,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00213]Error must be thrown');
   })
 
   it('setWithdrawDepositDelayTime - [smgAmin-T00214]',async () => {
     let setErr;
 
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,0,{from: account1});
+      res =  await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,0,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
 
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00214]Error must be thrown');
   })
@@ -530,17 +535,17 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setWToken2WanRatio - [smgAmin-T00201]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setWToken2WanRatio(ETHEREUM_ID,880,{from: account2});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,{from: account2});
 
     } catch (err) {
       setErr = err;
     }
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00201]Error must be thrown');
   })
@@ -550,7 +555,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await smgAdminInstance.setWToken2WanRatio(ETHEREUM_ID,880,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -562,33 +567,33 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setWToken2WanRatio - [smgAmin-T00203]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setWToken2WanRatio(3,880,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(3,880,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00203]Error must be thrown');
   })
 
   it('setWToken2WanRatio - [smgAmin-T00204]',async () => {
     let setErr;
 
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setWToken2WanRatio(ETHEREUM_ID,0,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,0,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
 
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00204]Error must be thrown');
   })
@@ -596,17 +601,17 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setSystemEnableBonus - [smgAmin-T00221]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,{from: account2});
+      res =  await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,{from: account2});
 
     } catch (err) {
       setErr = err;
     }
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00221]Error must be thrown');
   })
@@ -616,7 +621,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,{from: account1});
+      res =  await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -628,32 +633,32 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setSystemEnableBonus - [smgAmin-T00223]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setSystemEnableBonus(3,true,0,{from: account1});
+      res =  await coinAdminInst.setSystemEnableBonus(3,true,0,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00223]Error must be thrown');
   })
 
   it('setSystemBonusPeriod - [smgAmin-T00224]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setSystemBonusPeriod(ETHEREUM_ID,1,{from: account2});
+      res =  await coinAdminInst.setSystemBonusPeriod(ETHEREUM_ID,1,{from: account2});
 
     } catch (err) {
       setErr = err;
     }
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00224]Error must be thrown');
   })
@@ -663,7 +668,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await smgAdminInstance.setSystemBonusPeriod(ETHEREUM_ID,1,{from: account1});
+      res =  await coinAdminInst.setSystemBonusPeriod(ETHEREUM_ID,1,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -675,46 +680,46 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setSystemEnableBonus - [smgAmin-T00226]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setSystemBonusPeriod(3,1,{from: account1});
+      res =  await coinAdminInst.setSystemBonusPeriod(3,1,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00226]Error must be thrown');
   })
 
   it('setSystemEnableBonus - [smgAmin-T00227]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setSystemBonusPeriod(0,0,{from: account1});
+      res =  await coinAdminInst.setSystemBonusPeriod(0,0,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00226]Error must be thrown');
   })
 /////////////////////////////////////////////////////////////////////////////////////
   it('setSmgEnableUserWhiteList - [smgAmin-T00231]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
 
     try {
 
-      res =  await smgAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account2});
+      res =  await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account2});
 
     } catch (err) {
       setErr = err;
     }
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00231]Error must be thrown');
   })
@@ -724,7 +729,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await smgAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
+      res =  await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -736,15 +741,15 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('setSmgEnableUserWhiteList - [smgAmin-T00233]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await smgAdminInstance.setSmgEnableUserWhiteList(3,true,{from: account1});
+      res =  await coinAdminInst.setSmgEnableUserWhiteList(3,true,{from: account1});
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00233]Error must be thrown');
   })
 
@@ -753,8 +758,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('depositSmgBonus - [smgAmin-T00241]',async () => {
 
     let setErr;
+    await coinAdminInst.setHalt(true,{from: account1});
     await smgAdminInstance.setHalt(true,{from: account1});
-    res =  await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    res =  await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
     regDeposit = web3.toWei(100);
     try {
 
@@ -764,7 +770,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       setErr = err;
     }
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00241]Error must be thrown');
   })
@@ -772,8 +778,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('depositSmgBonus - [smgAmin-T00242]',async () => {
     let setErr;
+    await coinAdminInst.setHalt(true,{from: account1});
     await smgAdminInstance.setHalt(true,{from: account1});
-    res =  await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    res =  await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
 
     try {
 
@@ -782,6 +789,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     } catch (err) {
       setErr = err;
     }
+    await coinAdminInst.setHalt(false,{from: account1});
     await smgAdminInstance.setHalt(false,{from: account1});
     assert.notEqual(setErr, undefined, '[smgAmin-T00242]Error must be thrown');
   })
@@ -789,16 +797,18 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('depositSmgBonus - [smgAmin-T00243]',async () => {
     let setErr;
+    await coinAdminInst.setHalt(true,{from: account1});
     await smgAdminInstance.setHalt(true,{from: account1});
-    res =  await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,false,0,{from: account1});
+    res =  await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,false,0,{from: account1});
     try {
       res =  await smgAdminInstance.depositSmgBonus(ETHEREUM_ID,{from: account1,value:regDeposit});;
 
     } catch (err) {
       setErr = err;
     }
-    await smgAdminInstance.setHalt(false,{from: account1});
-    assert.notEqual(setErr, undefined, '[smgAmin-T00243]Error must be thrown');
+      await coinAdminInst.setHalt(false,{from: account1});
+      await smgAdminInstance.setHalt(false,{from: account1});
+      assert.notEqual(setErr, undefined, '[smgAmin-T00243]Error must be thrown');
   })
 
   it('depositSmgBonus - [smgAmin-T00244]',async () => {
@@ -866,9 +876,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setSmgWhiteList - [smgAmin-T00254]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID,false,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID,false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     regDeposit = web3.toWei(100);
     try {
@@ -885,9 +895,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setSmgWhiteList - [smgAmin-T00255]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     regDeposit = web3.toWei(100);
     try {
@@ -904,9 +914,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('setSmgWhiteList - [smgAmin-T00256]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID,true,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     await smgAdminInstance.setSmgWhiteList(ETHEREUM_ID,account2,{from: account1});
 
@@ -991,9 +1001,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00301]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
+    await smgAdminInstance.setHalt(true,{from: account1});
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(ETHEREUM_ID,account1,{from: account1,value:regDeposit});
@@ -1008,10 +1020,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00302]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
 
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
+
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(3,account1,{from: account1});
@@ -1026,9 +1039,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00303]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,false,0,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,false,0,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(ETHEREUM_ID,account1,{from: account1});
@@ -1043,9 +1056,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00304]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
+
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(ETHEREUM_ID,account3,{from: account1});
@@ -1060,10 +1074,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00305]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
     await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,account1,100,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(ETHEREUM_ID,account1,{from: account1});
@@ -1078,11 +1092,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00306]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
 
     await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,account1,0,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
     try {
 
       res =  await smgAdminInstance.storemanGroupClaimSystemBonus(ETHEREUM_ID,account1,{from: account1});
@@ -1097,11 +1111,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupClaimSystemBonus - [smgAmin-T00307]',async () => {
 
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(ETHEREUM_ID,true,0,{from: account1});
 
     await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,account1,0,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     try {
 
@@ -1174,9 +1188,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('storemanGroupWithdrawDeposit - [smgAmin-T00817]',async () => {
     let setErr;
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSystemEnableBonus(0,false,0,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(0,false,0,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
+    
     res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:storeManWanAddr1,gas:1000000});
 
     coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr1);
@@ -1405,6 +1420,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.notEqual(setErr, undefined, '[smgAmin-T02002]Error must be thrown');
 
   })
+
 /////////////////////////////////////////////////////////////////////////
   it('kill-- [smgAmin-T003001] ', async () => {
     let setErr

@@ -1,3 +1,5 @@
+const coinAdmin = artifacts.require('./CoinAdmin.sol')
+
 const smgAdmin = artifacts.require('./StoremanGroupAdmin.sol')
 
 const WETH = artifacts.require('./WETH.sol')
@@ -48,7 +50,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   let WETHInstance;
   let WETHAdminInstance;
-
+  let coinAdminInst;
 
   let smgAdminInstance;
   let groupWethProxyInst;
@@ -69,6 +71,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     await web3.personal.unlockAccount(storeManWanAddr3, 'wanglu', 99999)
     await web3.eth.sendTransaction({from:account1,to:storeManWanAddr2,value:web3.toWei(101)})
 
+    coinAdminInst =  await coinAdmin.new({from:owner})
     smgAdminInstance = await smgAdmin.new({from:owner})
     groupWethProxyInst = await groupWethProxy.new({from:owner})
 
@@ -83,9 +86,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupRegister  - [smgAmin-T00601]-test not initialized', async () => {
 
     try {
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       await  smgAdminInstance.storemanGroupRegister(0, storeManEthAddr, {
         from: account1,
@@ -126,7 +129,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
 
 
-    res = await  smgAdminInstance.initializeCoin(ETHEREUM_ID,
+    res = await  coinAdminInst.initializeCoin(ETHEREUM_ID,
       ratio,
       defaultMinDeposit,
       htlcType,
@@ -138,7 +141,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     );
     //console.log(res);
 
-    coinInfo = await smgAdminInstance.mapCoinInfo(ETHEREUM_ID);
+    coinInfo = await coinAdminInst.mapCoinInfo(ETHEREUM_ID);
 
     console.log(coinInfo);
 
@@ -159,14 +162,22 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
     console.log("set ratio");
-    await smgAdminInstance.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
+    await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
 
     console.log("set delay time");
-    await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,delayTime,{from: account1});
+    await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,delayTime,{from: account1});
 
-    console.log("set halt");
-    await smgAdminInstance.setHalt(false,{from: account1});
-    //console.log(coinInfo);
+    console.log("coin admin set halt");
+    await coinAdminInst.setHalt(false,{from: account1});
+
+    console.log("set coinAdmin in smgAdmin")
+    res = await smgAdminInstance.setCoinAdmin(coinAdminInst.address,{from:account1});
+
+    let gotCoinAdminAddr = await smgAdminInstance.coinAminAddr();
+    assert.equal(gotCoinAdminAddr,coinAdminInst.address,"the coinAdmin address is not match");
+
+    console.log("smgAdmin set halt");
+    await smgAdminInstance.setHalt(false,{from: owner});
 
     await WETHAdminInstance.setHalt(false,{from:account1});
 
@@ -176,7 +187,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     getTokenAdmin = await  groupWethProxyInst.wethManager();
     assert.equal(getTokenAdmin,wanchainTokenAdminAddr, 'wanchainTokenAdminAddr not match');
 
-    await groupWethProxyInst.setStoremanGroupAdmin(smgAdminInstance.address,{from: account1});
+    await groupWethProxyInst.setAdmin(smgAdminInstance.address,coinAdminInst.address,{from: account1});
     smgAdminAddr = await  groupWethProxyInst.storemanGroupAdmin();
     assert.equal(smgAdminAddr,smgAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
@@ -186,9 +197,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
 
   it('storemanGroupRegister  - [smgAmin-T00600]', async () => {
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     console.log("storemanGroupRegister");
     regDeposit = web3.toWei(100);
@@ -226,165 +237,165 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
 
 
-  it('storemanGroupRegister  - [smgAmin-T00602]', async () => {
+      it('storemanGroupRegister  - [smgAmin-T00602]', async () => {
 
-    try {
+        try {
 
-      await  smgAdminInstance.storemanGroupRegister(3, storeManEthAddr, storeManTxFeeRatio,{
-        from: account1,
-        value: web3.toWei(regDeposit),
-        gas: 4000000
+          await  smgAdminInstance.storemanGroupRegister(3, storeManEthAddr, storeManTxFeeRatio,{
+            from: account1,
+            value: web3.toWei(regDeposit),
+            gas: 4000000
+          })
+
+        } catch (err){
+          //console.log(err)
+          setErr = err;
+        }
+
+        assert.notEqual(setErr, undefined, '[smgAmin-T00602]Error must be thrown');
+
       })
 
-    } catch (err){
-      //console.log(err)
-      setErr = err;
-    }
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00602]Error must be thrown');
+      it('storemanGroupRegister  - [smgAmin-T00603]', async () => {
 
-  })
+        try {
 
+          await  smgAdminInstance.storemanGroupRegister(0, "0x", storeManTxFeeRatio,{
+            from: account1,
+            value: web3.toWei(regDeposit),
+            gas: 4000000
+          })
 
-  it('storemanGroupRegister  - [smgAmin-T00603]', async () => {
+        } catch (err){
+          //console.log(err)
+          setErr = err;
+        }
 
-    try {
+        assert.notEqual(setErr, undefined, '[smgAmin-T00601]Error must be thrown');
 
-      await  smgAdminInstance.storemanGroupRegister(0, "0x", storeManTxFeeRatio,{
-        from: account1,
-        value: web3.toWei(regDeposit),
-        gas: 4000000
       })
 
-    } catch (err){
-      //console.log(err)
-      setErr = err;
-    }
+      it('storemanGroupRegister  - [smgAmin-T00604]', async () => {
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00601]Error must be thrown');
+        try {
 
-  })
+          await  smgAdminInstance.storemanGroupRegister(0, storeManEthAddr,storeManTxFeeRatio,{
+            from: account1,
+            value: web3.toWei(1),
+            gas: 4000000
+          })
 
-  it('storemanGroupRegister  - [smgAmin-T00604]', async () => {
+        } catch (err){
+          //console.log(err)
+          setErr = err;
+        }
 
-    try {
+        assert.notEqual(setErr, undefined, '[smgAmin-T00604]Error must be thrown');
 
-      await  smgAdminInstance.storemanGroupRegister(0, storeManEthAddr,storeManTxFeeRatio,{
-        from: account1,
-        value: web3.toWei(1),
-        gas: 4000000
       })
 
-    } catch (err){
-      //console.log(err)
-      setErr = err;
-    }
+      it('storemanGroupRegister  - [smgAmin-T00605]', async () => {
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00604]Error must be thrown');
+        try {
 
-  })
+          await  smgAdminInstance.storemanGroupRegister(0, storeManEthAddr,storeManTxFeeRatio,{
+            from: account1,
+            value: web3.toWei(regDeposit),
+            gas: 4000000
+          })
 
-  it('storemanGroupRegister  - [smgAmin-T00605]', async () => {
+        } catch (err){
+          //console.log(err)
+          setErr = err;
+        }
 
-    try {
+        assert.notEqual(setErr, undefined, '[smgAmin-T00605]Error must be thrown');
 
-      await  smgAdminInstance.storemanGroupRegister(0, storeManEthAddr,storeManTxFeeRatio,{
-        from: account1,
-        value: web3.toWei(regDeposit),
-        gas: 4000000
       })
 
-    } catch (err){
-      //console.log(err)
-      setErr = err;
-    }
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00605]Error must be thrown');
+      it('StoremanGroupApplyUnregister - [smgAmin-T00700]',async () => {
+        let setErr;
 
-  })
+        try {
 
+          res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:account1,gas:1000000});
+          coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,account1);
 
-  it('StoremanGroupApplyUnregister - [smgAmin-T00700]',async () => {
-    let setErr;
+          getUnregisterApplyTime =  coinSmgInfo[2].toString();
+          assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
 
-    try {
+        } catch (err){
+          setErr = err;
+        }
 
-      res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:account1,gas:1000000});
-      coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,account1);
+        assert.equal(setErr, undefined, '[smgAmin-T00700]Error must not be thrown');
 
-      getUnregisterApplyTime =  coinSmgInfo[2].toString();
-      assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
+      });
 
-    } catch (err){
-      setErr = err;
-    }
+      it('StoremanGroupApplyUnregister - [smgAmin-T00701]',async () => {
+        let setErr;
 
-    assert.equal(setErr, undefined, '[smgAmin-T00700]Error must not be thrown');
+        try {
 
-  });
+          res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:account1,gas:1000000});
+          coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,account1);
 
-  it('StoremanGroupApplyUnregister - [smgAmin-T00701]',async () => {
-    let setErr;
+          getUnregisterApplyTime =  coinSmgInfo[2].toString();
+          assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
 
-    try {
+        } catch (err){
+          setErr = err;
+        }
 
-      res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:account1,gas:1000000});
-      coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,account1);
+        assert.notEqual(setErr, undefined, '[smgAmin-T00701]Error must be thrown');
 
-      getUnregisterApplyTime =  coinSmgInfo[2].toString();
-      assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
+      });
 
-    } catch (err){
-      setErr = err;
-    }
+      it('StoremanGroupApplyUnregister - [smgAmin-T00702]',async () => {
+        let setErr;
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00701]Error must be thrown');
+        try {
 
-  });
+          res = await smgAdminInstance.storemanGroupApplyUnregister(2,{from:account1,gas:1000000});
+          coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(2,account1);
 
-  it('StoremanGroupApplyUnregister - [smgAmin-T00702]',async () => {
-    let setErr;
+          getUnregisterApplyTime =  coinSmgInfo[2].toString();
+          assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
 
-    try {
+        } catch (err){
+          setErr = err;
+        }
 
-      res = await smgAdminInstance.storemanGroupApplyUnregister(2,{from:account1,gas:1000000});
-      coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(2,account1);
+        assert.notEqual(setErr, undefined, '[smgAmin-T00702]Error must be thrown');
 
-      getUnregisterApplyTime =  coinSmgInfo[2].toString();
-      assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
+      });
 
-    } catch (err){
-      setErr = err;
-    }
+      it('StoremanGroupApplyUnregister - [smgAmin-T00703]',async () => {
+        let setErr;
 
-    assert.notEqual(setErr, undefined, '[smgAmin-T00702]Error must be thrown');
+        try {
 
-  });
+          res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:storeManEthAddr,gas:1000000});
+          coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManEthAddr);
 
-  it('StoremanGroupApplyUnregister - [smgAmin-T00703]',async () => {
-    let setErr;
+          getUnregisterApplyTime =  coinSmgInfo[2].toString();
+          assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
 
-    try {
+        } catch (err){
+          setErr = err;
+        }
 
-      res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:storeManEthAddr,gas:1000000});
-      coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManEthAddr);
+        assert.notEqual(setErr, undefined, '[smgAmin-T00703]Error must be thrown');
 
-      getUnregisterApplyTime =  coinSmgInfo[2].toString();
-      assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
-
-    } catch (err){
-      setErr = err;
-    }
-
-    assert.notEqual(setErr, undefined, '[smgAmin-T00703]Error must be thrown');
-
-  });
+      });
 
   async function registerStoreman() {
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-    await smgAdminInstance.setWithdrawDepositDelayTime(ETHEREUM_ID,1,{from: account1});
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+    await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,1,{from: account1});
+    await coinAdminInst.setHalt(false,{from: account1});
 
     console.log("storemanGroupRegister");
     regDeposit = web3.toWei(100);
@@ -415,6 +426,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     } catch (err){
       setErr = err;
+     // console.log(err);
     }
 
     assert.notEqual(setErr, undefined, '[smgAmin-T00704]Error must be thrown');
@@ -484,14 +496,18 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('StoremanGroupWithdrawDeposit  - [smgAmin-T00801]', async () => {
 
-    sleep(delayTime*2*1000);
+    await coinAdminInst.setHalt(true,{from: account1});
 
-    await smgAdminInstance.setHalt(true,{from: account1});
+    await coinAdminInst.setSystemEnableBonus(0,false,10,{from: account1});
 
-    await smgAdminInstance.setSystemEnableBonus(0,false,10,{from: account1});
-
+    await coinAdminInst.setHalt(false,{from: account1});
     await smgAdminInstance.setHalt(false,{from: account1});
 
+    //sleep(10*1000);
+    //res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:account1,gas:1000000});
+    //console.log("unregister success");
+
+   // sleep(delayTime*2*1000);
     preBal = web3.fromWei(web3.eth.getBalance(account1));
     console.log("pre balance=" + preBal)
 
@@ -500,7 +516,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     res  = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:account1,gas:4000000});
 
-    sleep(delayTime*2*50);
+    console.log('withdrawed ')
+
+  //  sleep(delayTime*2*50);
 
 
     quotaSet = await WETHAdminInstance.mapStoremanGroup(account1);
@@ -540,13 +558,12 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   })
 
 
-
   it('storemanGroupRegisterByDelegate  - [smgAmin-T00810]', async () => {
 
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-    await smgAdminInstance.setSystemEnableBonus(0,true,10,{from: account1})
-    await smgAdminInstance.setHalt(false,{from: account1});
+    await coinAdminInst.setHalt(true,{from: account1});
+    await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+    await coinAdminInst.setSystemEnableBonus(0,true,10,{from: account1})
+    await coinAdminInst.setHalt(false,{from: account1});
 
     console.log("storemanGroupRegister");
     regDeposit = web3.toWei(100);
@@ -593,11 +610,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
   it('StoremanGroupWithdrawDeposit  - [smgAmin-T00812]', async () => {
 
-
-
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSystemEnableBonus(0,true,10,{from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSystemEnableBonus(0,true,10,{from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       regDeposit = web3.toWei(100);
       await  smgAdminInstance.depositSmgBonus(0,{from:account1,value:regDeposit,gas:4000000});
@@ -641,9 +656,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   it('storemanGroupRegisterByDelegate  - [smgAmin-T00913]', async () => {
     let setErr
     try {
-      await smgAdminInstance.setHalt(true, {from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0, false, {from: account1});
-      await smgAdminInstance.setHalt(false, {from: account1});
+      await coinAdminInst.setHalt(true, {from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0, false, {from: account1});
+      await coinAdminInst.setHalt(false, {from: account1});
 
       console.log("storemanGroupRegister");
       regDeposit = web3.toWei(100);
@@ -666,9 +681,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     it('storemanGroupRegister with punish  - [smgAmin-T00820]', async () => {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       console.log("storemanGroupRegister");
       regDeposit = web3.toWei(100);
@@ -730,9 +745,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       try {
         sleep(delayTime*2*1000);
 
-        await smgAdminInstance.setHalt(true,{from: account1});
-        await smgAdminInstance.setSystemEnableBonus(0,true,10,{from: account1});
-        await smgAdminInstance.setHalt(false,{from: account1});
+        await coinAdminInst.setHalt(true,{from: account1});
+        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: account1});
+        await coinAdminInst.setHalt(false,{from: account1});
 
 
         initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
@@ -813,18 +828,18 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     it('setSmgEnableUserWhiteList  - [smgAmin-T01000]', async () => {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
 
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,true, {from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,true, {from: account1});
 
-      coinInfo = await smgAdminInstance.mapCoinInfo(0);
+      coinInfo = await coinAdminInst.mapCoinInfo(0);
       console.log(coinInfo);
 
       isControlRegister = coinInfo[coinInfo.length - 5];
       assert.equal(isControlRegister, true, 'setSmgEnableUserWhiteList set true,get false error');
 
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-      coinInfo = await smgAdminInstance.mapCoinInfo(0);
+      await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+      coinInfo = await coinAdminInst.mapCoinInfo(0);
 
       isControlRegister = coinInfo[coinInfo.length - 5];
       assert.equal(isControlRegister, false, 'setSmgEnableUserWhiteList set false,get true error');
@@ -832,27 +847,27 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     it('setSystemBonusPeriod  - [smgAmin-T01001]', async () => {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
 
-      await smgAdminInstance.setSystemEnableBonus(0,true,10,{from: account1});
+      await coinAdminInst.setSystemEnableBonus(0,true,10,{from: account1});
 
-      coinInfo = await smgAdminInstance.mapCoinInfo(0);
+      coinInfo = await coinAdminInst.mapCoinInfo(0);
       console.log(coinInfo);
 
       isSystemBonusPeriod = coinInfo[coinInfo.length - 4];
       assert.notEqual(isSystemBonusPeriod, 0, 'setSmgEnableUserWhiteList set true,get false error');
 
-      await smgAdminInstance.setSystemEnableBonus(0,false,10,{from: account1});
-      coinInfo = await smgAdminInstance.mapCoinInfo(0);
+      await coinAdminInst.setSystemEnableBonus(0,false,10,{from: account1});
+      coinInfo = await coinAdminInst.mapCoinInfo(0);
 
       isSystemBonusPeriod = coinInfo[coinInfo.length - 4];
       assert.equal(isSystemBonusPeriod, 0, 'setSmgEnableUserWhiteList set false,get true error');
     })
 
     it('setSmgWhiteList  - [smgAmin-T01002]', async () => {
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,true, {from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,true, {from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       await smgAdminInstance.setSmgWhiteList(0,account3, {from: account1});
 
@@ -873,9 +888,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     it('setSmgWhiteList  - [smgAmin-T01003]', async () => {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,true, {from: account1});
-      await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,true, {from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
       regDeposit = web3.toWei(100);
       await  smgAdminInstance.storemanGroupRegister(0,storeManEthAddr,storeManTxFeeRatio,{from:account3,value:regDeposit,gas:4000000});
@@ -898,10 +913,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     it('storemanGroupClaimSystemBonus  - [smgAmin-T01100]', async () => {
 
-      await smgAdminInstance.setHalt(true,{from: account1});
-      await smgAdminInstance.setSmgEnableUserWhiteList(0,false, {from: account1});
-      await smgAdminInstance.setSystemEnableBonus(0,true,2 ,{from: account1});
-        await smgAdminInstance.setHalt(false,{from: account1});
+      await coinAdminInst.setHalt(true,{from: account1});
+      await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
+      await coinAdminInst.setSystemEnableBonus(0,true,2 ,{from: account1});
+      await coinAdminInst.setHalt(false,{from: account1});
 
 
       regDeposit = web3.toWei(100);
@@ -966,25 +981,27 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   })
 
   it('depositSmgBonus  - [smgAmin-T02001]', async () => {
-    await smgAdminInstance.setHalt(false,{from: account1});
 
-    coinInfo = await smgAdminInstance.mapCoinInfo(0);
 
-    pretotalBalance = coinInfo[coinInfo.length - 3];
+    await coinAdminInst.setHalt(false,{from: account1});
+
+  //  coinInfo = await coinAdminInst.mapCoinInfo(0);
+
+    pretotalBalance = await smgAdminInstance.bonusTotal(0);
     console.log("totalBalance=" + pretotalBalance);
 
     preBalance = web3.eth.getBalance(smgAdminInstance.address);
     deposit = web3.toWei(100);
-    await smgAdminInstance.depositSmgBonus(0, {from: account1,value:deposit});
-    coinInfo = await smgAdminInstance.mapCoinInfo(0);
 
-    totalBalance = coinInfo[coinInfo.length - 3];
-    console.log("totalBalance=" + totalBalance);
+    await smgAdminInstance.depositSmgBonus(0, {from: account1,value:deposit});
+    totalbonus = await smgAdminInstance.bonusTotal(0);
+
+    console.log("totalbonus=" + totalbonus);
 
     balanceChange = web3.eth.getBalance(smgAdminInstance.address) - preBalance;
     console.log("getBalance=" + balanceChange);
 
-    assert.equal(totalBalance - pretotalBalance, deposit, 'totalBalance error');
+    assert.equal(totalbonus - pretotalBalance, deposit, 'totalBalance error');
 
     assert.equal(balanceChange, deposit, 'getBalance error');
   })
