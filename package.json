@@ -18,7 +18,7 @@
     "eslint-plugin-react": "^6.8.0",
     "js-sha256": "^0.3.2",
     "minimatch": "^3.0.4",
-    "truffle": "3.4.6",
+    "truffle": "^4.1.14",
     "truffle-test-utils": "^0.1.0"
   },
   "main": "truffle.js",
@@ -37,7 +37,10 @@
     "bignumber.js": "^4.0.2",
     "ethereumjs-util": "^5.1.2",
     "solc": "^0.4.20",
-    "web3": "^0.20.0"
+    "web3": "^0.20.0",
+    "bitcoin-core": "^2.0.0",
+    "bitcoinjs-lib": "^4.0.1",
+    "bitcore-mnemonic": "^1.5.0"
   },
   "scripts": {
     "test": "mocha --reporter spec",

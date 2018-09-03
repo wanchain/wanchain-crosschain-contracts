@@ -1,3 +1,4 @@
+const coinAdmin = artifacts.require('./CoinAdmin.sol');
 const HTLCWBTC = artifacts.require('./HTLCWBTC.sol')
 const WBTCManager = artifacts.require("./WBTCManager.sol")
 const WBTC = artifacts.require("./WBTC.sol")
@@ -5,7 +6,9 @@ const StoremanGroupAdmin = artifacts.require("./StoremanGroupAdmin.sol")
 require('truffle-test-utils').init()
 var BigNumber = require('bignumber.js');
 const createKeccakHash = require('keccak');
+
 const crypto = require('crypto');
+const bitcoin = require('bitcoinjs-lib');
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
@@ -13,7 +16,7 @@ function sleep(ms) {
 
 const web3 = global.web3;
 
-const HTLCLockedTime = 20;
+const HTLCLockedTime = 40;
 const HTLCRevokeFeeRatio = 350;
 const GasPrice = 200000000000;
 let RATIO_PRECISE = 0;
@@ -24,6 +27,7 @@ let txFeeRatio;
 let WBTCInstance;
 let WBTCManagerInstance;
 let StoremanGroupAdminInstance;
+let coinAdminInst;
 let HTLCWBTCInstance;
 
 
@@ -33,43 +37,32 @@ let ownerAcc;
 let emptyAddress = '0x0000000000000000000000000000000000000000';
 
 let x1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
-let xHash1 = '0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6';
-
 let x2 = '0x0000000000000000000000000000000000000000000000000000000000000002';
-let xHash2 = '0x405787fa12a823e0f2b7631cc41b3ba8828b3321ca811111fa75cd3aa3bb5ace';
-
 let x3 = '0x0000000000000000000000000000000000000000000000000000000000000003';
-let xHash3 = '0xc2575a0e9e593c00f959f8c92f12db2869c3395a3b0502d05e2516446f71f85b';
-
 let x4 = '0x0000000000000000000000000000000000000000000000000000000000000004';
-let xHash4 = '0x8a35acfbc15ff81a39ae7d344fd709f28e8600b4aa8c65c6b64bfe7fe36bd19b';
-
 let x5 = '0x0000000000000000000000000000000000000000000000000000000000000005';
-let xHash5 = '0x036b6384b5eca791c62761152d0c79bb0604c104a5fb6f4eb0703f3154bb3db0';
-
 let x6 = '0x0000000000000000000000000000000000000000000000000000000000000006';
-let xHash6 = '0xf652222313e28459528d920b65115c16c04f3efc82aaedc97be59f3f377c0d3f';
-
 let x7 = '0x0000000000000000000000000000000000000000000000000000000000000007';
-let xHash7 = '0xa66cc928b5edb82af9bd49922954155ab7b0942694bea4ce44661d9a8736c688';
-
 let x8 = '0x0000000000000000000000000000000000000000000000000000000000000008';
-let xHash8 = '0xf3f7a9fe364faab93b216da50a3214154f22a0a2b415b23a84c8169e8b636ee3';
-
 let x9 = '0x0000000000000000000000000000000000000000000000000000000000000009';
-let xHash9 = '0x6e1540171b6c0c960b71a7020d9f60077f6af931a8bbf590da0223dacf75c7af';
-
 let xa = '0x000000000000000000000000000000000000000000000000000000000000000a';
-let xHasha = '0xc65a7bb8d6351c1cf70c95a316cc6a92839c986682d98bc35f958f4883f9d2a8';
-
 let xb = '0x000000000000000000000000000000000000000000000000000000000000000b';
-let xHashb = '0x0175b7a638427703f0dbe7bb9bbf987a2551717b34e79f33b5b1008d1fa01db9';
-
 let xc = '0x000000000000000000000000000000000000000000000000000000000000000c';
-let xHashc = '0xdf6966c971051c3d54ec59162606531493a51404a002842f56009d7e5cf4a8c7';
-
 let xd = '0x000000000000000000000000000000000000000000000000000000000000000d';
-let xHashd = '0xd7b6990105719101dabeb77144f2a3385c8033acd3af97e9423a695e81ad1eb5';
+
+let xHash1 = '0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5';
+let xHash2 = '0x9267d3dbed802941483f1afa2a6bc68de5f653128aca9bf1461c5d0a3ad36ed2';
+let xHash3 = '0xd9147961436944f43cd99d28b2bbddbf452ef872b30c8279e255e7daafc7f946';
+let xHash4 = '0xe38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f';
+let xHash5 = '0x96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8b17164c47';
+let xHash6 = '0xd1ec675902ef1633427ca360b290b0b3045a0d9058ddb5e648b4c3c3224c5c68';
+let xHash7 = '0x48428bdb7ddd829410d6bbb924fdeb3a3d7e88c2577bffae073b990c6f061d08';
+let xHash8 = '0x38df1c1f64a24a77b23393bca50dff872e31edc4f3b5aa3b90ad0b82f4f089b6';
+let xHash9 = '0x887bf140ce0b6a497ed8db5c7498a45454f0b2bd644b0313f7a82acc084d0027';
+let xHasha = '0x81b04ae4944e1704a65bc3a57b6fc3b06a6b923e3c558d611f6a854b5539ec13';
+let xHashb = '0xc09322c415a5ac9ffb1a6cde7e927f480cc1d8afaf22b39a47797966c08e9c4b';
+let xHashc = '0xa82872b96246dac512ddf0515f5da862a92ecebebcb92537b6e3e73199694c45';
+let xHashd = '0x2a3f128306951f1ded174b8803ee1f0df0c6404bbe92682be21fd84accf5d540';
 
 
 function getHashKey(key){
@@ -80,6 +73,13 @@ function getHashKey(key){
     DebugLog.debug('input key:', key);
     DebugLog.debug('input hash key:', hashKey);
     return hashKey;
+}
+
+function hexTrip0x(hexs){
+    if(0 == hexs.indexOf('0x')){
+        return hexs.slice(2);
+    }
+    return hexs;
 }
 
 function generatePrivateKey(){
@@ -118,12 +118,61 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
    ownerAcc = owner;
 
    before(`init`, async () => {
+    /*
+       xHash1 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x1), 'hex')).toString('hex');
+       console.log('let xhash1= 0x' + xHash1);
 
-         await web3.personal.unlockAccount(owner, 'wanglu', 99999)
-         await web3.personal.unlockAccount(storeman, 'wanglu', 99999)
-         await web3.personal.unlockAccount(user, 'wanglu', 99999)
+       xHash2 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x2), 'hex')).toString('hex');
+       console.log('let xhash2=  0x' + xHash2);
 
-       StoremanGroupAdminInstance = await StoremanGroupAdmin.new({from:owner})
+       xHash3 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x3), 'hex')).toString('hex');
+       console.log('let xhash3=  0x' + xHash3);
+
+       xHash4 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x4), 'hex')).toString('hex');
+       console.log('let xhash4= 0x' + xHash4);
+
+       xHash5 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x5), 'hex')).toString('hex');
+       console.log('let xhash5= 0x' + xHash5);
+
+       xHash6 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x6), 'hex')).toString('hex');
+       console.log('let xhash6= 0x' + xHash6);
+
+       xHash7 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x7), 'hex')).toString('hex');
+       console.log('let xhash7= 0x' + xHash7);
+
+       xHash8 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x8), 'hex')).toString('hex');
+       console.log('let xhash8= 0x' + xHash8);
+
+       xHash9 = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(x9), 'hex')).toString('hex');
+       console.log('let xhash9= 0x' + xHash9);
+
+       xHasha = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(xa), 'hex')).toString('hex');
+       console.log('let xhasha= 0x' + xHasha);
+
+       xHashb = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(xb), 'hex')).toString('hex');
+       console.log('let xhashb= 0x' + xHashb);
+
+       xHashc = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(xc), 'hex')).toString('hex');
+       console.log('let xhashc= 0x' + xHashc);
+
+       xHashd = bitcoin.crypto.sha256(Buffer.from(hexTrip0x(xd), 'hex')).toString('hex');
+       console.log('let xhashd= 0x' + xHashd);
+    */
+
+       await web3.personal.unlockAccount(owner, 'wanglu', 99999);
+       await web3.personal.unlockAccount(storeman, 'wanglu', 99999);
+       await web3.personal.unlockAccount(user, 'wanglu', 99999);
+       console.log("coin admin set halt");
+
+
+       coinAdminInst =  await coinAdmin.new({from:owner});
+
+       StoremanGroupAdminInstance = await StoremanGroupAdmin.new({from:owner});
+
+       console.log("set coinAdmin in smgAdmin")
+       res = await StoremanGroupAdminInstance.setCoinAdmin(coinAdminInst.address,{from:owner});
+
+
        HTLCWBTCInstance = await HTLCWBTC.new({from:owner})
 
        WBTCManagerInstance = await WBTCManager.new(HTLCWBTCInstance.address,StoremanGroupAdminInstance.address,{from:owner});
@@ -143,7 +192,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
        let withdrawDelayTime = (3600*72);
        console.log("initializeCoin:");
-       res = await  StoremanGroupAdminInstance.initializeCoin(BTC_ID,
+       res = await  coinAdminInst.initializeCoin(BTC_ID,
            ratio,
            defaultMinDeposit,
            htlcType,
@@ -155,16 +204,18 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
        );
 
        console.log("set ratio");
-       await StoremanGroupAdminInstance.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
+       await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
 
        console.log("set whitelist");
-       await StoremanGroupAdminInstance.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
+       await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
 
        console.log("storemanGroupRegister");
        regDeposit = web3.toWei(2000);
 
        console.log("set halt");
+       await coinAdminInst.setHalt(false,{from: owner});
        await StoremanGroupAdminInstance.setHalt(false,{from: owner});
+
        await WBTCManagerInstance.setHalt(false,{from:owner});
 
        preBal = web3.fromWei(web3.eth.getBalance(storeman));
@@ -178,10 +229,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
        console.log("initialize group wbtc to set token admin");
 
        await HTLCWBTCInstance.setWBTCManager(wanchainTokenAdminAddr,{from: owner});
+
        getTokenAdmin = await  HTLCWBTCInstance.wbtcManager();
        assert.equal(getTokenAdmin,wanchainTokenAdminAddr, 'wanchainTokenAdminAddr not match');
 
-       await HTLCWBTCInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address,{from: owner});
+       await HTLCWBTCInstance.setAdmin(StoremanGroupAdminInstance.address,coinAdminInst.address,{from: owner});;
+
        smgAdminAddr = await  HTLCWBTCInstance.storemanGroupAdmin();
        assert.equal(smgAdminAddr,StoremanGroupAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
@@ -200,7 +253,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
        // get RATIO_PRECISE
        RATIO_PRECISE = await HTLCWBTCInstance.RATIO_PRECISE();
-       wan2CoinRatio = (await StoremanGroupAdminInstance.mapCoinInfo(BTC_ID))[0];
+       wan2CoinRatio = (await coinAdminInst.mapCoinInfo(BTC_ID))[0];
        txFeeRatio = (await StoremanGroupAdminInstance.mapCoinSmgInfo(BTC_ID, storeman))[3];
        console.log(`RATIO_PRECISE`, RATIO_PRECISE);
        console.log(`wan2CoinRatio`, wan2CoinRatio);
@@ -407,7 +460,10 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
 
     it(`[HTLCWBTC-T2107]`, async () => {
+
+        console.log('begin lock');
         let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash3, user, web3.toWei(10), {from:storeman});
+        console.log(ret);
         assert.web3Event(ret, {
             event: "BTC2WBTCLock",
             args: {
@@ -424,6 +480,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeUserToken:", beforeUserToken);
 
         ret = await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
+
         assert.web3Event(ret, {
             event: "BTC2WBTCRefund",
             args: {
@@ -449,6 +506,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
     });
 
 
+///*
     it(`[HTLCWBTC-T2108]`, async () => {
         let retError;
         try {
@@ -674,6 +732,8 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeSCBalance:", beforeSCBalance);
 
         let ret = await HTLCWBTCInstance.wbtc2btcLock(xHash4, storeman, recipient, web3.toWei(1), {from:user, value:wbtc2btcLockFee, gasPrice:'0x'+GasPrice.toString(16)});
+        console.log(ret);
+
         assert.web3Event(ret, {
             event: "WBTC2BTCLock",
             args: {
@@ -681,7 +741,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
                 storeman: storeman,
                 xHash: xHash4,
                 value: parseInt(web3.toWei(1)),
-                btcAddr: recipient,
+                userBtcAddr: recipient,
                 fee: parseInt(wbtc2btcLockFee)
             }
         })
@@ -714,7 +774,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterSCBalance.toString(), beforeSCBalance.add(wbtc2btcLockFee).toString(), "unexpect SC balance");
     });
 
-
+///*
 
     it(`[HTLCWBTC-T2307-2]`, async () => {
         let wbtc2btcLockFee = wan2CoinRatio.mul(txFeeRatio).mul(web3.toWei(1)).div(RATIO_PRECISE).div(RATIO_PRECISE);
@@ -761,7 +821,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
                 storeman: storeman,
                 xHash: xHash9,
                 value: parseInt(web3.toWei(1)),
-                btcAddr: recipient,
+                userBtcAddr: recipient,
                 fee: parseInt(wbtc2btcLockFee)
             }
         })
@@ -818,7 +878,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
                 storeman: storeman,
                 xHash: xHasha,
                 value: parseInt(web3.toWei(1)),
-                btcAddr: recipient,
+                userBtcAddr: recipient,
                 fee: parseInt(wbtc2btcLockFee)
             }
         })
@@ -991,7 +1051,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
                 storeman: storeman,
                 xHash: xHash5,
                 value: parseInt(web3.toWei(1)),
-                btcAddr: recipient,
+                userBtcAddr: recipient,
                 fee: parseInt(wbtc2btcLockFee)
             }
         }, `wbtc2btcLock fail`);
@@ -1579,6 +1639,8 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
     it(`[HTLCWBTC-T2715]`, async() => {
         let beforeStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
+        let beforeCoinAdmin = await HTLCWBTCInstance.coinAdmin();
+
         console.log(`beforeStoremanGroupAdmin:`, beforeStoremanGroupAdmin);
         let newAddress = '0x0000000000000000000000000000000000000011';
 
@@ -1586,7 +1648,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWBTCInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
+            await HTLCWBTCInstance.setAdmin(newAddress,newAddress, {from:owner, gas:4000000});
         } catch (e) {
             retError = e;
         }
@@ -1594,9 +1656,11 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         await resetHalted(false);
 
         let afterStoremanGroupAdmin = await HTLCWBTCInstance.storemanGroupAdmin();
+        let afterCoinAdmin = await HTLCWBTCInstance.coinAdmin();
         console.log(`afterStoremanGroupAdmin:`, afterStoremanGroupAdmin);
-
+        console.log(`afterCoinAdmin:`, afterCoinAdmin);
         assert.equal(newAddress, afterStoremanGroupAdmin, `storemanGroupAdmin should be changed`);
+        assert.equal(newAddress,afterCoinAdmin, `coinAdmin should be changed`);
         assert.equal(retError, undefined, `setStoremanGroupAdmin fail`);
     })
 
@@ -1656,5 +1720,6 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         assert.equal(await HTLCWBTCInstance.lockedTime(), 0, "unexcept locked time");
     });
+//*/
 
 })

@@ -60,7 +60,7 @@ async function resetHalted (bHalted) {
     assert.equal(await HTLCETHInstance.halted(), bHalted, `Failed to setHalt`);
 }
 
-contract('HTLCETH', ([recipient, ign1, ign2, ign3, ign4, ign5, ign6, ign7,owner, storeman, user]) => {
+contract('HTLCETH', ([recipient,owner, storeman, user]) => {
 
     ownerAcc = owner;
 

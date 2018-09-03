@@ -1,6 +1,8 @@
 const HTLCWETH = artifacts.require('./HTLCWETH.sol')
 const WETHManager = artifacts.require("./WETHManager.sol")
 const WETH = artifacts.require("./WETH.sol")
+const coinAdmin = artifacts.require('./CoinAdmin.sol');
+
 const StoremanGroupAdmin = artifacts.require("./StoremanGroupAdmin.sol")
 require('truffle-test-utils').init()
 var BigNumber = require('bignumber.js');
@@ -24,6 +26,7 @@ let txFeeRatio;
 let WETHInstance;
 let WETHManagerInstance;// = WETHManager.at("0x103ba1a2fad145f3a3e8b126ef88cb3e096a1990");
 let StoremanGroupAdminInstance;// = StoremanGroupAdmin.at("0x4b155d089245d126fd0695edd8df93c495fc5662");
+let coinAdminInst;
 let HTLCWETHInstance;// = HTLCWETH.at('0x34a0cfbcbc1182721cc03466de5c841268a34856');
 
 
@@ -145,15 +148,19 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
    before(`init`, async () => {
 
-         await web3.personal.unlockAccount(owner, 'wanglu', 99999)
-         await web3.personal.unlockAccount(storeman, 'wanglu', 99999)
-         await web3.personal.unlockAccount(user, 'wanglu', 99999)
+       await web3.personal.unlockAccount(owner, 'wanglu', 99999)
+       await web3.personal.unlockAccount(storeman, 'wanglu', 99999)
+       await web3.personal.unlockAccount(user, 'wanglu', 99999);
+
+       coinAdminInst =  await coinAdmin.new({from:owner});
 
        StoremanGroupAdminInstance = await StoremanGroupAdmin.new({from:owner})
        HTLCWETHInstance = await HTLCWETH.new({from:owner})
 
        WETHManagerInstance = await WETHManager.new(HTLCWETHInstance.address,StoremanGroupAdminInstance.address,{from:owner});
 
+       console.log("set coinAdmin in smgAdmin")
+       res = await StoremanGroupAdminInstance.setCoinAdmin(coinAdminInst.address,{from:owner});
 
        let wethAddr = await WETHManagerInstance.WETHToken();
        WETHInstance = WETH.at(wethAddr);
@@ -171,7 +178,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
        let withdrawDelayTime = (3600*72);
        console.log("initializeCoin:");
-       res = await  StoremanGroupAdminInstance.initializeCoin(ETHEREUM_ID,
+       res = await  coinAdminInst.initializeCoin(ETHEREUM_ID,
            ratio,
            defaultMinDeposit,
            htlcType,
@@ -183,17 +190,23 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        );
 
        console.log("set ratio");
-       await StoremanGroupAdminInstance.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
+       await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
 
 
        //console.log(coinInfo);
-       await StoremanGroupAdminInstance.setSmgEnableUserWhiteList(ETHEREUM_ID, false, {from: owner});
+       await coinAdminInst.setSmgEnableUserWhiteList(ETHEREUM_ID, false, {from: owner});
 
        console.log("storemanGroupRegister");
        regDeposit = web3.toWei(2000);
 
        console.log("set halt");
+       await coinAdminInst.setHalt(false,{from: owner});
+
        await StoremanGroupAdminInstance.setHalt(false,{from: owner});
+
+       await HTLCWETHInstance.setAdmin(StoremanGroupAdminInstance.address,coinAdminInst.address,{from: owner});;
+
+
        await WETHManagerInstance.setHalt(false,{from:owner});
 
        preBal = web3.fromWei(web3.eth.getBalance(storeman));
@@ -210,7 +223,6 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        getTokenAdmin = await  HTLCWETHInstance.wethManager();
        assert.equal(getTokenAdmin,wanchainTokenAdminAddr, 'wanchainTokenAdminAddr not match');
 
-       await HTLCWETHInstance.setStoremanGroupAdmin(StoremanGroupAdminInstance.address,{from: owner});
        smgAdminAddr = await  HTLCWETHInstance.storemanGroupAdmin();
        assert.equal(smgAdminAddr,StoremanGroupAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
@@ -218,10 +230,10 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        await HTLCWETHInstance.setLockedTime(HTLCLockedTime, {from:owner});
        assert.equal((await HTLCWETHInstance.lockedTime()).toString(10), (HTLCLockedTime).toString(10), "setLockedTime fail");
 
-        // tmp
+       // tmp
        // await recoverWETHManager();
        // await recoverStoremanGroupAdmin();
-        // tmp
+       // tmp
 
        // set revoke fee ratio
        await HTLCWETHInstance.setRevokeFeeRatio(HTLCRevokeFeeRatio, {from:owner});
@@ -229,7 +241,8 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
        // get RATIO_PRECISE
        RATIO_PRECISE = await HTLCWETHInstance.RATIO_PRECISE();
-       wan2CoinRatio = (await StoremanGroupAdminInstance.mapCoinInfo(ETHEREUM_ID))[0];
+       wan2CoinRatio = (await coinAdminInst.mapCoinInfo(ETHEREUM_ID))[0];
+
        txFeeRatio = (await StoremanGroupAdminInstance.mapCoinSmgInfo(ETHEREUM_ID, storeman))[3];
        console.log(`RATIO_PRECISE`, RATIO_PRECISE);
        console.log(`wan2CoinRatio`, wan2CoinRatio);
@@ -1741,7 +1754,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.setStoremanGroupAdmin(newAddress, {from:owner, gas:4000000});
+            await HTLCWETHInstance.setAdmin(newAddress,coinAdminInst.address,{from: owner});
         } catch (e) {
             retError = e;
         }
