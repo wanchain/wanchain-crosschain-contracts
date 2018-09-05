@@ -13,11 +13,11 @@ module.exports = {
 	
     rinkeby: {
       host: "192.168.1.58",
-      port: 17545,
+      port: 8545,
       network_id: "*", // Match any network id
       gas: 4710000,
       gasPrice: 18e9,
-      from: "0xdd4ad968d744d76e376f1992273b07fb5aa42b6b",
+      from: "0x9da26fc2e1d6ad9fdd46138906b0104ae68a65d8",
     },
 
     devinternal: {
@@ -26,7 +26,7 @@ module.exports = {
       network_id: "*", // Match any network id
       gas: 4710000,
       gasPrice: 180e9,
-      from: "0x9da26fc2e1d6ad9fdd46138906b0104ae68a65d8",
+      from: "0x2d0e7c0813a51d3bd1d08246af2a8a7a57d8922e",
     },
     
     mainnet: {

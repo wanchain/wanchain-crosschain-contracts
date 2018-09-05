@@ -484,6 +484,7 @@ contract StoremanGroupAdmin is Halt {
                   //if there are initiator,transfer bonus to initiator
                   if(smgInfo.initiator != address(0)){
                       smgInfo.initiator.transfer(bonus);
+                      SmgClaimSystemBonus(smgInfo.initiator, coin, bonus);
                   } else {
                       msg.sender.transfer(bonus);
                       SmgClaimSystemBonus(msg.sender, coin, bonus);

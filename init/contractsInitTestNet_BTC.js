@@ -165,8 +165,8 @@ contract('deploy donctracts',  ([miner, owner]) => {
 
   it('register storeman', async () => {
 
-      let storeManWanAddr = '0xd0b327d711dbf1f6d5de93777cdee724a6577042';
-      let storeManBTCAddr = '0xd3a80a8e8bf8fbfea8eee3193dc834e61f257dfe';
+      let storeManWanAddr = '0x82086038157846da6a38e2e25a6e79e69d913bb9';//in dev test net
+      let storeManBTCAddr = '0x9022c407879beee21132fc89008d983423198873';
 
       await coinAdminInst.setHalt(true, {from: owner});
       await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
@@ -213,5 +213,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
       assert.equal(web3.fromWei(getQuota), web3.fromWei((regDeposit / ratio) * precise), 'quota not match');
 
   })
+
+
 
 })

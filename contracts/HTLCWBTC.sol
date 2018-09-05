@@ -140,6 +140,7 @@ contract HTLCWBTC is HTLCBase {
     modifier initialized() {
         require(wbtcManager != address(0));
         require(storemanGroupAdmin != address(0));
+        require(coinAdmin !=  address(0));
         _;
     }
 
@@ -207,18 +208,20 @@ contract HTLCWBTC is HTLCBase {
     /// @param xHash    hash of HTLC random number
     /// @param wanAddr  address of user, used to receive WBTC
     /// @param value    exchange value
-    function btc2wbtcLock(bytes32 xHash, address wanAddr, uint value)
+      function btc2wbtcLock(bytes32 xHash, address wanAddr, uint value)
         public
         initialized
         notHalted
         returns(bool)
     {
         addHTLCTx(TxDirection.Coin2Wtoken, msg.sender, wanAddr, xHash, value, false, address(0x00));
+
         if (!WTokenManagerInterface(wbtcManager).lockQuota(msg.sender, wanAddr, value)) {
-            revert();
+           revert();
         }
 
         emit BTC2WBTCLock(msg.sender, wanAddr, xHash, value);
+
         return true;
     }
 
@@ -234,9 +237,10 @@ contract HTLCWBTC is HTLCBase {
         refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
 
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
-        if (!WTokenManagerInterface(wbtcManager).mintToken(info.source, info.destination, info.value)) {
+
+       if (!WTokenManagerInterface(wbtcManager).mintToken(info.source, info.destination, info.value)) {
             revert();
-        }
+       }
 
         emit BTC2WBTCRefund(info.destination, info.source, xHash, x);
         return true;
