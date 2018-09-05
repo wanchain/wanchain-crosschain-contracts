@@ -90,8 +90,9 @@ contract StoremanGroupAdmin is Halt {
     /// @notice event for storeman group withdraw deposit
     /// @param smgAddress   storeman address
     /// @param coin         coin name
-    /// @param withdrawTime the time for storeman applying unregister
-    event SmgWithdraw(address indexed smgAddress,uint indexed coin,uint indexed withdrawTime);
+    /// @param deposit smg deposit
+    /// @param actualReturn acutal return wan
+    event SmgWithdraw(address indexed smgAddress,uint indexed coin,uint indexed actualReturn,uint deposit);
 
 
     /// @notice event for storeman group claiming system bonus
@@ -332,7 +333,7 @@ contract StoremanGroupAdmin is Halt {
         assert(smgInfo.deposit > 0);
 
         assert(smgWithdrawAble(wanchainTokenManager,smgAddr));
-
+       uint deposit = smgInfo.deposit;
        uint restBalance = smgInfo.deposit;
        if (smgInfo.punishPercent > 0) {
              restBalance = restBalance.sub(restBalance.mul(smgInfo.punishPercent).div(100));
@@ -353,7 +354,7 @@ contract StoremanGroupAdmin is Halt {
        smgInfo.initiator = address(0);
 
        //send event
-       emit SmgWithdraw(msg.sender,coin,now);
+       emit SmgWithdraw(msg.sender,coin,restBalance,deposit);
 
     }
 
