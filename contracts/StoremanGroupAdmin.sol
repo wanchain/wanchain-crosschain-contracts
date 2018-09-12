@@ -465,16 +465,13 @@ contract StoremanGroupAdmin is Halt {
         if(smgInfo.punishPercent != 0 || startBonusBlk == 0){
           return;
         }
+		
+		if (smgInfo.bonusBlockNumber<startBonusBlk){
+           smgInfo.bonusBlockNumber = startBonusBlk;
+        }
 
-      // uint blks = block.number.sub(smgInfo.bonusBlockNumber);
         if( block.number.sub(smgInfo.bonusBlockNumber) >= bonusPeriodBlks && smgInfo.deposit > 0) {
-
-            if (smgInfo.bonusBlockNumber<startBonusBlk){
-                smgInfo.bonusBlockNumber = startBonusBlk;
-            }
-
             uint cycles =  block.number.sub(smgInfo.bonusBlockNumber).div(bonusPeriodBlks);
-
             smgInfo.bonusBlockNumber = smgInfo.bonusBlockNumber.add(cycles.mul(bonusPeriodBlks));
 
             uint  bonus = smgInfo.deposit.mul(bonusRatio).div(CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());
