@@ -175,6 +175,7 @@ contract StoremanGroupAdmin is Halt {
         require(originalChainAddr.length != 0);
         require(txFeeRatio > 0);
         require(smgWanAddr != address(0));
+
         //require smg is not registered
         require(mapCoinSmgInfo[coin][smgWanAddr].bonusBlockNumber == 0);
 
@@ -273,6 +274,7 @@ contract StoremanGroupAdmin is Halt {
         notHalted
     {
         assert(mapCoinSmgInfo[coin][smgAddr].initiator == msg.sender);
+
         smgApplyUnregister(coin,smgAddr);
     }
 
@@ -288,6 +290,7 @@ contract StoremanGroupAdmin is Halt {
         assert(mapCoinSmgInfo[coin][smgAddr].unregisterApplyTime == 0);
 
         mapCoinSmgInfo[coin][smgAddr].unregisterApplyTime = now;
+
         var (, , , , ,tokenManagerAddr, , ,startBonusBlk, , ,) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
         if ( startBonusBlk > 0 &&  mapCoinSmgInfo[coin][smgAddr].punishPercent==0) {
@@ -324,6 +327,7 @@ contract StoremanGroupAdmin is Halt {
         notHalted
         initialized(coin)
     {
+
         StoremanGroup storage smgInfo = mapCoinSmgInfo[coin][smgAddr];
 
         var (, , , , ,wanchainTokenManager,withdrawDelayTime, , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
@@ -332,11 +336,11 @@ contract StoremanGroupAdmin is Halt {
         //check smg existing
         assert(smgInfo.deposit > 0);
 
-        assert(smgWithdrawAble(wanchainTokenManager,smgAddr));
+       assert(smgWithdrawAble(wanchainTokenManager,smgAddr));
        uint deposit = smgInfo.deposit;
        uint restBalance = smgInfo.deposit;
        if (smgInfo.punishPercent > 0) {
-             restBalance = restBalance.sub(restBalance.mul(smgInfo.punishPercent).div(100));
+           restBalance = restBalance.sub(restBalance.mul(smgInfo.punishPercent).div(100));
        }
 
        smgInfo.deposit = 0;
@@ -349,6 +353,12 @@ contract StoremanGroupAdmin is Halt {
             smgInfo.initiator.transfer(restBalance);
        } else {
             msg.sender.transfer(restBalance);
+       }
+
+       //transfer punished deposit to reciever
+       if(restBalance < deposit) {
+          address punishReciever = CoinAdminInterface(coinAminAddr).mapCoinPunishReciever(coin);
+          punishReciever.transfer(deposit.sub(restBalance));
        }
 
        smgInfo.initiator = address(0);
@@ -410,6 +420,15 @@ contract StoremanGroupAdmin is Halt {
         selfdestruct(owner);
     }
 
+    /// @notice function tranfer out the specified smg deposit in case of smg lost keystore
+    function transferSmgDeposit(uint coin,address smgAddr)
+        public
+        onlyOwner
+        isHalted
+    {
+        owner.transfer(mapCoinSmgInfo[coin][smgAddr].deposit);
+    }
+
     /// @notice function for setting smg register mode,control by foundation or register freely
     function transferDeposit()
         public
@@ -418,6 +437,8 @@ contract StoremanGroupAdmin is Halt {
     {
         owner.transfer(this.balance);
     }
+
+
 ////////////////private function///////////////////////////////////////////////
   function deposit(address smgAddr,uint tokenNumber,address tokenManagerAddr)
         private
@@ -465,13 +486,16 @@ contract StoremanGroupAdmin is Halt {
         if(smgInfo.punishPercent != 0 || startBonusBlk == 0){
           return;
         }
-		
-		if (smgInfo.bonusBlockNumber<startBonusBlk){
-           smgInfo.bonusBlockNumber = startBonusBlk;
+
+        if (smgInfo.bonusBlockNumber<startBonusBlk){
+            smgInfo.bonusBlockNumber = startBonusBlk;
         }
 
+      // uint blks = block.number.sub(smgInfo.bonusBlockNumber);
         if( block.number.sub(smgInfo.bonusBlockNumber) >= bonusPeriodBlks && smgInfo.deposit > 0) {
+
             uint cycles =  block.number.sub(smgInfo.bonusBlockNumber).div(bonusPeriodBlks);
+
             smgInfo.bonusBlockNumber = smgInfo.bonusBlockNumber.add(cycles.mul(bonusPeriodBlks));
 
             uint  bonus = smgInfo.deposit.mul(bonusRatio).div(CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());

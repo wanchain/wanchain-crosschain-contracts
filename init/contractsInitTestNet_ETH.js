@@ -143,6 +143,9 @@ contract('deploy donctracts',  ()=> {
     assert.equal(getWanchainTokenManagerAddr,wanchainTokenManagerAddr, 'wanchainTokenManagerAddr not match');
     assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
+    console.log("setCoinPunishReciever");
+    await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,owner,{from: owner});
+
     console.log("set ratio");
     await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
 

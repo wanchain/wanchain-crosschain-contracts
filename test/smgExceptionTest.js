@@ -54,6 +54,8 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   let groupWethProxyInst;
   let storeManTxFeeRatio = 1;//need to mul the precie 10000,1/10000
 
+  owner = account1;
+
   before('set up contract before test', async () => {
 
     await web3.personal.unlockAccount(owner, 'wanglu', 99999)
@@ -137,6 +139,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       assert.equal(getWanchainTokenAdminAddr,wanchainTokenAdminAddr, 'wanchainTokenAddr not match');
       assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
+      console.log("setCoinPunishReciever");
+      await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account1,{from: account1});
+
       console.log("set ratio");
       await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
 
@@ -153,7 +158,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       assert.equal(gotCoinAdminAddr,coinAdminInst.address,"the coinAdmin address is not match");
 
       console.log("smgAdmin set halt");
-      await smgAdminInstance.setHalt(false,{from: owner});
+      await smgAdminInstance.setHalt(false,{from: account1});
 
       await WETHAdminInstance.setHalt(false,{from:account1});
 
@@ -167,7 +172,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       smgAdminAddr = await  groupWethProxyInst.storemanGroupAdmin();
       assert.equal(smgAdminAddr,smgAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
-      await groupWethProxyInst.setHalt(false);
+      await groupWethProxyInst.setHalt(false,{from:account1});
 
 
       await smgPrepare1();
@@ -208,7 +213,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
       sleep(delayTime*2*1000);
     }
-
+///*
   async function smgPrepare2() {
 
     await coinAdminInst.setHalt(true,{from: account1});
@@ -1420,7 +1425,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.notEqual(setErr, undefined, '[smgAmin-T02002]Error must be thrown');
 
   })
-
+//*/
 /////////////////////////////////////////////////////////////////////////
   it('kill-- [smgAmin-T003001] ', async () => {
     let setErr

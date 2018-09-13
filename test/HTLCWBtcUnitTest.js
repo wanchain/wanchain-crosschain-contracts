@@ -203,6 +203,9 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
            {from:owner,gas:4000000}
        );
 
+       console.log("setCoinPunishReciever");
+       await coinAdminInst.setCoinPunishReciever(BTC_ID,owner,{from: owner});
+
        console.log("set ratio");
        await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
 

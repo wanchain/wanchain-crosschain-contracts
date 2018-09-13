@@ -55,7 +55,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
   let smgAdminInstance;
   let groupWethProxyInst;
   let storeManTxFeeRatio = 1;//need to mul the precie 10000,1/10000
-
+  owner = account1;
   before('set up contract before test', async () => {
 
     await web3.personal.unlockAccount(owner, 'wanglu', 99999)
@@ -161,7 +161,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(getWanchainTokenAdminAddr,wanchainTokenAdminAddr, 'wanchainTokenAddr not match');
     assert.equal(getWithdrawDelayTime,withdrawDelayTime, 'withdrawDelayTime not match');
 
-    console.log("set ratio");
+    console.log("setCoinPunishReciever");
+    await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account1,{from: account1});
+
+      console.log("set ratio");
     await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
 
     console.log("set delay time");
@@ -177,7 +180,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(gotCoinAdminAddr,coinAdminInst.address,"the coinAdmin address is not match");
 
     console.log("smgAdmin set halt");
-    await smgAdminInstance.setHalt(false,{from: owner});
+    await smgAdminInstance.setHalt(false,{from: account1});
 
     await WETHAdminInstance.setHalt(false,{from:account1});
 
@@ -191,11 +194,11 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     smgAdminAddr = await  groupWethProxyInst.storemanGroupAdmin();
     assert.equal(smgAdminAddr,smgAdminInstance.address, 'wanchainTokenAdminAddr not match');
 
-    await groupWethProxyInst.setHalt(false);
+    await groupWethProxyInst.setHalt(false,{from: account1});
 
   })
 
-
+///*
   it('storemanGroupRegister  - [smgAmin-T00600]', async () => {
     await coinAdminInst.setHalt(true,{from: account1});
     await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: account1});
@@ -1006,7 +1009,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(balanceChange, deposit, 'getBalance error');
   })
 
-
+//*/
   it('kill  - [smgAmin-T03000]', async () => {
     preBal = web3.eth.getBalance(account1);
     await smgAdminInstance.setHalt(true,{from: account1});

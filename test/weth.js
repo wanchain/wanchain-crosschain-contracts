@@ -52,7 +52,7 @@ contract('WETH', ([owner, WETHManager, sender, recipient]) => {
   it(`[WETH-T100]Should disallow no WETHManager to mint WETH`, async () => {
     let mintTokenError
     try {
-      await WETHInstance.mint(recipient, 1)
+      await WETHInstance.mint(recipient, 1,{from:recipient})
     } catch (e) {
       mintTokenError = e
     }
@@ -111,7 +111,7 @@ contract('WETH', ([owner, WETHManager, sender, recipient]) => {
   it(`[WETH-T201]Should disallow no WETHManager to make a token lockTo`, async () => {
     let lockToError
     try {
-      await WETHInstance.lockTo(sender, recipient, 1)
+      await WETHInstance.lockTo(sender, recipient, 1,{from:sender})
     } catch (e) {
       lockToError = e
     }
@@ -151,7 +151,7 @@ contract('WETH', ([owner, WETHManager, sender, recipient]) => {
   it(`[WETH-T300]Should disallow no WETHManager burn token`, async () => {
     let tokenBurnError 
     try {
-      await WETHInstance.burn(sender, 25)
+      await WETHInstance.burn(sender, 25,{from:sender})
     } catch (e) {
       tokenBurnError = e
     }

@@ -153,6 +153,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         assert.equal(getWanchainTokenAdminAddr, wanchainTokenAdminAddr, 'wanchainTokenAddr not match');
         assert.equal(getWithdrawDelayTime, withdrawDelayTime, 'withdrawDelayTime not match');
 
+        console.log("setCoinPunishReciever");
+        await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,owner,{from: owner});
+
         console.log("set ratio");
         await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID, ratio, {from: owner});
 
