@@ -357,7 +357,7 @@ contract StoremanGroupAdmin is Halt {
 
        //transfer punished deposit to reciever
        if(restBalance < deposit) {
-          address punishReciever = CoinAdminInterface(coinAminAddr).mapCoinPunishReciever(coin);
+          address punishReciever = CoinAdminInterface(coinAminAddr).mapCoinPunishReceiver(coin);
           punishReciever.transfer(deposit.sub(restBalance));
        }
 

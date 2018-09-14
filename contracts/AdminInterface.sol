@@ -34,6 +34,6 @@ contract CoinAdminInterface {
     function DEFAULT_PRECISE() public view returns(uint);
     function mapCoinInfo(uint) public view returns(uint, uint, uint, bytes, address, address, uint, bool, uint, uint, uint, uint);
     function isInitialized(uint)   public view  returns (bool);
-    function mapCoinPunishReciever(uint) public view returns(address);
+    function mapCoinPunishReceiver(uint) public view returns(address);
 }
 

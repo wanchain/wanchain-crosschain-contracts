@@ -59,7 +59,7 @@ contract CoinAdmin is Halt {
     }
 
     mapping (uint=>CoinInfo) public mapCoinInfo;								//the information for storing different cross chain coin
-    mapping (uint=>address)  public mapCoinPunishReciever;						//the information for storing different cross chain coin
+    mapping (uint=>address)  public mapCoinPunishReceiver;						//the information for storing different cross chain coin
 
     /// @notice event for initializing coin
     /// @param coin                 coin name id
@@ -149,7 +149,7 @@ contract CoinAdmin is Halt {
         isHalted
     {
         require(addr != address(0));
-        mapCoinPunishReciever[coin] = addr;
+        mapCoinPunishReceiver[coin] = addr;
     }
 
     /// @notice function for setting the Exchange ration for mint token
@@ -241,7 +241,7 @@ contract CoinAdmin is Halt {
         require(info.coin2WanRatio != 0);
         require(info.wanchainTokenManager != address(0));
         require(info.wanchainHtlc != address(0));
-        require(mapCoinPunishReciever[coin] != address(0));
+        require(mapCoinPunishReceiver[coin] != address(0));
 
         if(info.htlcType == USE_CONTRACT) {
             require(info.originalChainHtlc.length != 0x0);
