@@ -35,7 +35,7 @@ let zeroBalnaceAddr = '0xcb651cb4fdcd905922cb850ad8000fd862695444'
 ethRatio = 10;
 regDeposit = 20;
 
-delayTime = 20;
+delayTime = 1;
 
 const ETHEREUM_ID = 0;
 
@@ -154,7 +154,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         assert.equal(getWithdrawDelayTime, withdrawDelayTime, 'withdrawDelayTime not match');
 
         console.log("setCoinPunishReciever");
-        await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,owner,{from: owner});
+        await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account3,{from: owner});
 
         console.log("set ratio");
         await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID, ratio, {from: owner});
@@ -191,7 +191,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     })
 
-
+/*
     it('storemanGroupRegisterByDelegate  - [smgAmin-T00900]', async () => {
 
         await coinAdminInst.setHalt(true,{from: owner});
@@ -480,7 +480,128 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         assert.equal(diffBal,100,"smgAdminInstance StoremanGroupWithdrawDeposit balance not right")
 
     })
+*/
+    it('Set punish deposit reciever  - [smgAmin-T00907]', async () => {
+        await coinAdminInst.setHalt(true,{from: owner});
+        let res = await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account2,{from:owner})
+        await coinAdminInst.setHalt(false,{from: owner});
 
+        let reciever = await coinAdminInst.mapCoinPunishReciever(ETHEREUM_ID)
+        console.log(reciever)
+
+        assert.equal(account2,reciever,"the punish deposit is different with setting")
+    })
+
+
+    it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
+
+        await coinAdminInst.setHalt(true,{from: owner});
+        await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
+        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
+        await coinAdminInst.setHalt(false,{from: owner});
+
+        console.log("storemanGroupRegister");
+        let regDeposit = web3.toWei(100);
+
+        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+
+        let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr1,storeManBTCAddr1,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
+        console.log(res)
+
+        console.log("=============================punish smg 100%=======================================================");
+        res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr1,100,{from:owner});
+        console.log(res);
+
+        console.log("================================unregister smg====================================================");
+        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+        console.log("begin unregister")
+        res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
+        console.log(res)
+
+        afterBal = web3.fromWei(web3.eth.getBalance(account1));
+        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
+
+        console.log("==============================withdraw deposit after punish 100%======================================================");
+        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+
+        punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
+
+        res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr1, gas: 4000000})
+        console.log(res);
+        assert.web3Event(res, {
+            event: "SmgWithdraw",
+            args: {
+                smgAddress:storeManWanAddr1,
+                coin:0,
+                actualReturn:parseInt(web3.toWei(0)),
+                deposit:parseInt(web3.toWei(100))
+
+            }
+        }, `SmgWithdraw failed`);
+        afterBal = web3.fromWei(web3.eth.getBalance(account1));
+        console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
+        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get deposit if smg is punished')
+
+        punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
+        console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
+        assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 100,true,'punish reciever should get the punished deposit if smg is punished')
+    })
+
+
+    it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
+
+        await coinAdminInst.setHalt(true,{from: owner});
+        await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
+        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
+        await coinAdminInst.setHalt(false,{from: owner});
+
+        console.log("storemanGroupRegister");
+        let regDeposit = web3.toWei(100);
+
+        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+
+        let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr1,storeManBTCAddr1,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
+        console.log(res)
+
+        console.log("=============================punish smg 50%=======================================================");
+        res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr1,50,{from:owner});
+        console.log(res);
+
+        console.log("================================unregister smg====================================================");
+        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+        console.log("begin unregister")
+        res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
+        console.log(res)
+
+        afterBal = web3.fromWei(web3.eth.getBalance(account1));
+        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
+
+        console.log("==============================withdraw deposit after punish 50%======================================================");
+        punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
+        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+        res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr1, gas: 4000000})
+        console.log(res);
+
+        afterBal = web3.fromWei(web3.eth.getBalance(account1));
+        console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
+        assert.web3Event(res, {
+                event: "SmgWithdraw",
+                args: {
+                    smgAddress:storeManWanAddr1,
+                    coin:0,
+                    actualReturn:parseInt(web3.toWei(50)),
+                    deposit:parseInt(web3.toWei(100))
+
+                }
+            }, `SmgWithdraw failed`);
+
+        assert.equal(afterBal-initiatorPreBal>(50 - 2),true,"the transfered deposit should be around 50 ether")
+        punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
+
+        console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
+        assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 50,true,'punish reciever should get the punished deposit if smg is punished')
+
+    })
 //////////////////////////////////exception test/////////////////////////////////////////////////////////////////////////////
 
 
