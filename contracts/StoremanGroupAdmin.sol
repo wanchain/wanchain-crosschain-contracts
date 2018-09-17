@@ -107,6 +107,12 @@ contract StoremanGroupAdmin is Halt {
     /// @param punishPercent punish percent of deposit
     event SmgPunished(address indexed smgAddress,uint indexed coin,uint indexed punishPercent);
 
+    /// @notice event for transfer deposit to specified address
+    /// @param smgAddress   storeman address
+    /// @param coin         coin name
+    /// @param destAddress the destination address of deposit
+    event SmgTranferDeposit(address indexed smgAddress,uint indexed coin,address destAddress,uint deposit);
+
     /**
     *
     * MODIFIERS
@@ -241,13 +247,13 @@ contract StoremanGroupAdmin is Halt {
     /// @notice function for getting store man eth address
     /// @param coin      coin name
     /// @param storemanAddr htlc contract address on wanchain chain
-    function getStoremanOriginalChainAddr(uint coin,address storemanAddr)
-        public
-        view
-        returns (bytes)
-    {
-        return mapCoinSmgInfo[coin][storemanAddr].originalChainAddr;
-    }
+    //function getStoremanOriginalChainAddr(uint coin,address storemanAddr)
+    //    public
+    //    view
+    //    returns (bytes)
+    //{
+    //    return mapCoinSmgInfo[coin][storemanAddr].originalChainAddr;
+    //}
 
     /// @notice function for getting store man tx fee
     /// @param coin      coin name
@@ -420,24 +426,36 @@ contract StoremanGroupAdmin is Halt {
         selfdestruct(owner);
     }
 
-    /// @notice function tranfer out the specified smg deposit in case of smg lost keystore
-    function transferSmgDeposit(uint coin,address smgAddr)
+    /// @notice function tranfer out the specified smg deposit in case of smg lost keystore which can not recovered anymore
+    function transferSmgDeposit(uint coin,address smgAddr,address destAddress)
         public
         onlyOwner
-        isHalted
     {
-        owner.transfer(mapCoinSmgInfo[coin][smgAddr].deposit);
-    }
 
-    /// @notice function for setting smg register mode,control by foundation or register freely
-    function transferDeposit()
-        public
-        onlyOwner
-        isHalted
-    {
-        owner.transfer(this.balance);
-    }
+       require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
 
+       if (halted) {
+           owner.transfer(this.balance);
+       } else {
+
+           var (, , , , , , , ,startBonusBlk, , ,) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
+           if ( startBonusBlk > 0 &&  mapCoinSmgInfo[coin][smgAddr].punishPercent==0) {
+                //tranfer bonus to destination address
+                mapCoinSmgInfo[coin][smgAddr].initiator = destAddress;
+                claimSystemBonus(coin,smgAddr);
+                mapCoinSmgInfo[coin][smgAddr].initiator = address(0);
+           }
+
+           uint deposit = mapCoinSmgInfo[coin][smgAddr].deposit;
+
+           //set deposit to 0
+           mapCoinSmgInfo[coin][smgAddr].deposit = 0;
+
+           destAddress.transfer(deposit);
+           }
+
+           SmgTranferDeposit(smgAddr,coin,destAddress,deposit);
+    }
 
 ////////////////private function///////////////////////////////////////////////
   function deposit(address smgAddr,uint tokenNumber,address tokenManagerAddr)

@@ -480,9 +480,8 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
       assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
 
-      gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, account1);
-
-      assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
+     // gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, account1);
+      //assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
 
       gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, account1);
 
@@ -537,9 +536,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     assert.equal(web3.fromWei(payable),0, 'payable did not set properly');
     assert.equal(web3.fromWei(debt),0, 'debt did not set properly');
 
-    gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0,account1);
+    //gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0,account1);
 
-    assert.equal(gotEthAddr.toString(),"0x","smgAdminInstance StoremanGroupWithdrawDeposit not right")
+    //assert.equal(gotEthAddr.toString(),"0x","smgAdminInstance StoremanGroupWithdrawDeposit not right")
 
     gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0,account1);
 
@@ -640,9 +639,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
       assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
 
-      gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr1);
+      //gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr1);
 
-      assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
+      //assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
 
       gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr1);
 
@@ -771,9 +770,9 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
         assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
 
-        gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr1);
+        //gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr1);
 
-        assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
+       // assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
 
         gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr1);
 
@@ -973,15 +972,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     })
 
-  it('tranferDeposit  - [smgAmin-T02000]', async () => {
-    preBal = web3.eth.getBalance(account1);
-    await smgAdminInstance.setHalt(true,{from: account1});
-    await smgAdminInstance.transferDeposit({from:account1})
 
-    bal = web3.eth.getBalance(account1) - preBal;
-
-    assert.notEqual(bal,regDeposit,"transfer contract depoit not correct")
-  })
 
   it('depositSmgBonus  - [smgAmin-T02001]', async () => {
 

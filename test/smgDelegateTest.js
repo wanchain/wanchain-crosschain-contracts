@@ -35,7 +35,7 @@ let zeroBalnaceAddr = '0xcb651cb4fdcd905922cb850ad8000fd862695444'
 ethRatio = 10;
 regDeposit = 20;
 
-delayTime = 1;
+delayTime = 20;
 
 const ETHEREUM_ID = 0;
 
@@ -131,7 +131,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
             {from: owner, gas: 4000000}
         );
 
-        console.log(res);
+        //console.log(res);
 
         coinInfo = await coinAdminInst.mapCoinInfo(ETHEREUM_ID);
 
@@ -191,7 +191,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     })
 
-/*
+
     it('storemanGroupRegisterByDelegate  - [smgAmin-T00900]', async () => {
 
         await coinAdminInst.setHalt(true,{from: owner});
@@ -202,7 +202,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         console.log("storemanGroupRegister");
         let regDeposit = web3.toWei(100);
 
-        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:10*regDeposit,gas:4000000});
 
        let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr1,storeManBTCAddr1,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
 
@@ -231,14 +231,18 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         assert.equal(web3.fromWei(getQuota),web3.fromWei(regDeposit/200000*10000), 'quota not match');
 
     })
+///*
+    it('smgClaimSystemBonus By delegate - [smgAmin-T00901]',async () => {
 
-    it('smgClaimSystemBonusByDelegate By delegate - [smgAmin-T00901]',async () => {
+        console.log("smgClaimSystemBonusByDelegate")
+
         sleep(delayTime*1000);
 
         initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
 
         res = await smgAdminInstance.smgClaimSystemBonusByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
         console.log(res);
+
         end = res.receipt.blockNumber;
         initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
         assert.web3Event(res, {
@@ -253,358 +257,423 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
         start = res.receipt.blockNumber;
      });
+    ///*
+        it('StoremanGroupApplyUnregister By delegate - [smgAmin-T00902]',async () => {
+            sleep(delayTime*1000);
 
-    it('StoremanGroupApplyUnregister By delegate - [smgAmin-T00902]',async () => {
-        sleep(delayTime*1000);
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
 
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+            res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
+            end = res.receipt.blockNumber;
 
-        res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
-        end = res.receipt.blockNumber;
+            assert.web3Event(res, {
+                event: "SmgClaimSystemBonus",
+                args: {
+                    smgAddress:account1,
+                    coin:0,
+                    bonus:getBounus(),
 
-        assert.web3Event(res, {
-            event: "SmgClaimSystemBonus",
-            args: {
-                smgAddress:account1,
-                coin:0,
-                bonus:getBounus(),
+                }
+            }, `SmgClaimSystemBonus failed`);
 
-            }
-        }, `SmgClaimSystemBonus failed`);
+            initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
 
-        initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
+            assert.notEqual(initiatorAfeterBal-initiatorPreBal,0, 'StoremanGroupApplyUnregister bonus is not right');
 
-        assert.notEqual(initiatorAfeterBal-initiatorPreBal,0, 'StoremanGroupApplyUnregister bonus is not right');
+            coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr1);
 
-        coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr1);
+            getUnregisterApplyTime =  coinSmgInfo[2].toString();
 
-        getUnregisterApplyTime =  coinSmgInfo[2].toString();
+            assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
 
-        assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
+        });
 
-    });
 
+        it('StoremanGroupWithdrawDeposit by delegate  - [smgAmin-T00903]', async () => {
 
-    it('StoremanGroupWithdrawDeposit by delegate  - [smgAmin-T00903]', async () => {
+            sleep(delayTime*1000);
 
-        sleep(delayTime*1000);
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
 
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+            res = await smgAdminInstance.smgWithdrawDepositByDelegate(0,storeManWanAddr1,{from:account1, gas: 4000000})
+            //console.log(res);
 
-        res = await smgAdminInstance.smgWithdrawDepositByDelegate(0,storeManWanAddr1,{from:account1, gas: 4000000})
-        //console.log(res);
+            quotaSet = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr1);
 
-        quotaSet = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr1);
+            console.log(quotaSet);
+            totalQuota = quotaSet[0].toString();
+            receivable = quotaSet[1].toString();
+            payable = quotaSet[2].toString();
+            debt = quotaSet[3].toString();
 
-        console.log(quotaSet);
-        totalQuota = quotaSet[0].toString();
-        receivable = quotaSet[1].toString();
-        payable = quotaSet[2].toString();
-        debt = quotaSet[3].toString();
+            assert.equal(web3.fromWei(totalQuota), 0, 'weth balance did not set properly');
+            assert.equal(web3.fromWei(receivable), 0, 'receivable did not set properly');
+            assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
+            assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
 
-        assert.equal(web3.fromWei(totalQuota), 0, 'weth balance did not set properly');
-        assert.equal(web3.fromWei(receivable), 0, 'receivable did not set properly');
-        assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
-        assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
+            gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr1);
 
-        gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr1);
+            assert.equal(gotTxFeeRatio, 1, "smgAdminInstance StoremanGroupWithdrawDeposit not right");
 
-        assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
+            initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
 
-        gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr1);
+            diffBal = parseInt(initiatorAfeterBal - initiatorPreBal);
 
-        assert.equal(gotTxFeeRatio, 1, "smgAdminInstance StoremanGroupWithdrawDeposit not right");
+            console.log("withdraw bal = " + diffBal);
 
-        initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        diffBal = parseInt(initiatorAfeterBal - initiatorPreBal);
-
-        console.log("withdraw bal = " + diffBal);
-
-        assert.web3Event(res, {
-            event: "SmgWithdraw",
-            args: {
-                smgAddress:account1,
-                coin:0,
-                actualReturn:parseInt(deposit,10),
-                deposit:parseInt(deposit,10)
-
-            }
-        }, `SmgWithdraw failed`);
-
-
-    })
-
-
-    it('storemanGroupRegisterByDelegate  - [smgAmin-T00904]', async () => {
-
-        await coinAdminInst.setHalt(true,{from: owner});
-        await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
-        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
-        await coinAdminInst.setHalt(false,{from: owner});
-
-        periodBlks = 10;
-
-        console.log("storemanGroupRegister");
-        let regDeposit = web3.toWei(100);//storeManWanAddr1
-
-       let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr2,storeManBTCAddr2,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
-       console.log(res);
-
-       start = res.receipt.blockNumber;
-
-        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
-
-        getCoinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr2);
-        console.log(getCoinSmgInfo);
-
-        getDeposit = getCoinSmgInfo[0].toString();
-        getOriginalChainAddr =  getCoinSmgInfo[1].toString();
-        getUnregisterApplyTime =  getCoinSmgInfo[2].toString();
-
-        assert.equal(getDeposit,regDeposit, 'regDeposit not match');
-        assert.equal(getOriginalChainAddr,storeManBTCAddr1, 'storeManEthAddr not match');
-        assert.equal(getUnregisterApplyTime,0, 'apply time not match');
-
-        console.log("WETHAdmin getStoremanGroup");
-        ethAdminInfo = await WETHAdminInstance.getStoremanGroup(storeManWanAddr2);
-
-        console.log(ethAdminInfo);
-        getQuota = ethAdminInfo[0];
-
-        assert.equal(web3.fromWei(getQuota),web3.fromWei(regDeposit/200000*10000), 'quota not match');
-
-    })
-
-
-
-    it('smgClaimSystemBonus to initiator - [smgAmin-T00905]',async () => {
-        sleep(delayTime*1000);
-
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        res = await smgAdminInstance.storemanGroupClaimSystemBonus(0,{from:storeManWanAddr2,gas:1000000});
-        console.log(res);
-
-        end = res.receipt.blockNumber;
-
-        console.log(res.receipt.logs)
-
-        assert.web3Event(res, {
-            event: "SmgClaimSystemBonus",
-            args: {
-                smgAddress:account1,
-                coin:0,
-                bonus:getBounus(),
-
-            }
-        }, `SmgClaimSystemBonus failed`);
-
-        start = res.receipt.blockNumber;
-
-        initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        console.log("diff=" + (initiatorAfeterBal - initiatorPreBal));
-
-        assert.notEqual(initiatorAfeterBal - initiatorPreBal,0, 'StoremanGroupApplyUnregister bonus should not 0');
-
-    });
-
-
-    it('StoremanGroupApplyUnregister - [smgAmin-T00906]',async () => {
-        sleep(delayTime*1000);
-
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:storeManWanAddr2,gas:1000000});
-
-        initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        end = res.receipt.blockNumber;
-
-        console.log(res.receipt.logs)
-
-        assert.web3Event(res, {
-            event: "SmgClaimSystemBonus",
-            args: {
-                smgAddress:account1,
-                coin:0,
-                bonus:getBounus(),
-
-            }
-        }, `SmgClaimSystemBonus failed`);
-
-        coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr2);
-
-        getUnregisterApplyTime =  coinSmgInfo[2].toString();
-
-        assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
-
-    });
-
-    it('StoremanGroupWithdrawDeposit  - [smgAmin-T00907]', async () => {
-
-        sleep(delayTime*1000);
-
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr2, gas: 4000000})
-        //console.log(res);
-
-        quotaSet = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr2);
-
-        console.log(quotaSet);
-        totalQuota = quotaSet[0].toString();
-        receivable = quotaSet[1].toString();
-        payable = quotaSet[2].toString();
-        debt = quotaSet[3].toString();
-
-        assert.equal(web3.fromWei(totalQuota), 0, 'weth balance did not set properly');
-        assert.equal(web3.fromWei(receivable), 0, 'receivable did not set properly');
-        assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
-        assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
-
-        gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr2);
-
-        assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
-
-        gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr2);
-
-        assert.equal(gotTxFeeRatio.toString(), '1', "smgAdminInstance StoremanGroupWithdrawDeposit not right");
-
-        initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        diffBal = parseInt(initiatorAfeterBal - initiatorPreBal);
-
-        console.log("withdraw bal = " + diffBal);
-        assert.equal(diffBal,100,"smgAdminInstance StoremanGroupWithdrawDeposit balance not right")
-
-    })
-*/
-    it('Set punish deposit reciever  - [smgAmin-T00907]', async () => {
-        await coinAdminInst.setHalt(true,{from: owner});
-        let res = await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account2,{from:owner})
-        await coinAdminInst.setHalt(false,{from: owner});
-
-        let reciever = await coinAdminInst.mapCoinPunishReciever(ETHEREUM_ID)
-        console.log(reciever)
-
-        assert.equal(account2,reciever,"the punish deposit is different with setting")
-    })
-
-
-    it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
-
-        await coinAdminInst.setHalt(true,{from: owner});
-        await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
-        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
-        await coinAdminInst.setHalt(false,{from: owner});
-
-        console.log("storemanGroupRegister");
-        let regDeposit = web3.toWei(100);
-
-        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
-
-        let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr1,storeManBTCAddr1,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
-        console.log(res)
-
-        console.log("=============================punish smg 100%=======================================================");
-        res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr1,100,{from:owner});
-        console.log(res);
-
-        console.log("================================unregister smg====================================================");
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-        console.log("begin unregister")
-        res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
-        console.log(res)
-
-        afterBal = web3.fromWei(web3.eth.getBalance(account1));
-        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
-
-        console.log("==============================withdraw deposit after punish 100%======================================================");
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-
-        punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
-
-        res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr1, gas: 4000000})
-        console.log(res);
-        assert.web3Event(res, {
-            event: "SmgWithdraw",
-            args: {
-                smgAddress:storeManWanAddr1,
-                coin:0,
-                actualReturn:parseInt(web3.toWei(0)),
-                deposit:parseInt(web3.toWei(100))
-
-            }
-        }, `SmgWithdraw failed`);
-        afterBal = web3.fromWei(web3.eth.getBalance(account1));
-        console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
-        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get deposit if smg is punished')
-
-        punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
-        console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
-        assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 100,true,'punish reciever should get the punished deposit if smg is punished')
-    })
-
-
-    it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
-
-        await coinAdminInst.setHalt(true,{from: owner});
-        await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
-        await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
-        await coinAdminInst.setHalt(false,{from: owner});
-
-        console.log("storemanGroupRegister");
-        let regDeposit = web3.toWei(100);
-
-        await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
-
-        let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr1,storeManBTCAddr1,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
-        console.log(res)
-
-        console.log("=============================punish smg 50%=======================================================");
-        res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr1,50,{from:owner});
-        console.log(res);
-
-        console.log("================================unregister smg====================================================");
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-        console.log("begin unregister")
-        res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr1,{from:account1,gas:1000000});
-        console.log(res)
-
-        afterBal = web3.fromWei(web3.eth.getBalance(account1));
-        assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
-
-        console.log("==============================withdraw deposit after punish 50%======================================================");
-        punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
-        initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
-        res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr1, gas: 4000000})
-        console.log(res);
-
-        afterBal = web3.fromWei(web3.eth.getBalance(account1));
-        console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
-        assert.web3Event(res, {
+            assert.web3Event(res, {
                 event: "SmgWithdraw",
                 args: {
-                    smgAddress:storeManWanAddr1,
+                    smgAddress:account1,
                     coin:0,
-                    actualReturn:parseInt(web3.toWei(50)),
-                    deposit:parseInt(web3.toWei(100))
+                    actualReturn:parseInt(deposit,10),
+                    deposit:parseInt(deposit,10)
 
                 }
             }, `SmgWithdraw failed`);
 
-        assert.equal(afterBal-initiatorPreBal>(50 - 2),true,"the transfered deposit should be around 50 ether")
-        punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
 
-        console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
-        assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 50,true,'punish reciever should get the punished deposit if smg is punished')
-
-    })
-//////////////////////////////////exception test/////////////////////////////////////////////////////////////////////////////
+        })
 
 
+        it('storemanGroupRegisterByDelegate  - [smgAmin-T00904]', async () => {
+
+            await coinAdminInst.setHalt(true,{from: owner});
+            await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
+            await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
+            await coinAdminInst.setHalt(false,{from: owner});
+
+            periodBlks = 10;
+
+            console.log("storemanGroupRegister");
+            let regDeposit = web3.toWei(100);//storeManWanAddr1
+
+           let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr2,storeManBTCAddr2,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
+           console.log(res);
+
+           start = res.receipt.blockNumber;
+
+            await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+
+            getCoinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr2);
+            console.log(getCoinSmgInfo);
+
+            getDeposit = getCoinSmgInfo[0].toString();
+            getOriginalChainAddr =  getCoinSmgInfo[1].toString();
+            getUnregisterApplyTime =  getCoinSmgInfo[2].toString();
+
+            assert.equal(getDeposit,regDeposit, 'regDeposit not match');
+            assert.equal(getOriginalChainAddr,storeManBTCAddr1, 'storeManEthAddr not match');
+            assert.equal(getUnregisterApplyTime,0, 'apply time not match');
+
+            console.log("WETHAdmin getStoremanGroup");
+            ethAdminInfo = await WETHAdminInstance.getStoremanGroup(storeManWanAddr2);
+
+            console.log(ethAdminInfo);
+            getQuota = ethAdminInfo[0];
+
+            assert.equal(web3.fromWei(getQuota),web3.fromWei(regDeposit/200000*10000), 'quota not match');
+
+        })
+
+
+
+        it('smgClaimSystemBonus to initiator - [smgAmin-T00905]',async () => {
+            sleep(delayTime*1000);
+
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            res = await smgAdminInstance.storemanGroupClaimSystemBonus(0,{from:storeManWanAddr2,gas:1000000});
+            console.log(res);
+
+            end = res.receipt.blockNumber;
+
+            console.log(res.receipt.logs)
+
+            assert.web3Event(res, {
+                event: "SmgClaimSystemBonus",
+                args: {
+                    smgAddress:account1,
+                    coin:0,
+                    bonus:getBounus(),
+
+                }
+            }, `SmgClaimSystemBonus failed`);
+
+            start = res.receipt.blockNumber;
+
+            initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            console.log("diff=" + (initiatorAfeterBal - initiatorPreBal));
+
+            assert.notEqual(initiatorAfeterBal - initiatorPreBal,0, 'StoremanGroupApplyUnregister bonus should not 0');
+
+        });
+
+
+        it('StoremanGroupApplyUnregister - [smgAmin-T00906]',async () => {
+            sleep(delayTime*1000);
+
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            res = await smgAdminInstance.storemanGroupApplyUnregister(0,{from:storeManWanAddr2,gas:1000000});
+
+            initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            end = res.receipt.blockNumber;
+
+            console.log(res.receipt.logs)
+
+            assert.web3Event(res, {
+                event: "SmgClaimSystemBonus",
+                args: {
+                    smgAddress:account1,
+                    coin:0,
+                    bonus:getBounus(),
+
+                }
+            }, `SmgClaimSystemBonus failed`);
+
+            coinSmgInfo = await smgAdminInstance.mapCoinSmgInfo(0,storeManWanAddr2);
+
+            getUnregisterApplyTime =  coinSmgInfo[2].toString();
+
+            assert.notEqual(getUnregisterApplyTime,0, 'apply unregister start time did not set properly');
+
+        });
+
+        it('StoremanGroupWithdrawDeposit  - [smgAmin-T00907]', async () => {
+
+            sleep(delayTime*1000);
+
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr2, gas: 4000000})
+            //console.log(res);
+
+            quotaSet = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr2);
+
+            console.log(quotaSet);
+            totalQuota = quotaSet[0].toString();
+            receivable = quotaSet[1].toString();
+            payable = quotaSet[2].toString();
+            debt = quotaSet[3].toString();
+
+            assert.equal(web3.fromWei(totalQuota), 0, 'weth balance did not set properly');
+            assert.equal(web3.fromWei(receivable), 0, 'receivable did not set properly');
+            assert.equal(web3.fromWei(payable), 0, 'payable did not set properly');
+            assert.equal(web3.fromWei(debt), 0, 'debt did not set properly');
+
+           // gotEthAddr = await smgAdminInstance.getStoremanOriginalChainAddr(0, storeManWanAddr2);
+
+           // assert.equal(gotEthAddr.toString(), "0x", "smgAdminInstance StoremanGroupWithdrawDeposit not right")
+
+            gotTxFeeRatio = await smgAdminInstance.getStoremanTxFeeRatio(0, storeManWanAddr2);
+
+            assert.equal(gotTxFeeRatio.toString(), '1', "smgAdminInstance StoremanGroupWithdrawDeposit not right");
+
+            initiatorAfeterBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            diffBal = parseInt(initiatorAfeterBal - initiatorPreBal);
+
+            console.log("withdraw bal = " + diffBal);
+            assert.equal(diffBal,100,"smgAdminInstance StoremanGroupWithdrawDeposit balance not right")
+
+        })
+
+        it('Set punish deposit reciever  - [smgAmin-T00907]', async () => {
+            await coinAdminInst.setHalt(true,{from: owner});
+            let res = await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account2,{from:owner})
+            await coinAdminInst.setHalt(false,{from: owner});
+
+            let reciever = await coinAdminInst.mapCoinPunishReceiver(ETHEREUM_ID)
+            console.log(reciever)
+
+            assert.equal(account2,reciever,"the punish deposit is different with setting")
+        })
+//*/
+
+        it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
+
+            await coinAdminInst.setHalt(true,{from: owner});
+            console.log("set delay time");
+            await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID, 1, {from: owner});
+
+            await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
+            await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
+            await coinAdminInst.setHalt(false,{from: owner});
+
+
+            let regDeposit = web3.toWei(100);
+
+            await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+
+            console.log("storemanGroupRegister");
+            let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr2,storeManBTCAddr2,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
+            console.log(res)
+
+            console.log("=============================punish smg 100%=======================================================");
+            res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr2,100,{from:owner});
+            console.log(res);
+
+            console.log("================================unregister smg====================================================");
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+            console.log("begin unregister")
+            res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr2,{from:account1,gas:1000000});
+            console.log(res)
+
+            afterBal = web3.fromWei(web3.eth.getBalance(account1));
+            assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
+
+            console.log("==============================withdraw deposit after punish 100%======================================================");
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+
+            punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
+
+            res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr2, gas: 4000000})
+            console.log(res);
+            assert.web3Event(res, {
+                event: "SmgWithdraw",
+                args: {
+                    smgAddress:storeManWanAddr2,
+                    coin:0,
+                    actualReturn:parseInt(web3.toWei(0)),
+                    deposit:parseInt(web3.toWei(100))
+
+                }
+            }, `SmgWithdraw failed`);
+            afterBal = web3.fromWei(web3.eth.getBalance(account1));
+            console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
+            assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get deposit if smg is punished')
+
+            punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
+            console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
+            assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 100,true,'punish reciever should get the punished deposit if smg is punished')
+        })
+
+
+        it('test punish deposit transfer  - [smgAmin-T00909]', async () => {
+
+            await coinAdminInst.setHalt(true,{from: owner});
+            console.log("set delay time");
+            await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID, 1, {from: owner});
+            await coinAdminInst.setSmgEnableUserWhiteList(0,false, {from: owner});
+            await coinAdminInst.setSystemEnableBonus(0,true,10,{from: owner})
+            await coinAdminInst.setHalt(false,{from: owner});
+
+            console.log("storemanGroupRegister");
+            let regDeposit = web3.toWei(100);
+
+            await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:regDeposit,gas:4000000});
+
+            let res = await  smgAdminInstance.storemanGroupRegisterByDelegate(0,storeManWanAddr2,storeManBTCAddr2,storeManTxFeeRatio,{from:account1,value:regDeposit,gas:4000000});
+           // console.log(res)
+
+            console.log("=============================punish smg 50%=======================================================");
+            res = await smgAdminInstance.punishStoremanGroup(ETHEREUM_ID,storeManWanAddr2,50,{from:owner});
+           // console.log(res);
+
+            console.log("================================unregister smg====================================================");
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+            console.log("begin unregister")
+            res = await smgAdminInstance.smgApplyUnregisterByDelegate(0,storeManWanAddr2,{from:account1,gas:1000000});
+           // console.log(res)
+
+            afterBal = web3.fromWei(web3.eth.getBalance(account1));
+            assert.equal(afterBal-initiatorPreBal<=0,true,'delegate should not get bonus if smg is punished')
+
+            console.log("==============================withdraw deposit after punish 50%======================================================");
+            punishRecieverPreBal = web3.fromWei(web3.eth.getBalance(account2));
+            initiatorPreBal = web3.fromWei(web3.eth.getBalance(account1));
+            res = await smgAdminInstance.storemanGroupWithdrawDeposit(0,{from:storeManWanAddr2, gas: 4000000})
+            console.log(res);
+
+            afterBal = web3.fromWei(web3.eth.getBalance(account1));
+            console.log("before balance=" + initiatorPreBal + "||after balance=" + afterBal);
+            assert.web3Event(res, {
+                    event: "SmgWithdraw",
+                    args: {
+                        smgAddress:storeManWanAddr2,
+                        coin:0,
+                        actualReturn:parseInt(web3.toWei(50)),
+                        deposit:parseInt(web3.toWei(100))
+
+                    }
+                }, `SmgWithdraw failed`);
+
+            assert.equal(afterBal-initiatorPreBal>(50 - 2),true,"the transfered deposit should be around 50 ether")
+            punishRecieverAfterBal = web3.fromWei(web3.eth.getBalance(account2));
+
+            console.log("punish reciever before balance=" + punishRecieverPreBal + "||after balance=" + punishRecieverAfterBal);
+            assert.equal(parseInt(punishRecieverAfterBal) - parseInt(punishRecieverPreBal) == 50,true,'punish reciever should get the punished deposit if smg is punished')
+
+        })
+
+
+
+        it('test transfer deposit by owner - [smgAmin-T00910]', async () => {
+
+            await coinAdminInst.setHalt(true, {from: owner});
+            await coinAdminInst.setSmgEnableUserWhiteList(0, false, {from: owner});
+            await coinAdminInst.setSystemEnableBonus(0, true, 10, {from: owner})
+            await coinAdminInst.setHalt(false, {from: owner});
+
+            periodBlks = 10;
+
+            console.log("storemanGroupRegister");
+            let regDeposit = web3.toWei(100);
+
+            await  smgAdminInstance.depositSmgBonus(0,{from:owner,value:2*regDeposit,gas:4000000});
+
+
+            let res = await smgAdminInstance.storemanGroupRegisterByDelegate(0, storeManWanAddr2, storeManBTCAddr2, storeManTxFeeRatio, {
+                from: account1,
+                value: regDeposit,
+                gas: 4000000
+            });
+
+            start = res.receipt.blockNumber;
+
+
+            sleep(60*1000);
+
+            console.log('tranfer out the smg deposit')
+            let preBal = web3.fromWei(web3.eth.getBalance(storeManWanAddr3));
+            res = await  smgAdminInstance.transferSmgDeposit(0,storeManWanAddr2,storeManWanAddr3,{from:owner});
+            console.log(res);
+
+            end = res.receipt.blockNumber;
+
+
+            let afterBal = web3.fromWei(web3.eth.getBalance(storeManWanAddr3));
+            console.log("before balance=" + preBal + "||after balance=" + afterBal);
+
+            assert.web3Event(res, {
+                event: "SmgClaimSystemBonus",
+                args: {
+                    smgAddress:storeManWanAddr3,
+                    coin:0,
+                    bonus:getBounus(),
+
+                }
+            }, `SmgClaimSystemBonus failed`);
+
+            assert.web3Event(res, {
+                event: "SmgTranferDeposit",
+                args: {
+                    smgAddress:storeManWanAddr2,
+                    coin:0,
+                    destAddress:storeManWanAddr3,
+                    deposit:parseInt(web3.toWei(100)),
+                }
+            }, `SmgTranferDeposit failed`);
+
+
+
+
+        });
+
+    //*/
 
 
 })//end
