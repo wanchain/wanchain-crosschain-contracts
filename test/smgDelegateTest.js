@@ -639,7 +639,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
             console.log('tranfer out the smg deposit')
             let preBal = web3.fromWei(web3.eth.getBalance(storeManWanAddr3));
-            res = await  smgAdminInstance.transferSmgDeposit(0,storeManWanAddr2,storeManWanAddr3,{from:owner});
+            res = await  smgAdminInstance.transferSmgDeposit(0,storeManWanAddr2,storeManWanAddr3,false,{from:owner});
             console.log(res);
 
             end = res.receipt.blockNumber;

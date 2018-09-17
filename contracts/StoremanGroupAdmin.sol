@@ -427,14 +427,14 @@ contract StoremanGroupAdmin is Halt {
     }
 
     /// @notice function tranfer out the specified smg deposit in case of smg lost keystore which can not recovered anymore
-    function transferSmgDeposit(uint coin,address smgAddr,address destAddress)
+    function transferSmgDeposit(uint coin,address smgAddr,address destAddress,,bool isTransferAll)
         public
         onlyOwner
     {
 
        require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
 
-       if (halted) {
+       if (isTransferAll&&halted) {
            owner.transfer(this.balance);
        } else {
 
