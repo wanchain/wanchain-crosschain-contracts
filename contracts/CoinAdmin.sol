@@ -156,6 +156,7 @@ contract CoinAdmin is Halt {
     /// @notice function for setting the Exchange ration for mint token
     /// @param coin   coin name
     //  @param ratio  the Exchange ratio between ETH and WAN or between BTC ，such as ethereum 1 eth:880 WANs,the precise is 10000,the ratio is 880,0000
+    //  @param exp    the coin the exponent for smallest unit
     function setWToken2WanRatio(uint coin,uint ratio,uint exp)
         public
         onlyOwner

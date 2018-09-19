@@ -232,8 +232,6 @@ contract StoremanGroupAdmin is Halt {
     {
         require(smgAddr!=address(0));
 
-       // var (coin2WanRatio, , htlcType, originalChainHtlc,wanchainHtlc, wanchainTokenManager, , , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
-
         require(mapCoinSmgInfo[coin][smgAddr].bonusBlockNumber == 0);
         require(!mapSmgWhiteList[coin][smgAddr]);
 
@@ -243,17 +241,6 @@ contract StoremanGroupAdmin is Halt {
        // emit SmgWhiteList(smgAddr,coin);
 
     }
-
-    /// @notice function for getting store man eth address
-    /// @param coin      coin name
-    /// @param storemanAddr htlc contract address on wanchain chain
-    //function getStoremanOriginalChainAddr(uint coin,address storemanAddr)
-    //    public
-    //    view
-    //    returns (bytes)
-    //{
-    //    return mapCoinSmgInfo[coin][storemanAddr].originalChainAddr;
-   // }
 
     /// @notice function for getting store man tx fee
     /// @param coin      coin name
@@ -275,6 +262,9 @@ contract StoremanGroupAdmin is Halt {
         smgApplyUnregister(coin,msg.sender);
     }
 
+    /// @notice function for storeman applying unregister which is done by delegator
+    /// @param coin   coin name
+    /// @param smgAddr the storeman wan address
     function smgApplyUnregisterByDelegate(uint coin,address smgAddr)
         public
         notHalted
@@ -286,6 +276,7 @@ contract StoremanGroupAdmin is Halt {
 
     /// @notice function for storeman applying unregister
     /// @param coin   coin name
+    /// @param smgAddr smg address
     function smgApplyUnregister(uint coin,address smgAddr)
         private
         notHalted
@@ -318,6 +309,7 @@ contract StoremanGroupAdmin is Halt {
 
     /// @notice function for storeman withdraw deposit
     /// @param coin   coin name
+    /// @param smgAddr storeman wan address
     function smgWithdrawDepositByDelegate(uint coin,address smgAddr)
         public
     {
@@ -328,6 +320,7 @@ contract StoremanGroupAdmin is Halt {
 
     /// @notice function for storeman withdraw deposit
     /// @param coin   coin name
+    /// @param smgAddr storeman wan address
     function withdrawDeposit(uint coin,address smgAddr)
         private
         notHalted
@@ -337,8 +330,6 @@ contract StoremanGroupAdmin is Halt {
         StoremanGroup storage smgInfo = mapCoinSmgInfo[coin][smgAddr];
 
         var (, , , , ,wanchainTokenManager,withdrawDelayTime, , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
-
-
 
         assert(now > smgInfo.unregisterApplyTime.add(withdrawDelayTime));
         //check smg existing
@@ -390,6 +381,7 @@ contract StoremanGroupAdmin is Halt {
 
     /// @notice function for storeman claiming system bonus
     /// @param coin   coin name
+    /// @param smgAddr storeman wan address
     function smgClaimSystemBonusByDelegate(uint coin,address smgAddr)
         public
         notHalted
@@ -429,6 +421,10 @@ contract StoremanGroupAdmin is Halt {
     }
 
     /// @notice function tranfer out the specified smg deposit in case of smg lost keystore which can not recovered anymore
+    /// @param coin   coin name
+    /// @param smgAddr storeman address
+    /// @param destAddress the target address which revieve deposit
+    /// @param isTransferAll check if all deposit of contract or smg deposit is transfered
     function transferSmgDeposit(uint coin,address smgAddr,address destAddress,bool isTransferAll)
         public
         onlyOwner
