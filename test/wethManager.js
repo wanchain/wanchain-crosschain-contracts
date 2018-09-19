@@ -834,7 +834,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
     let unregistrationError 
     await WETHManagerInstance.setHalt(true, { from: owner })
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: storemanGroupAdmin })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: storemanGroupAdmin })
     } catch (e) {
       unregistrationError = e
     }
@@ -845,7 +845,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
   it(`[WETHManager-T413]Should disallow no storemanGroupAdmin to call unregisterStoremanGroup`, async () => {
     let unregistrationError 
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: HTLCWETH })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: HTLCWETH })
     } catch (e) {
       unregistrationError = e
     }
@@ -855,7 +855,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
   it(`[WETHManager-T414]Should fail with an ordinary account address provided`, async () => {
     let unregistrationError 
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(sender, { from: storemanGroupAdmin })
+      await WETHManagerInstance.unregisterStoremanGroup(sender,true,{ from: storemanGroupAdmin })
     } catch (e) {
       unregistrationError = e
     }
@@ -865,7 +865,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
   it(`[WETHManager-T415]Should fail with an active storemanGroup's address provided`, async () => {
     let unregistrationError 
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_One, { from: storemanGroupAdmin })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_One, true,{ from: storemanGroupAdmin })
     } catch (e) {
       unregistrationError = e
     }
@@ -875,7 +875,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
   it(`[WETHManager-T416]Should fail to finish unregistration until receivable, payable and debt are clear`, async () => {
     let unregistrationError
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: storemanGroupAdmin })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: storemanGroupAdmin })
     } catch (e) {
       unregistrationError = e
     }
@@ -900,7 +900,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
     assert.equal(payable, 3, `[WETHManager-T417]Should fail to finish unregistration until payable and debt are clear`)
     assert.equal(debt, 65, `[WETHManager-T417]Should fail to finish unregistration until payable and debt are clear`)
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: storemanGroupAdmin })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: storemanGroupAdmin })
     } catch (e) {
       unregistrationError = e
     }
@@ -954,7 +954,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
   it(`[WETHManager-T421]Should fail to finish unregistration until debt is clear`, async () => {
     let unregistrationError
     try {
-      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: HTLCWETH })
+      await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: HTLCWETH })
     } catch (e) {
       unregistrationError = e
     }
@@ -985,7 +985,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
     ret = await WETHManagerInstance.isStoremanGroup(storemanGroup_Two)
     assert.equal(ret, true, `[WETHManager-T423]Should unregister a storemanGroup successfully after debt is clear`)
     ret = await WETHManagerInstance.mintToken(storemanGroup_One, storemanGroup_Two, 63, { from: HTLCWETH })
-    await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: storemanGroupAdmin })
+    await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: storemanGroupAdmin })
     ret = await WETHManagerInstance.isStoremanGroup(storemanGroup_Two)
     assert.equal(ret, false, `[WETHManager-T423]Should unregister a storemanGroup successfully after debt is clear`)
     quotaRecord = await WETHManagerInstance.getStoremanGroup(storemanGroup_Two)
@@ -1151,7 +1151,7 @@ contract('WETHManager', ([owner, storemanGroupAdmin, HTLCWETH, storemanGroup_One
       unregistrationError = e
     }
     assert.notEqual(unregistrationError, undefined, `[WETHManager-T425]StoremanGroup life cycle test`)
-    await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two, { from: storemanGroupAdmin })
+    await WETHManagerInstance.unregisterStoremanGroup(storemanGroup_Two,true,{ from: storemanGroupAdmin })
     ret = await WETHManagerInstance.isStoremanGroup(storemanGroup_Two)
     assert.equal(ret, false, `[WETHManager-T425]StoremanGroup life cycle test`)
   })
