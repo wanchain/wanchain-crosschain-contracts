@@ -5,6 +5,10 @@ const WETHAdmin = artifacts.require('./WETHManager.sol')
 
 const groupWethProxy = artifacts.require('./HTLCWETH.sol')
 const groupEthProxy = artifacts.require('./HTLCETH.sol')
+const BigNumber = require('bignumber.js')
+
+const ETH_EXP = new BigNumber('1000000000000000000') ;
+const BTC_EXP = new BigNumber('100000000') ;
 
 const web3 = global.web3
 
@@ -143,7 +147,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account1,{from: account1});
 
       console.log("set ratio");
-      await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: account1});
+      await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,ETH_EXP,{from: account1});
 
       console.log("set delay time");
       await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID,delayTime,{from: account1});
@@ -544,7 +548,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,{from: account2});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,ETH_EXP,{from: account2});
 
     } catch (err) {
       setErr = err;
@@ -560,7 +564,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,880,ETH_EXP,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -575,7 +579,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
     await coinAdminInst.setHalt(true,{from: account1});
     try {
 
-      res =  await coinAdminInst.setWToken2WanRatio(3,880,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(3,880,ETH_EXP,{from: account1});
 
     } catch (err) {
       setErr = err;
@@ -591,7 +595,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
     try {
 
-      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,0,{from: account1});
+      res =  await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,0,ETH_EXP,{from: account1});
 
     } catch (err) {
       setErr = err;

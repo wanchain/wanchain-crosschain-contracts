@@ -60,6 +60,7 @@ contract CoinAdmin is Halt {
 
     mapping (uint=>CoinInfo) public mapCoinInfo;								//the information for storing different cross chain coin
     mapping (uint=>address)  public mapCoinPunishReceiver;						//the information for storing different cross chain coin
+    mapping (uint=>uint) public mapCoinExponent;
 
     /// @notice event for initializing coin
     /// @param coin                 coin name id
@@ -155,7 +156,7 @@ contract CoinAdmin is Halt {
     /// @notice function for setting the Exchange ration for mint token
     /// @param coin   coin name
     //  @param ratio  the Exchange ratio between ETH and WAN or between BTC ，such as ethereum 1 eth:880 WANs,the precise is 10000,the ratio is 880,0000
-    function setWToken2WanRatio(uint coin,uint ratio)
+    function setWToken2WanRatio(uint coin,uint ratio,uint exp)
         public
         onlyOwner
         isHalted
@@ -163,6 +164,7 @@ contract CoinAdmin is Halt {
     {
         require(ratio > 0);
         mapCoinInfo[coin].coin2WanRatio = ratio;
+        mapCoinExponent[coin] = exp;
     }
 
     /// @notice function for setting bonus ratio

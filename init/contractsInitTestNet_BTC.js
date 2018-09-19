@@ -11,6 +11,9 @@ const HTLCWBTC = artifacts.require('./HTLCWBTC.sol')
 require('truffle-test-utils').init()
 const web3 = global.web3
 
+const BigNumber = require('bignumber.js')
+const ETH_EXP = new BigNumber('1000000000000000000') ;
+const BTC_EXP = new BigNumber('100000000') ;
 
 contract('deploy donctracts',  ([miner, owner]) => {
 
@@ -126,7 +129,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
     await coinAdminInst.setCoinPunishReciever(BTC_ID,owner,{from: owner});
 
     console.log("set ratio");
-    await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
+    await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,BTC_EXP,{from: owner});
 
     console.log("set delay time");
     await coinAdminInst.setWithdrawDepositDelayTime(BTC_ID,7200,{from: owner});

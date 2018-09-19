@@ -7,6 +7,10 @@ require('truffle-test-utils').init()
 var BigNumber = require('bignumber.js');
 const createKeccakHash = require('keccak');
 
+const ETH_EXP = new BigNumber('1000000000000000000') ;
+const BTC_EXP = new BigNumber('100000000') ;
+
+
 const crypto = require('crypto');
 const bitcoin = require('bitcoinjs-lib');
 
@@ -207,7 +211,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
        await coinAdminInst.setCoinPunishReciever(BTC_ID,owner,{from: owner});
 
        console.log("set ratio");
-       await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,{from: owner});
+       await coinAdminInst.setWToken2WanRatio(BTC_ID,ratio,BTC_EXP,{from: owner});
 
        console.log("set whitelist");
        await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});

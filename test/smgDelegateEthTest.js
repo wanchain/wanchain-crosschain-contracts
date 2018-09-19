@@ -10,6 +10,11 @@ const groupEthProxy = artifacts.require('./HTLCETH.sol')
 
 require('truffle-test-utils').init()
 
+const BigNumber = require('bignumber.js')
+const ETH_EXP = new BigNumber('1000000000000000000') ;
+const BTC_EXP = new BigNumber('100000000') ;
+
+
 const web3 = global.web3
 
 let account2 = "0x9da26fc2e1d6ad9fdd46138906b0104ae68a65d8"
@@ -101,7 +106,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
         let ratio = 200000; //1 eth:20,it need to mul the precise 10000
         let defaultMinDeposit = web3.toWei(100);
-        let htlcType = 1; //use contract
+        let htlcType = 0; //use contract
 
         let originalChainHtlc = '0x7452bcd07fc6bb75653de9d9459bd442ac3f5c52';
 
@@ -157,7 +162,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,account3,{from: owner});
 
         console.log("set ratio");
-        await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID, ratio, {from: owner});
+        await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID, ratio,ETH_EXP ,{from: owner});
 
         console.log("set delay time");
         await coinAdminInst.setWithdrawDepositDelayTime(ETHEREUM_ID, delayTime, {from: owner});
@@ -226,12 +231,14 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
         ethAdminInfo = await WETHAdminInstance.getStoremanGroup(storeManWanAddr1);
 
         console.log(ethAdminInfo);
-        getQuota = ethAdminInfo[0];
+
+        getQuota = parseInt(ethAdminInfo[0].toString(10));
 
         assert.equal(web3.fromWei(getQuota),web3.fromWei(regDeposit/200000*10000), 'quota not match');
 
     })
-///*
+
+
     it('smgClaimSystemBonus By delegate - [smgAmin-T00901]',async () => {
 
         console.log("smgClaimSystemBonusByDelegate")
@@ -370,7 +377,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
             ethAdminInfo = await WETHAdminInstance.getStoremanGroup(storeManWanAddr2);
 
             console.log(ethAdminInfo);
-            getQuota = ethAdminInfo[0];
+            getQuota = parseInt(ethAdminInfo[0].toString(10));
 
             assert.equal(web3.fromWei(getQuota),web3.fromWei(regDeposit/200000*10000), 'quota not match');
 
@@ -454,10 +461,10 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
             quotaSet = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr2);
 
             console.log(quotaSet);
-            totalQuota = quotaSet[0].toString();
-            receivable = quotaSet[1].toString();
-            payable = quotaSet[2].toString();
-            debt = quotaSet[3].toString();
+            totalQuota = parseInt(quotaSet[0].toString(10));
+            receivable =  parseInt(quotaSet[1].toString(10));
+            payable =  parseInt(quotaSet[2].toString(10));
+            debt =  parseInt(quotaSet[3].toString(10));
 
             assert.equal(web3.fromWei(totalQuota), 0, 'weth balance did not set properly');
             assert.equal(web3.fromWei(receivable), 0, 'receivable did not set properly');
@@ -491,7 +498,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
 
             assert.equal(account2,reciever,"the punish deposit is different with setting")
         })
-//*/
+
 
         it('test punish deposit transfer  - [smgAmin-T00908]', async () => {
 
@@ -649,16 +656,6 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
             console.log("before balance=" + preBal + "||after balance=" + afterBal);
 
             assert.web3Event(res, {
-                event: "SmgClaimSystemBonus",
-                args: {
-                    smgAddress:storeManWanAddr3,
-                    coin:0,
-                    bonus:getBounus(),
-
-                }
-            }, `SmgClaimSystemBonus failed`);
-
-            assert.web3Event(res, {
                 event: "SmgTranferDeposit",
                 args: {
                     smgAddress:storeManWanAddr2,
@@ -668,12 +665,14 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
                 }
             }, `SmgTranferDeposit failed`);
 
+            let result = await WETHAdminInstance.mapStoremanGroup(storeManWanAddr2);
+            console.log(result);
 
-
+            assert.equal(result[1].toString(10),'0','quota is not set to 0')
 
         });
 
-    //*/
+
 
 
 })//end

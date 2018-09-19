@@ -32,7 +32,7 @@ import "./AdminInterface.sol";
 
 contract StoremanGroupAdmin is Halt {
     using SafeMath for uint;
-
+    uint public constant wanExponent = 1000000000000000000;//1e18
     address public coinAminAddr;
 
     struct StoremanGroup {
@@ -62,12 +62,12 @@ contract StoremanGroupAdmin is Halt {
     /// @param sender sender for bonus
     /// @param coin coin name
     /// @param wancoin deposit wancoin number
-    event SmgDepositBonus(address indexed sender,uint indexed coin,uint wancoin);
+    //event SmgDepositBonus(address indexed sender,uint indexed coin,uint wancoin);
 
     /// @notice event for storeman register
     /// @param smgAddress   storeman address
     /// @param coin       coin name
-    event SmgWhiteList(address indexed smgAddress,uint indexed coin);
+    //event SmgWhiteList(address indexed smgAddress,uint indexed coin);
 
     /// @notice event for the htlc address on original chain event
     /// @param smgAddress   storeman address
@@ -196,7 +196,7 @@ contract StoremanGroupAdmin is Halt {
             mapCoinSmgInfo[coin][smgWanAddr] = StoremanGroup(msg.value,originalChainAddr,0,txFeeRatio,block.number,msg.sender,0);
         }
 
-        uint tokens = getTokens(coin2WanRatio,CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());
+        uint tokens = getTokens(coin,coin2WanRatio,CoinAdminInterface(coinAminAddr).DEFAULT_PRECISE());
         assert(deposit(smgWanAddr,tokens,wanchainTokenManager));
 
         //send event
@@ -219,7 +219,7 @@ contract StoremanGroupAdmin is Halt {
         bonusTotal[coin] = bonusTotal[coin].add(msg.value);
 
         //send event
-        emit SmgDepositBonus(msg.sender,coin,msg.value);
+       // emit SmgDepositBonus(msg.sender,coin,msg.value);
     }
 
     /// @notice function for setting smg white list by owner
@@ -240,7 +240,7 @@ contract StoremanGroupAdmin is Halt {
         mapSmgWhiteList[coin][smgAddr] = true;
 
         //send event
-        emit SmgWhiteList(smgAddr,coin);
+       // emit SmgWhiteList(smgAddr,coin);
 
     }
 
@@ -253,7 +253,7 @@ contract StoremanGroupAdmin is Halt {
     //    returns (bytes)
     //{
     //    return mapCoinSmgInfo[coin][storemanAddr].originalChainAddr;
-    //}
+   // }
 
     /// @notice function for getting store man tx fee
     /// @param coin      coin name
@@ -338,11 +338,13 @@ contract StoremanGroupAdmin is Halt {
 
         var (, , , , ,wanchainTokenManager,withdrawDelayTime, , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
+
+
         assert(now > smgInfo.unregisterApplyTime.add(withdrawDelayTime));
         //check smg existing
         assert(smgInfo.deposit > 0);
 
-       assert(smgWithdrawAble(wanchainTokenManager,smgAddr));
+       assert(smgWithdrawAble(wanchainTokenManager,smgAddr,true));
        uint deposit = smgInfo.deposit;
        uint restBalance = smgInfo.deposit;
        if (smgInfo.punishPercent > 0) {
@@ -437,24 +439,16 @@ contract StoremanGroupAdmin is Halt {
        if (isTransferAll&&halted) {
            owner.transfer(this.balance);
        } else {
-
-           var (, , , , , , , ,startBonusBlk, , ,) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
-           if ( startBonusBlk > 0 &&  mapCoinSmgInfo[coin][smgAddr].punishPercent==0) {
-                //tranfer bonus to destination address
-                mapCoinSmgInfo[coin][smgAddr].initiator = destAddress;
-                claimSystemBonus(coin,smgAddr);
-                mapCoinSmgInfo[coin][smgAddr].initiator = address(0);
-           }
-
            uint deposit = mapCoinSmgInfo[coin][smgAddr].deposit;
+           var (, , , , ,wanchainTokenManager, , , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
+           assert(smgWithdrawAble(wanchainTokenManager,smgAddr,false));
 
            //set deposit to 0
            mapCoinSmgInfo[coin][smgAddr].deposit = 0;
-
            destAddress.transfer(deposit);
-           }
+       }
 
-           SmgTranferDeposit(smgAddr,coin,destAddress,deposit);
+       SmgTranferDeposit(smgAddr,coin,destAddress,deposit);
     }
 
 ////////////////private function///////////////////////////////////////////////
@@ -475,22 +469,24 @@ contract StoremanGroupAdmin is Halt {
         return tokenManagerAddr.call(methodId,smgAddr);
     }
 
-    function smgWithdrawAble(address tokenManagerAddr,address smgAddr)
+    function smgWithdrawAble(address tokenManagerAddr,address smgAddr,bool isNormal)
         private
         returns (bool)
     {
-        bytes4 methodId = bytes4(keccak256("unregisterStoremanGroup(address)"));
-        return tokenManagerAddr.call(methodId,smgAddr);
+        bytes4 methodId = bytes4(keccak256("unregisterStoremanGroup(address,bool)"));
+        return tokenManagerAddr.call(methodId,smgAddr,isNormal);
     }
 
-    function getTokens(uint coin2WanRatio,uint defaultPrecise)
+    function getTokens(uint coin, uint coin2WanRatio,uint defaultPrecise)
         private
         view
         returns(uint)
     {
         uint calValue = msg.value;
-        calValue = calValue.div(coin2WanRatio);
-        return calValue.mul(defaultPrecise);
+        uint tokenExp = CoinAdminInterface(coinAminAddr).mapCoinExponent(coin);
+
+        return (calValue.div(coin2WanRatio).mul(defaultPrecise)).div(wanExponent).mul(tokenExp);
+
     }
 
     function claimSystemBonus(uint coin,address smgAddr)

@@ -9,6 +9,10 @@ var BigNumber = require('bignumber.js');
 const createKeccakHash = require('keccak');
 const crypto = require('crypto');
 
+const ETH_EXP = new BigNumber('1000000000000000000') ;
+const BTC_EXP = new BigNumber('100000000') ;
+
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
@@ -193,7 +197,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
        await coinAdminInst.setCoinPunishReciever(ETHEREUM_ID,owner,{from: owner});
 
        console.log("set ratio");
-       await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,{from: owner});
+       await coinAdminInst.setWToken2WanRatio(ETHEREUM_ID,ratio,ETH_EXP,{from: owner});
 
 
        //console.log(coinInfo);

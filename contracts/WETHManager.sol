@@ -189,16 +189,18 @@ contract WETHManager is Halt {
   /// @dev Unregister a storemanGroup
   /// @param storemanGroup Address of the storemanGroup to be unregistered
   /// @return Result of unregistering provided storemanGroup, true if successful
-  function unregisterStoremanGroup(address storemanGroup)
+  function unregisterStoremanGroup(address storemanGroup,bool isNormal)
     public
     notHalted 
     onlyStoremanGroupAdmin 
     returns (bool)
   {
-    /// Make sure a valid storemanGroup address provided
-    require(mapUnregistration[storemanGroup]);
-    /// Make sure the given storemanGroup has paid off its debt
-    require(isDebtPaidOff(storemanGroup));
+    if(isNormal) {
+        /// Make sure a valid storemanGroup address provided
+        require(mapUnregistration[storemanGroup]);
+        /// Make sure the given storemanGroup has paid off its debt
+        require(isDebtPaidOff(storemanGroup));
+    }
 
     StoremanGroup storage _s = mapStoremanGroup[storemanGroup];
     /// remove this storemanGroup from the unregistration intention map
