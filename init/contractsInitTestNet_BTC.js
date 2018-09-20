@@ -158,6 +158,7 @@ contract('deploy donctracts',  ([miner, owner]) => {
     await htlcWBTCInst.setWBTCManager(wbtcManagerInst.address,{from: owner})
     WBTCManagerAddrGot = await htlcWBTCInst.wbtcManager()
     assert.equal(wbtcManagerInst.address,WBTCManagerAddrGot)
+    await htlcWBTCInst.setLockedTime(3600,{from: owner})
 
     await htlcWBTCInst.setHalt(false,{from: owner});
 
@@ -167,12 +168,13 @@ contract('deploy donctracts',  ([miner, owner]) => {
 
     wbtcManageAddrGot = await wbtcInst.tokenManager();
     assert.equal(wbtcManageAddrGot,wbtcManagerInst.address)
+
   })
 
   it('register storeman', async () => {
 
       let storeManWanAddr = '0x82086038157846da6a38e2e25a6e79e69d913bb9';//in dev test net
-      let storeManBTCAddr = '0x9022c407879beee21132fc89008d983423198873';
+      let storeManBTCAddr = '0x90bcfe35d8cdc5d0ebfe2748b7296c182911d923';
 
       await coinAdminInst.setHalt(true, {from: owner});
       await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});
@@ -214,9 +216,9 @@ contract('deploy donctracts',  ([miner, owner]) => {
 
       console.log(btcAdminInfo);
 
-      getQuota = parseInt(btcAdminInfo[0].toString());
+      getQuota = new BigNumber(btcAdminInfo[0].toString(10));
 
-      assert.equal(web3.fromWei(getQuota), web3.fromWei((regDeposit / ratio) * precise), 'quota not match');
+      assert.equal(getQuota.div(BTC_EXP), web3.fromWei((regDeposit / ratio) * precise), 'quota not match');
 
   })
 
