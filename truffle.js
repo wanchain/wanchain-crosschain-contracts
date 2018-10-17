@@ -22,7 +22,7 @@ module.exports = {
 
     devinternal: {
       host: "192.168.1.58",
-      port: 18545,
+      port: 8545,
       network_id: "*", // Match any network id
       gas: 4710000,
       gasPrice: 180e9,
