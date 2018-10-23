@@ -40,8 +40,8 @@ contract HTLCBase is Halt {
     */
 
     /// @notice tx info status
-    /// @notice uninitialized,locked,redeemed,revoked
-    enum TxStatus {None, Locked, Redeemed, Revoked}
+    /// @notice uninitialized,locked,refunded,revoked
+    enum TxStatus {None, Locked, Refunded, Revoked}
 
     /// @notice tx direction
     enum TxDirection {Coin2Wtoken, Wtoken2Coin}
@@ -194,11 +194,11 @@ contract HTLCBase is Halt {
         if (isFirstHand) mapXHashShadow[xHash] = shadow;
     }
     
-    /// @notice             redeem coins from HTLC transaction
+    /// @notice             refund coins from HTLC transaction
     /// @param  xHash       hash of HTLC random number
     /// @param  direction   HTLC transaction direction
     /// @return xHash       return hash of HTLC random number
-    function redeemHTLCTx(bytes32 xHash, TxDirection direction)
+    function refundHTLCTx(bytes32 xHash, TxDirection direction)
         internal
     {
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
@@ -207,7 +207,7 @@ contract HTLCBase is Halt {
         require(info.destination == msg.sender);
         require(now < info.beginLockedTime.add(info.lockedTime));
         
-        info.status = TxStatus.Redeemed;
+        info.status = TxStatus.Refunded;
     }
     
     /// @notice             revoke HTLC transaction

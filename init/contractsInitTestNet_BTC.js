@@ -173,8 +173,8 @@ contract('deploy donctracts',  ([miner, owner]) => {
 
   it('register storeman', async () => {
 
-      let storeManWanAddr = '0x9ebf2acd509e0d5f9653e755f26d9a3ddce3977c';//in dev test net
-      let storeManBTCAddr = '0x83e5ca256c9ffd0ae019f98e4371e67ef5026d2d';
+      let storeManWanAddr = '0x82086038157846da6a38e2e25a6e79e69d913bb9';//in dev test net
+      let storeManBTCAddr = '0x90bcfe35d8cdc5d0ebfe2748b7296c182911d923';
 
       await coinAdminInst.setHalt(true, {from: owner});
       await coinAdminInst.setSmgEnableUserWhiteList(BTC_ID, false, {from: owner});

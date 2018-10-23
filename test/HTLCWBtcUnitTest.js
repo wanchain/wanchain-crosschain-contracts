@@ -333,12 +333,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWBTC-T2109]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x1, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem can not replace btc2wbtcRedeem');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund can not replace btc2wbtcRefund');
     });
 
     it('[HTLCWBTC-T2206]', async() => {
@@ -389,18 +389,18 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    //////// btc2wbtcRedeem
+    //////// btc2wbtcRefund
 
 
     it(`[HTLCWBTC-T2101]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x1, {from:user, value:web3.toWei(1)});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while tx.value is not 0');
     });
 
 
@@ -409,47 +409,47 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x1, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail while halted is true');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while halted is true');
     });
 
 
     it(`[HTLCWBTC-T2104]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x3, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail while xHash doesnt exist');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while xHash doesnt exist');
     });
 
     it(`[HTLCWBTC-T2105]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x1, {from:owner});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail while sender is not user');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while sender is not user');
     });
 
     it(`[HTLCWBTC-T2105-2]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x1, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail while sender is not user');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail while sender is not user');
     });
 
     it(`[HTLCWBTC-T2106]`, async () => {
@@ -457,12 +457,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x1, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'btc2wbtcRedeem should fail after HTLC timeout');
+        assert.notEqual(retError, undefined, 'btc2wbtcRefund should fail after HTLC timeout');
     });
 
 
@@ -486,17 +486,17 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        ret = await HTLCWBTCInstance.btc2wbtcRedeem(x3, {from:user});
+        ret = await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
 
         assert.web3Event(ret, {
-            event: "BTC2WBTCRedeem",
+            event: "BTC2WBTCRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash3,
                 x: x3
             }
-        }, `btc2wbtcRedeem fail`);
+        }, `btc2wbtcRefund fail`);
 
         let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
         let afterUserToken = await WBTCInstance.balanceOf(user);
@@ -517,12 +517,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWBTC-T2108]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x3, {from:user});
+            await HTLCWBTCInstance.btc2wbtcRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `btc2wbtcRedeem should fail while repeat`);
+        assert.notEqual(retError, undefined, `btc2wbtcRefund should fail while repeat`);
     });
 
 
@@ -797,16 +797,16 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
             }
         }, `btc2wbtcLock failed`);
 
-        ret = await HTLCWBTCInstance.btc2wbtcRedeem(x8, {from:user});
+        ret = await HTLCWBTCInstance.btc2wbtcRefund(x8, {from:user});
         assert.web3Event(ret, {
-            event: "BTC2WBTCRedeem",
+            event: "BTC2WBTCRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash8,
                 x: x8
             }
-        }, `btc2wbtcRedeem fail`);
+        }, `btc2wbtcRefund fail`);
 
         let beforeStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
         let beforeUserToken = await WBTCInstance.balanceOf(user);
@@ -922,12 +922,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
     it('[HTLCWBTC-T2409]', async() => {
         let retError;
         try {
-            await HTLCWBTCInstance.btc2wbtcRedeem(x4, {from:storeman});
+            await HTLCWBTCInstance.btc2wbtcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `btc2wbtcRedeem can not replace wbtc2btcRedeem`);
+        assert.notEqual(retError, undefined, `btc2wbtcRefund can not replace wbtc2btcRefund`);
     });
 
 
@@ -944,17 +944,17 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    //////// wbtc2btcRedeem
+    //////// wbtc2btcRefund
 
     it(`[HTLCWBTC-T2401]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x4, {from:storeman, value:web3.toWei(1)});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while tx.value is not 0');
     });
 
 
@@ -964,50 +964,50 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x4, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while halted is true');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while halted is true');
     });
 
 
     it(`[HTLCWBTC-T2404]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x5, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while xHash does not exist');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while xHash does not exist');
     });
 
 
     it(`[HTLCWBTC-T2405]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x4, {from:owner});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while sender is not storeman');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while sender is not storeman');
     });
 
 
     it(`[HTLCWBTC-T2405-2]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x4, {from:user});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while sender is not storeman');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while sender is not storeman');
     });
 
 
@@ -1016,12 +1016,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x4, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while HTLC timeout already');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while HTLC timeout already');
     });
 
 
@@ -1039,16 +1039,16 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
              }
          }, `btc2wbtcLock failed`);
 
-         ret = await HTLCWBTCInstance.btc2wbtcRedeem(x7, {from:user});
+         ret = await HTLCWBTCInstance.btc2wbtcRefund(x7, {from:user});
          assert.web3Event(ret, {
-             event: "BTC2WBTCRedeem",
+             event: "BTC2WBTCRefund",
              args: {
                  wanAddr: user,
                  storeman: storeman,
                  xHash: xHash7,
                  x: x7
              }
-         }, `btc2wbtcRedeem fail`);
+         }, `btc2wbtcRefund fail`);
 
         ret = await HTLCWBTCInstance.wbtc2btcLock(xHash5, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(20)});
         assert.web3Event(ret, {
@@ -1077,16 +1077,16 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeStoremanBalance:", beforeStoremanBalance);
 
 
-        ret = await HTLCWBTCInstance.wbtc2btcRedeem(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
+        ret = await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WBTC2BTCRedeem",
+            event: "WBTC2BTCRefund",
             args: {
                 storeman: storeman,
                 wanAddr: user,
                 xHash: xHash5,
                 x: x5
             }
-        }, `wbtc2btcRedeem fail`);
+        }, `wbtc2btcRefund fail`);
 
         let afterStoremanInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
         let afterSCToken = await WBTCInstance.balanceOf(HTLCWBTCInstance.address);
@@ -1120,12 +1120,12 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWBTC-T2408]`, async () => {
         let retError;
         try {
-            await HTLCWBTCInstance.wbtc2btcRedeem(x5, {from:storeman});
+            await HTLCWBTCInstance.wbtc2btcRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'wbtc2btcRedeem should fail while repeated');
+        assert.notEqual(retError, undefined, 'wbtc2btcRefund should fail while repeated');
     });
 
 

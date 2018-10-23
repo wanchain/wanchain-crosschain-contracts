@@ -94,12 +94,12 @@ contract HTLCWBTC is HTLCBase {
     /// @param xHash       hash of HTLC random number
     /// @param value       HTLC value
     event BTC2WBTCLock(address indexed storeman, address indexed wanAddr, bytes32 indexed xHash, uint value);
-    /// @notice            event of redeemWBTC from exchange WBTC with BTC HTLC transaction
+    /// @notice            event of refund WBTC from exchange WBTC with BTC HTLC transaction
     /// @param wanAddr     wanchain address of user, used to receive WBTC
     /// @param storeman    wanchain address of storeman, the WBTC minter
     /// @param xHash       hash of HTLC random number
     /// @param x           HTLC random number
-    event BTC2WBTCRedeem(address indexed wanAddr, address indexed storeman, bytes32 indexed xHash, bytes32 x);
+    event BTC2WBTCRefund(address indexed wanAddr, address indexed storeman, bytes32 indexed xHash, bytes32 x);
     /// @notice            event of revoke exchange WBTC with BTC HTLC transaction
     /// @param storeman    address of storeman
     /// @param xHash       hash of HTLC random number
@@ -119,12 +119,12 @@ contract HTLCWBTC is HTLCBase {
     /// @param txHash      transaction hash on bitcoin blockchain
     /// @param lockedTimestamp locked timestamp in the bitcoin blockchain
     event WBTC2BTCLockNotice(address indexed stmBtcAddr, address indexed userBtcAddr, bytes32 indexed xHash, bytes32 txHash,  uint lockedTimestamp);
-    /// @notice            event of redeem WBTC from exchange BTC with WBTC HTLC transaction
+    /// @notice            event of refund WBTC from exchange BTC with WBTC HTLC transaction
     /// @param storeman    address of storeman, used to receive WBTC
     /// @param wanAddr     address of user, where the WBTC come from
     /// @param xHash       hash of HTLC random number
     /// @param x           HTLC random number
-    event WBTC2BTCRedeem(address indexed storeman, address indexed wanAddr, bytes32 indexed xHash, bytes32 x);
+    event WBTC2BTCRefund(address indexed storeman, address indexed wanAddr, bytes32 indexed xHash, bytes32 x);
     /// @notice            event of revoke exchange BTC with WBTC HTLC transaction
     /// @param wanAddr     address of user
     /// @param xHash       hash of HTLC random number
@@ -225,16 +225,16 @@ contract HTLCWBTC is HTLCBase {
         return true;
     }
 
-    /// @notice  redeem WBTC from the HTLC transaction of exchange WBTC with BTC(must be called before HTLC timeout)
+    /// @notice  refund WBTC from the HTLC transaction of exchange WBTC with BTC(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function btc2wbtcRedeem(bytes32 x)
+    function btc2wbtcRefund(bytes32 x)
         public
         initialized
         notHalted
         returns(bool)
     {
         bytes32 xHash = sha256(x);
-        redeemHTLCTx(xHash, TxDirection.Coin2Wtoken);
+        refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
 
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
 
@@ -242,7 +242,7 @@ contract HTLCWBTC is HTLCBase {
             revert();
        }
 
-        emit BTC2WBTCRedeem(info.destination, info.source, xHash, x);
+        emit BTC2WBTCRefund(info.destination, info.source, xHash, x);
         return true;
     }
 
@@ -327,23 +327,23 @@ contract HTLCWBTC is HTLCBase {
         return true;
     }
 
-    /// @notice  redeem WBTC from the HTLC transaction of exchange BTC with WBTC(must be called before HTLC timeout)
+    /// @notice  refund WBTC from the HTLC transaction of exchange BTC with WBTC(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function wbtc2btcRedeem(bytes32 x)
+    function wbtc2btcRefund(bytes32 x)
         public
         initialized
         notHalted
         returns(bool)
     {
         bytes32 xHash = sha256(x);
-        redeemHTLCTx(xHash, TxDirection.Wtoken2Coin);
+        refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         if (!WTokenManagerInterface(wbtcManager).burnToken(info.destination, info.value)) {
             revert();
         }
 
         info.destination.transfer(mapXHashFee[xHash]);
-        emit WBTC2BTCRedeem(info.destination, info.source, xHash, x);
+        emit WBTC2BTCRefund(info.destination, info.source, xHash, x);
         return true;
     }
 

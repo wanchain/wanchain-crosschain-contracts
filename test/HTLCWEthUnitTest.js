@@ -350,12 +350,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWETH-T2109]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x1, {from:user});
+            await HTLCWETHInstance.weth2ethRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem can not replace eth2wethRedeem');
+        assert.notEqual(retError, undefined, 'weth2ethRefund can not replace eth2wethRefund');
     });
 
     it('[HTLCWETH-T2206]', async() => {
@@ -406,18 +406,18 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    //////// eth2wethRedeem
+    //////// eth2wethRefund
 
 
     it(`[HTLCWETH-T2101]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:user, value:web3.toWei(1)});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:user, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while tx.value is not 0');
     });
 
 
@@ -426,13 +426,13 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:user});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while halted is true');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while halted is true');
     });
 
     /*
@@ -443,7 +443,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:user});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
@@ -451,7 +451,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         await HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
         assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, `failed to setWETHManager`);
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while wethManager is uninitialized');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while wethManager is uninitialized');
     });
 
     */
@@ -459,34 +459,34 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWETH-T2104]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x3, {from:user});
+            await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while xHash doesnt exist');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while xHash doesnt exist');
     });
 
     it(`[HTLCWETH-T2105]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:owner});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while sender is not user');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while sender is not user');
     });
 
     it(`[HTLCWETH-T2105-2]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:storeman});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail while sender is not user');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail while sender is not user');
     });
 
     it(`[HTLCWETH-T2106]`, async () => {
@@ -494,12 +494,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x1, {from:user});
+            await HTLCWETHInstance.eth2wethRefund(x1, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'eth2wethRedeem should fail after HTLC timeout');
+        assert.notEqual(retError, undefined, 'eth2wethRefund should fail after HTLC timeout');
     });
 
 
@@ -520,16 +520,16 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        ret = await HTLCWETHInstance.eth2wethRedeem(x3, {from:user});
+        ret = await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
         assert.web3Event(ret, {
-            event: "ETH2WETHRedeem",
+            event: "ETH2WETHRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash3,
                 x: x3
             }
-        }, `eth2wethRedeem fail`);
+        }, `eth2wethRefund fail`);
 
         let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
         let afterUserToken = await WETHInstance.balanceOf(user);
@@ -549,12 +549,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWETH-T2108]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x3, {from:user});
+            await HTLCWETHInstance.eth2wethRefund(x3, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRedeem should fail while repeat`);
+        assert.notEqual(retError, undefined, `eth2wethRefund should fail while repeat`);
     });
 
 
@@ -866,16 +866,16 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
             }
         }, `eth2wethLock failed`);
 
-        ret = await HTLCWETHInstance.eth2wethRedeem(x8, {from:user});
+        ret = await HTLCWETHInstance.eth2wethRefund(x8, {from:user});
         assert.web3Event(ret, {
-            event: "ETH2WETHRedeem",
+            event: "ETH2WETHRefund",
             args: {
                 wanAddr: user,
                 storeman: storeman,
                 xHash: xHash8,
                 x: x8
             }
-        }, `eth2wethRedeem fail`);
+        }, `eth2wethRefund fail`);
 
         let beforeStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
         let beforeUserToken = await WETHInstance.balanceOf(user);
@@ -991,12 +991,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it('[HTLCWETH-T2409]', async() => {
         let retError;
         try {
-            await HTLCWETHInstance.eth2wethRedeem(x4, {from:storeman});
+            await HTLCWETHInstance.eth2wethRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, `eth2wethRedeem can not replace weth2ethRedeem`);
+        assert.notEqual(retError, undefined, `eth2wethRefund can not replace weth2ethRefund`);
     });
 
 
@@ -1013,17 +1013,17 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
 
 
-    //////// weth2ethRedeem
+    //////// weth2ethRefund
 
     it(`[HTLCWETH-T2401]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:storeman, value:web3.toWei(1)});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman, value:web3.toWei(1)});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while tx.value is not 0');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while tx.value is not 0');
     });
 
 
@@ -1033,14 +1033,14 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:storeman});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
         await resetHalted(false);
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while halted is true');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while halted is true');
     });
 
 
@@ -1051,7 +1051,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:storeman});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
@@ -1059,7 +1059,7 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         await  HTLCWETHInstance.setWETHManager(WETHManagerInstance.address, {from:owner});
         assert.equal(await HTLCWETHInstance.wethManager(), WETHManagerInstance.address, "fail to setHalt");
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while wethManager is uninitialized');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while wethManager is uninitialized');
     });
     */
 
@@ -1067,36 +1067,36 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWETH-T2404]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x5, {from:storeman});
+            await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while xHash does not exist');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while xHash does not exist');
     });
 
 
     it(`[HTLCWETH-T2405]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:owner});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:owner});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while sender is not storeman');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while sender is not storeman');
     });
 
 
     it(`[HTLCWETH-T2405-2]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:user});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:user});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while sender is not storeman');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while sender is not storeman');
     });
 
 
@@ -1105,12 +1105,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
 
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x4, {from:storeman});
+            await HTLCWETHInstance.weth2ethRefund(x4, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while HTLC timeout already');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while HTLC timeout already');
     });
 
 
@@ -1128,16 +1128,16 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
              }
          }, `eth2wethLock failed`);
 
-         ret = await HTLCWETHInstance.eth2wethRedeem(x7, {from:user});
+         ret = await HTLCWETHInstance.eth2wethRefund(x7, {from:user});
          assert.web3Event(ret, {
-             event: "ETH2WETHRedeem",
+             event: "ETH2WETHRefund",
              args: {
                  wanAddr: user,
                  storeman: storeman,
                  xHash: xHash7,
                  x: x7
              }
-         }, `eth2wethRedeem fail`);
+         }, `eth2wethRefund fail`);
 
         ret = await HTLCWETHInstance.weth2ethLock(xHash5, storeman, recipient, web3.toWei(1), {from:user, value:web3.toWei(20)});
         assert.web3Event(ret, {
@@ -1166,16 +1166,16 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeStoremanBalance:", beforeStoremanBalance);
 
 
-        ret = await HTLCWETHInstance.weth2ethRedeem(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
+        ret = await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman, gasPrice:'0x'+GasPrice.toString(16)});
         assert.web3Event(ret, {
-            event: "WETH2ETHRedeem",
+            event: "WETH2ETHRefund",
             args: {
                 storeman: storeman,
                 wanAddr: user,
                 xHash: xHash5,
                 x: x5
             }
-        }, `weth2ethRedeem fail`);
+        }, `weth2ethRefund fail`);
 
         let afterStoremanInfo = await WETHManagerInstance.getStoremanGroup(storeman);
         let afterSCToken = await WETHInstance.balanceOf(HTLCWETHInstance.address);
@@ -1209,12 +1209,12 @@ contract('HTLCWETH', ([miner, recipient, owner, user, storeman]) => {
     it(`[HTLCWETH-T2408]`, async () => {
         let retError;
         try {
-            await HTLCWETHInstance.weth2ethRedeem(x5, {from:storeman});
+            await HTLCWETHInstance.weth2ethRefund(x5, {from:storeman});
         } catch (e) {
             retError = e;
         }
 
-        assert.notEqual(retError, undefined, 'weth2ethRedeem should fail while repeated');
+        assert.notEqual(retError, undefined, 'weth2ethRefund should fail while repeated');
     });
 
 

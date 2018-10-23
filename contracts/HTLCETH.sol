@@ -44,12 +44,12 @@ contract HTLCETH is HTLCBase {
     /// @param value       exchange value
     /// @param wanAddr     wanchain address to receive WETH
     event ETH2WETHLock(address indexed user, address indexed storeman, bytes32 indexed xHash, uint value, address wanAddr);
-    /// @notice            event of redeem ETH from exchange WETH with ETH HTLC transaction
+    /// @notice            event of refund ETH from exchange WETH with ETH HTLC transaction
     /// @param storeman    address of storeman
     /// @param user        address of user
     /// @param xHash       hash of HTLC random number
     /// @param x           HTLC random number
-    event ETH2WETHRedeem(address indexed storeman, address indexed user, bytes32 indexed xHash, bytes32 x);
+    event ETH2WETHRefund(address indexed storeman, address indexed user, bytes32 indexed xHash, bytes32 x);
     /// @notice            event of revoke exchange WETH with ETH HTLC transaction
     /// @param user        address of user
     /// @param xHash       hash of HTLC random number
@@ -60,12 +60,12 @@ contract HTLCETH is HTLCBase {
     /// @param xHash       hash of HTLC random number
     /// @param value       exchange value
     event WETH2ETHLock(address indexed storeman, address indexed user, bytes32 indexed xHash, uint value);
-    /// @notice            event of redeem ETH from exchange ETH with WETH HTLC transaction
+    /// @notice            event of refund ETH from exchange ETH with WETH HTLC transaction
     /// @param user        address of user, used to receive ETH
     /// @param storeman    address of storeman where the ETH come from
     /// @param xHash       hash of HTLC random number
     /// @param x           HTLC random number
-    event WETH2ETHRedeem(address indexed user, address indexed storeman, bytes32 indexed xHash, bytes32 x);
+    event WETH2ETHRefund(address indexed user, address indexed storeman, bytes32 indexed xHash, bytes32 x);
     /// @notice            event of revoke exchange ETH with WETH HTLC transaction
     /// @param storeman    address of storeman
     /// @param xHash       hash of HTLC random number
@@ -92,21 +92,21 @@ contract HTLCETH is HTLCBase {
         return true;
     }
 
-    /// @notice  redeemETH from the HTLC transaction of exchange WETH with ETH(must be called before HTLC timeout)
+    /// @notice  refund ETH from the HTLC transaction of exchange WETH with ETH(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function eth2wethRedeem(bytes32 x)
+    function eth2wethRefund(bytes32 x) 
         public 
         notHalted
         returns(bool) 
     {
         bytes32 xHash = keccak256(x);
-        redeemHTLCTx(xHash, TxDirection.Coin2Wtoken);
+        refundHTLCTx(xHash, TxDirection.Coin2Wtoken);
 
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         info.destination.transfer(info.value);
 
-        emit ETH2WETHRedeem(info.destination, info.source, xHash, x);
+        emit ETH2WETHRefund(info.destination, info.source, xHash, x);
         return true;
     }
 
@@ -152,21 +152,21 @@ contract HTLCETH is HTLCBase {
         return true;
     }
     
-    /// @notice  redeem ETH from the HTLC transaction of exchange ETH with WETH(must be called before HTLC timeout)
+    /// @notice  refund ETH from the HTLC transaction of exchange ETH with WETH(must be called before HTLC timeout)
     /// @param x HTLC random number
-    function weth2ethRedeem(bytes32 x)
+    function weth2ethRefund(bytes32 x) 
         public 
         notHalted
         returns(bool) 
     {
         bytes32 xHash = keccak256(x);
-        redeemHTLCTx(xHash, TxDirection.Wtoken2Coin);
+        refundHTLCTx(xHash, TxDirection.Wtoken2Coin);
         
         // transfer eth
         HTLCTx storage info = mapXHashHTLCTxs[xHash];
         info.destination.transfer(info.value);
 
-        emit WETH2ETHRedeem(info.destination, info.source, xHash, x);
+        emit WETH2ETHRefund(info.destination, info.source, xHash, x);
         return true;
     }
 
