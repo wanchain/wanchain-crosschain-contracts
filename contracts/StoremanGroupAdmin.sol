@@ -24,7 +24,7 @@
 //    
 //  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./Halt.sol";
@@ -382,7 +382,10 @@ contract StoremanGroupAdmin is Halt{
         public
         notHalted
     {
-        require(mapStoremanGroup[tokenOrigAddr][storemanGroup].initiator == msg.sender);    
+        // make sure the address who registered this smg initiated this transaction
+        require(mapStoremanGroup[tokenOrigAddr][storemanGroup].initiator == msg.sender); 
+        StoremanGroup storage smg = mapStoremanGroup[tokenOrigAddr][storemanGroup];
+        require(smg.bonusBlockNumber != 0 && smg.unregisterApplyTime == 0); 
         doClaimSystemBonus(tokenOrigAddr, storemanGroup);
     }
 
