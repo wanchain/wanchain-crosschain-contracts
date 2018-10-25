@@ -24,7 +24,7 @@
 //    
 //  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 import "./HTLCBase.sol";
 
