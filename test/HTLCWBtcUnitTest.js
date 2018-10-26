@@ -8,7 +8,7 @@ var BigNumber = require('bignumber.js');
 const createKeccakHash = require('keccak');
 
 const ETH_EXP = new BigNumber('1000000000000000000') ;
-const BTC_EXP = new BigNumber('100000000') ;
+const BTC_EXP = new BigNumber('1000000000000000000') ;//new BigNumber('100000000') ;
 
 
 const crypto = require('crypto');
@@ -230,6 +230,34 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
 
        await  StoremanGroupAdminInstance.storemanGroupRegister(BTC_ID,storeman,10,{from:storeman,value:regDeposit,gas:4000000});
+       getCoinSmgInfo = await StoremanGroupAdminInstance.mapCoinSmgInfo(BTC_ID, storeman);
+       console.log(getCoinSmgInfo);
+
+       getDeposit = getCoinSmgInfo[0].toString(10);
+       getOriginalChainAddr = getCoinSmgInfo[1].toString();
+       getUnregisterApplyTime = getCoinSmgInfo[2].toString();
+       gettxFeeRatio = getCoinSmgInfo[3].toString();
+       getbonusBlockNumber = getCoinSmgInfo[4].toString();
+       getinitiator = getCoinSmgInfo[5].toString();
+       getPunished = getCoinSmgInfo[6];
+
+       assert.equal(getDeposit, regDeposit, 'regDeposit not match');
+       assert.equal(getOriginalChainAddr, storeman, 'storeManBTCAddr not match');
+       assert.equal(getUnregisterApplyTime, 0, 'apply time not match');
+
+       assert.equal(gettxFeeRatio, 10, 'gettxFeeRatio not match');
+       assert.notEqual(getbonusBlockNumber, 0, 'getbonusBlockNumber not match');
+       assert.equal(getPunished, false, 'getPunished not match');
+       //assert.equal(getinitiator, , 'getinitiator not match');
+
+       console.log("wbtcManager getStoremanGroup");
+       btcAdminInfo = await WBTCManagerInstance.getStoremanGroup(storeman);
+
+       console.log(btcAdminInfo);
+
+       getQuota = new BigNumber(btcAdminInfo[0].toString(10));
+
+       assert.equal(getQuota.div(BTC_EXP), web3.fromWei((regDeposit / ratio) * 10000), 'quota not match');
 
        // Reset lockedTime
        await resetHalted(true);
@@ -244,7 +272,8 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
        smgAdminAddr = await  HTLCWBTCInstance.storemanGroupAdmin();
        assert.equal(smgAdminAddr,StoremanGroupAdminInstance.address, 'wanchainTokenAdminAddr not match');
-
+       gotCoindAddr = await  HTLCWBTCInstance.coinAdmin();
+       assert.equal(gotCoindAddr,coinAdminInst.address, 'coinAdminInstAdminAddr not match');
 
        await HTLCWBTCInstance.setLockedTime(HTLCLockedTime, {from:owner});
        assert.equal((await HTLCWBTCInstance.lockedTime()).toString(10), (HTLCLockedTime).toString(10), "setLockedTime fail");
@@ -305,7 +334,7 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         console.log("beforeStoremanInfo:", beforeStoremanInfo);
         console.log("beforeUserToken:", beforeUserToken);
 
-        let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman});
+        let ret = await HTLCWBTCInstance.btc2wbtcLock(xHash1, user, web3.toWei(1), {from:storeman,gas:4700000});
         assert.web3Event(ret, {
             event: "BTC2WBTCLock",
             args: {
@@ -329,7 +358,6 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
         assert.equal(afterStoremanInfo[5].toString(), beforeStoremanInfo[5].toString(), "unexcept storeman debt");
         assert.equal(afterUserToken.toString(), beforeUserToken.toString(), "unexcept user token");
     });
-
     it(`[HTLCWBTC-T2109]`, async () => {
         let retError;
         try {
@@ -1727,6 +1755,5 @@ contract('HTLCWBTC', ([miner, recipient, owner, user, storeman]) => {
 
         assert.equal(await HTLCWBTCInstance.lockedTime(), 0, "unexcept locked time");
     });
-//*/
 
 })
