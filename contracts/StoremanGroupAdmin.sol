@@ -429,12 +429,10 @@ contract StoremanGroupAdmin is Halt {
         public
         onlyOwner
     {
-
-       require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
-
        if (isTransferAll&&halted) {
            owner.transfer(this.balance);
        } else {
+	       require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
            uint deposit = mapCoinSmgInfo[coin][smgAddr].deposit;
            var (, , , , ,wanchainTokenManager, , , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
            assert(smgWithdrawAble(wanchainTokenManager,smgAddr,false));
@@ -481,7 +479,7 @@ contract StoremanGroupAdmin is Halt {
         uint calValue = msg.value;
         uint tokenExp = CoinAdminInterface(coinAminAddr).mapCoinExponent(coin);
 
-        return (calValue.div(coin2WanRatio).mul(defaultPrecise)).div(wanExponent).mul(tokenExp);
+        return (calValue.div(coin2WanRatio).mul(defaultPrecise)).mul(tokenExp).div(wanExponent);
 
     }
 
