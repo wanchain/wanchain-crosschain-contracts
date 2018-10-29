@@ -436,11 +436,11 @@ contract StoremanGroupAdmin is Halt{
         onlyOwner
     {
 
-        require(mapStoremanGroup[tokenOrigAddr][storemanGroup].deposit > 0);
-
         if (isTransferAll && halted) {
             owner.transfer(address(this).balance);
         } else {
+            require(mapStoremanGroup[tokenOrigAddr][storemanGroup].deposit > 0);
+            
             uint deposit = mapStoremanGroup[tokenOrigAddr][storemanGroup].deposit;
 
             require(QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAddr, storemanGroup, false));
