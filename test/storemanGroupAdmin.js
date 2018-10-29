@@ -904,40 +904,40 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, storemanGroupETH, storemanGr
     })
   })
 
-  // // transferDeposit
-  // it('[StoremanGroupAdmin_transferDeposit] should fail to invoke transferDeposit in case contract is halted', async () => {
-  //  let retError
-  //  try {
-  //    await storemanGroupAdminInstance.transferDeposit({from: owner})
-  //  } catch (e) {
-  //    retError = e
-  //  }
-  //  assert.notEqual(retError, undefined)
-  // })
+  // transferDeposit
+  it('[StoremanGroupAdmin_transferSmgDeposit] should fail to invoke transferDeposit in case by no owner', async () => {
+   let retError
+   try {
+     await storemanGroupAdminInstance.transferSmgDeposit(delphyTokenAddr, storemanGroupWANByDelegate, sender, false, {from: sender})
+   } catch (e) {
+     retError = e
+   }
+   assert.notEqual(retError, undefined)
+  })
 
-  // it('[StoremanGroupAdmin_transferDeposit] should fail to invoke transferDeposit by no owner', async () => {
-  //  let retError
-  //  try {
-  //    await storemanGroupAdminInstance.transferDeposit({from: sender})
-  //  } catch (e) {
-  //    retError = e
-  //  }
-  //  assert.notEqual(retError, undefined)
-  // })
+  it('[StoremanGroupAdmin_transferSmgDeposit] should transfer deposit to the a specific address', async ()=> {
+   let smgInfo = await storemanGroupAdminInstance.mapStoremanGroup(delphyTokenAddr, storemanGroupWANByDelegate)
+   let deposit = smgInfo[0]
+    
+   beforeBalance = await getBalance(sender)
+   beforeSCBalance = await web3.eth.getBalance(storemanGroupAdminInstanceAddress)
+   assert.equal(await quotaLedgerInstance.isStoremanGroup(delphyTokenAddr, storemanGroupWANByDelegate), true)
+   await storemanGroupAdminInstance.transferSmgDeposit(delphyTokenAddr, storemanGroupWANByDelegate, sender, false, {from: owner})
+   afterBalance = await getBalance(sender)
+   afterSCBalance = await web3.eth.getBalance(storemanGroupAdminInstanceAddress)
+   assert.equal(await quotaLedgerInstance.isStoremanGroup(delphyTokenAddr, storemanGroupWANByDelegate), false)
+   assert.equal(beforeBalance.plus(deposit).toNumber(), afterBalance.toNumber())
+   assert.equal(beforeSCBalance.toNumber(), afterSCBalance.plus(deposit).toNumber())
+  })
 
-  // it('[StoremanGroupAdmin_transferDeposit] should transfer deposit to the contract owner', async ()=> {
-  //  await setHalt(storemanGroupAdminInstance, true, owner)
-  //  beforeBalance = web3.fromWei((await web3.eth.getBalance(owner)).toNumber())
-  //  beforeSCBalance = web3.fromWei((await web3.eth.getBalance(storemanGroupAdminInstanceAddress)).toNumber())
-  //  console.log('beforeBalance: ', beforeBalance)
-  //  console.log('beforeSCBalance: ', beforeSCBalance)
-  //  ret = await storemanGroupAdminInstance.transferDeposit({from: owner})
-  //  await setHalt(storemanGroupAdminInstance, false, owner)
-  //  afterBalance = web3.fromWei((await web3.eth.getBalance(owner)).toNumber())
-  //  afterSCBalance = web3.fromWei((await web3.eth.getBalance(storemanGroupAdminInstanceAddress)).toNumber())
-  //  console.log('afterBalance: ', afterBalance)
-  //  console.log('afterSCBalance: ', afterSCBalance)
-  // })
+  it('[StoremanGroupAdmin_transferSmgDeposit] should transfer residual to owner', async ()=> {
+   await setHalt(storemanGroupAdminInstance, true, owner)
+   beforeSCBalance = web3.fromWei((await getBalance(storemanGroupAdminInstanceAddress)).toNumber())
+   await storemanGroupAdminInstance.transferSmgDeposit(delphyTokenAddr, storemanGroupWANByDelegate, sender, true, {from: owner})
+   afterSCBalance = web3.fromWei((await getBalance(storemanGroupAdminInstanceAddress)).toNumber())
+   await setHalt(storemanGroupAdminInstance, false, owner)
+   assert.equal(afterSCBalance, 0)
+  })
 
   it('[StoremanGroupAdmin_kill] should kill storemanGroupAdmin', async () => {
     await setHalt(storemanGroupAdminInstance, true, owner)
