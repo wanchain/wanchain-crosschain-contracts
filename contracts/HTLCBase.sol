@@ -155,7 +155,6 @@ contract HTLCBase is Halt {
     function setRevokeFeeRatio(uint ratio)
         public
         onlyOwner 
-        isHalted
         returns (bool)
     {
         require(ratio <= RATIO_PRECISE);
