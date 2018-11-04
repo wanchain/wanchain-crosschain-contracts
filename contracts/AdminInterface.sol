@@ -27,7 +27,7 @@
 pragma solidity ^0.4.24;
 
 contract SmgAdminInterface {
-    function mapCoinSmgInfo(uint, address) public view returns(uint, bytes, uint, uint, uint, address, uint);
+    function mapCoinSmgInfo(uint, address) public view returns(uint, address, uint, uint, uint, address, uint);
 }
 
 contract CoinAdminInterface {
