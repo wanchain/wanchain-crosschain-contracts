@@ -885,7 +885,7 @@ contract('StoremanAdminSC', ([owner, admin, proxy, storemanGroup])=> {
       blockNum =  getCoinSmgInfo[3].toString();
 
       assert.equal(getDeposit,0, 'regDeposit not match');
-      assert.equal(getOriginalChainAddr,"0x", 'storeManEthAddr not match');
+      assert.equal(getOriginalChainAddr,"0x0000000000000000000000000000000000000000", 'storeManEthAddr not match');
       assert.equal(getUnregisterApplyTime,0, 'regDeposit not match');
       assert.equal(blockNum,0, 'blockNum not match');
 

@@ -37,7 +37,7 @@ contract StoremanGroupAdmin is Halt {
 
     struct StoremanGroup {
         uint        deposit;			//the storeman group deposit
-        bytes       originalChainAddr;  //the account for storeman group on original chain
+        address     originalChainAddr;  //the account for storeman group on original chain
         uint        unregisterApplyTime;//the time for storeman group applied exit
         uint        txFeeRatio;         //the fee ratio required by storeman group
         uint        bonusBlockNumber;   //the start block number for bonus calculation for storeman group
@@ -56,7 +56,7 @@ contract StoremanGroupAdmin is Halt {
     /// @param wancoin      deposit wancoin number
     /// @param tokenQuota   corresponding token quota
     /// @param txFeeratio storeman fee ratio
-    event SmgRegister(address indexed smgAddress,bytes smgOriginalChainAddress,uint indexed coin,uint wancoin, uint tokenQuota,uint txFeeratio);
+    event SmgRegister(address indexed smgAddress,address smgOriginalChainAddress,uint indexed coin,uint wancoin, uint tokenQuota,uint txFeeratio);
 
     /// @notice event for storeman register
     /// @param sender sender for bonus
@@ -155,7 +155,7 @@ contract StoremanGroupAdmin is Halt {
     /// @param coin  coin name
     /// @param originalChainAddr  the htlc info on original chain
     /// @param txFeeRatio	the transaction fee required by storeman group
-    function storemanGroupRegister(uint coin,bytes originalChainAddr,uint txFeeRatio)
+    function storemanGroupRegister(uint coin,address originalChainAddr,uint txFeeRatio)
         public
         payable
         notHalted
@@ -168,19 +168,19 @@ contract StoremanGroupAdmin is Halt {
     /// @param smgWanAddr  the storeman group register address
     /// @param originalChainAddr  the htlc info on original chain
     /// @param txFeeRatio	the transaction fee required by storeman group
-  function storemanGroupRegisterByDelegate(uint coin,address smgWanAddr,bytes originalChainAddr,uint txFeeRatio)
+  function storemanGroupRegisterByDelegate(uint coin,address smgWanAddr,address originalChainAddr,uint txFeeRatio)
         public
         payable
         initialized(coin)
         notHalted
     {
 
-        var (coin2WanRatio,defaultMinDeposit, , , ,wanchainTokenManager,,useWhiteList, , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
+       var (coin2WanRatio,defaultMinDeposit, , , ,wanchainTokenManager,,useWhiteList, , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
 
-        require(msg.value >= defaultMinDeposit);
-        require(originalChainAddr.length != 0);
-        require(txFeeRatio > 0);
-        require(smgWanAddr != address(0));
+       require(msg.value >= defaultMinDeposit);
+       require(originalChainAddr != address(0x0));
+       require(txFeeRatio > 0);
+       require(smgWanAddr != address(0));
 
         //require smg is not registered
         require(mapCoinSmgInfo[coin][smgWanAddr].bonusBlockNumber == 0);
@@ -344,7 +344,7 @@ contract StoremanGroupAdmin is Halt {
 
        smgInfo.deposit = 0;
        smgInfo.unregisterApplyTime = 0;
-       smgInfo.originalChainAddr.length = 0;
+       smgInfo.originalChainAddr = address(0);
        smgInfo.bonusBlockNumber = 0;
        smgInfo.punishPercent = 0;
 
@@ -432,7 +432,7 @@ contract StoremanGroupAdmin is Halt {
        if (isTransferAll&&halted) {
            owner.transfer(this.balance);
        } else {
-	       require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
+           require(mapCoinSmgInfo[coin][smgAddr].deposit > 0);
            uint deposit = mapCoinSmgInfo[coin][smgAddr].deposit;
            var (, , , , ,wanchainTokenManager, , , , , , ) = CoinAdminInterface(coinAminAddr).mapCoinInfo(coin);
            assert(smgWithdrawAble(wanchainTokenManager,smgAddr,false));
