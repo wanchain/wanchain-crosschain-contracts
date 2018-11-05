@@ -84,7 +84,7 @@ contract StoremanGroupAdmin is Halt{
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     /// @param txFeeRatio                 storeman fee ratio
-    event StoremanGroupRegistrationLogger(address indexed tokenOrigAddr, address indexed smgWanAddr, bytes smgOrigAddr, uint wanDeposit, uint quota, uint txFeeRatio);
+    event StoremanGroupRegistrationLogger(address indexed tokenOrigAddr, address indexed smgWanAddr, address smgOrigAddr, uint wanDeposit, uint quota, uint txFeeRatio);
     
     /// @notice                           event for bonus deposit
     /// @dev                              event for bonus deposit 
@@ -345,7 +345,7 @@ contract StoremanGroupAdmin is Halt{
         }
         
         smg.deposit = 0;   
-        smg.originalChainAddr.length = 0;  
+        smg.originalChainAddr = address(0);  
         smg.unregisterApplyTime = 0;
         smg.txFeeRatio = 0;           
         smg.bonusBlockNumber = 0;  
