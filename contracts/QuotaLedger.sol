@@ -159,7 +159,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amout of WETH quota to be frozen
 	/// @return                 true if successful
 	function lockQuota(address tokenOrigAddr, address storemanGroup, address recipient, uint value)
-		public
+		external
 		notHalted 
 		onlyHTLCWAN 
 		onlyMeaningfulValue(value)
@@ -193,7 +193,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amount of WETH quota to be locked
 	/// @return                 true if successful
 	function unlockQuota(address tokenOrigAddr, address storemanGroup, uint value) 
-		public
+		external
 		notHalted
 		onlyHTLCWAN
 		onlyMeaningfulValue(value)
@@ -221,7 +221,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amount of WETH token to be minted
 	/// @return                 success of token mint
 	function mintToken(address tokenOrigAddr, address storemanGroup, address recipient, uint value)
-		public
+		external
 		notHalted
 		onlyHTLCWAN
 		onlyMeaningfulValue(value)
@@ -274,7 +274,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amount of WETH token to be locked
 	/// @return                 success of token locking
 	function lockToken(address tokenOrigAddr, address storemanGroup, address initiator, uint value)
-		public
+		external
 		notHalted
 		onlyHTLCWAN 
 		onlyMeaningfulValue(value)
@@ -301,7 +301,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amount of token to be unlocked
 	/// @return                 success of token unlocking
 	function unlockToken(address tokenOrigAddr, address storemanGroup, uint value) 
-		public
+		external
 		notHalted
 		onlyHTLCWAN
 		onlyMeaningfulValue(value)
@@ -325,7 +325,7 @@ contract QuotaLedger is Halt {
 	/// @param value            amount of WETH token to be burnt
 	/// @return                 success of burn token
 	function burnToken(address tokenOrigAddr, address storemanGroup, uint value) 
-		public
+		external
 		notHalted
 		onlyHTLCWAN
 		onlyMeaningfulValue(value)
@@ -350,7 +350,6 @@ contract QuotaLedger is Halt {
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    crosschain transaction handler address
 	function isStoremanGroup(address tokenOrigAddr, address storemanGroup)
-		// private
 		public
 		view
 		returns (bool)
