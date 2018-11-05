@@ -124,7 +124,7 @@ contract HTLCWAN is HTLCBase {
     *
     */
 
-    /// @dev Check weth address must be initialized before call its method
+    /// @dev Check relevant contract addresses must be initialized before call its method
     modifier initialized() {
         require(tokenManager != address(0));
         require(quotaLedger != address(0));
@@ -289,7 +289,7 @@ contract HTLCWAN is HTLCBase {
         return true;
     }
     
-    /// @notice                 getting weth 2 eth fee
+    /// @notice                 getting outbound tx fee
     /// @param  tokenOrigAddr   address of ERC20 token  
     /// @param  storemanGroup   address of storemanGroup
     /// @param  value           HTLC tx value

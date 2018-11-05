@@ -156,7 +156,7 @@ contract QuotaLedger is Halt {
   	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    handler address 
 	/// @param recipient        recipient's address, and it could be a storemanGroup applied unregistration
-	/// @param value            amout of WETH quota to be frozen
+	/// @param value            amout of WERC20 quota to be frozen
 	/// @return                 true if successful
 	function lockQuota(address tokenOrigAddr, address storemanGroup, address recipient, uint value)
 		external
@@ -186,11 +186,11 @@ contract QuotaLedger is Halt {
 	    return true;
 	}
 
-	/// @notice                 defrozen WETH quota
-	/// @dev                    defrozen WETH quota
+	/// @notice                 defrozen WERC20 quota
+	/// @dev                    defrozen WERC20 quota
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    handler address
-	/// @param value            amount of WETH quota to be locked
+	/// @param value            amount of WERC20 quota to be locked
 	/// @return                 true if successful
 	function unlockQuota(address tokenOrigAddr, address storemanGroup, uint value) 
 		external
@@ -214,11 +214,11 @@ contract QuotaLedger is Halt {
 	}
 
 	/// @notice                 mint WRC token or payoff storemanGroup debt
-	/// @dev                    mint WETH token or payoff storemanGroup debt
+	/// @dev                    mint WERC20 token or payoff storemanGroup debt
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    handler address
-	/// @param recipient        address that will receive WETH token
-	/// @param value            amount of WETH token to be minted
+	/// @param recipient        address that will receive WERC20 token
+	/// @param value            amount of WERC20 token to be minted
 	/// @return                 success of token mint
 	function mintToken(address tokenOrigAddr, address storemanGroup, address recipient, uint value)
 		external
@@ -267,11 +267,11 @@ contract QuotaLedger is Halt {
 		return false;
 	}
 
-	/// @notice                 lock WETH token and initiate an outbound transaction
-	/// @dev                    lock WETH token and initiate an outbound transaction
+	/// @notice                 lock WERC20 token and initiate an outbound transaction
+	/// @dev                    lock WERC20 token and initiate an outbound transaction
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    qutbound storemanGroup handler address
-	/// @param value            amount of WETH token to be locked
+	/// @param value            amount of WERC20 token to be locked
 	/// @return                 success of token locking
 	function lockToken(address tokenOrigAddr, address storemanGroup, address initiator, uint value)
 		external
@@ -294,8 +294,8 @@ contract QuotaLedger is Halt {
 		return true;
 	}
 
-	/// @notice                 unlock WETH token
-	/// @dev                    unlock WETH token
+	/// @notice                 unlock WERC20 token
+	/// @dev                    unlock WERC20 token
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    storemanGroup handler address
 	/// @param value            amount of token to be unlocked
@@ -318,11 +318,11 @@ contract QuotaLedger is Halt {
 		return true;
 	}
 
-	/// @notice                 burn WETH token
-	/// @dev                    burn WETH token
+	/// @notice                 burn WERC20 token
+	/// @dev                    burn WERC20 token
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    crosschain transaction handler address
-	/// @param value            amount of WETH token to be burnt
+	/// @param value            amount of WERC20 token to be burnt
 	/// @return                 success of burn token
 	function burnToken(address tokenOrigAddr, address storemanGroup, uint value) 
 		external
@@ -371,12 +371,12 @@ contract QuotaLedger is Halt {
     /// @dev                    query storemanGroup detail
     /// @param  tokenOrigAddr   address of token supported
     /// @param  storemanGroup   storemanGroup to be queried
-    /// @return quota           total quota of this storemanGroup in ETH/WETH
-    /// @return inboundQuota    inbound crosschain transaction quota of this storemanGroup in ETH/WETH
-    /// @return outboundQuota   qutbound crosschain transaction quota of this storemanGroup in ETH/WETH
-    /// @return receivable      amount of WETH to be minted through this storemanGroup
-    /// @return payable         amount of WETH to be burnt through this storemanGroup
-    /// @return debt            amount of WETH been minted through this storemanGroup
+    /// @return quota           total quota of this storemanGroup in ETH/WERC20
+    /// @return inboundQuota    inbound crosschain transaction quota of this storemanGroup in ETH/WERC20
+    /// @return outboundQuota   qutbound crosschain transaction quota of this storemanGroup in ETH/WERC20
+    /// @return receivable      amount of WERC20 to be minted through this storemanGroup
+    /// @return payable         amount of WERC20 to be burnt through this storemanGroup
+    /// @return debt            amount of WERC20 been minted through this storemanGroup
     function queryStoremanGroupQuota(address tokenOrigAddr, address storemanGroup)
         public 
         view
