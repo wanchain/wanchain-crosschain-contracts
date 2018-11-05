@@ -62,7 +62,7 @@ contract StoremanGroupAdmin is Halt{
 
     struct StoremanGroup {
         uint    deposit;                  /// the storeman group deposit in wan coins
-        bytes   originalChainAddr;        /// the account for storeman group on original chain
+        address originalChainAddr;        /// the account for storeman group on original chain
         uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
         uint    txFeeRatio;               /// the fee ratio required by storeman group
         uint    bonusBlockNumber;         /// the start block number for bonus calculation for storeman group
@@ -219,7 +219,7 @@ contract StoremanGroupAdmin is Halt{
     /// @param tokenOrigAddr              token address of original chain
     /// @param originalChainAddr          the storeman group info on original chain
     /// @param txFeeRatio                 the transaction fee required by storeman group  
-    function storemanGroupRegister(address tokenOrigAddr, bytes originalChainAddr, uint txFeeRatio)
+    function storemanGroupRegister(address tokenOrigAddr, address originalChainAddr, uint txFeeRatio)
         public
         payable
         notHalted
@@ -233,12 +233,12 @@ contract StoremanGroupAdmin is Halt{
     /// @param storemanGroup              the storeman group register address  
     /// @param originalChainAddr          the storeman group info on original chain
     /// @param txFeeRatio                 the transaction fee required by storeman group  
-    function storemanGroupRegisterByDelegate(address tokenOrigAddr, address storemanGroup, bytes originalChainAddr,uint txFeeRatio)
+    function storemanGroupRegisterByDelegate(address tokenOrigAddr, address storemanGroup, address originalChainAddr,uint txFeeRatio)
         public
         payable
         notHalted
     {
-        require(storemanGroup != address(0) && originalChainAddr.length != 0 && txFeeRatio > 0);
+        require(storemanGroup != address(0) && originalChainAddr != address(0) && txFeeRatio > 0);
         require(mapStoremanGroup[tokenOrigAddr][storemanGroup].deposit == uint(0));
         
         var (,tokenWanAddr,token2WanRatio,minDeposit,,useWhiteList,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
