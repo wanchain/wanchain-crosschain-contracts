@@ -36,7 +36,7 @@ interface TokenInterface {
 }
 
 interface StoremanGroupInterface {
-    function mapStoremanGroup(address, address) public returns(uint, bytes, uint, uint, uint, address, uint);
+    function mapStoremanGroup(address, address) public returns(uint, address, uint, uint, uint, address, uint);
 }
 
 interface QuotaInterface {
