@@ -904,6 +904,67 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, storemanGroupETH, storemanGr
     })
   })
 
+  it('[StoremanGroupAdmin_smgClaimSystemBonusByDelegate] should fail to claim bonus in case invoked by no token initiator', async () => {
+    let retError 
+    try {
+      await storemanGroupAdminInstance.smgClaimSystemBonusByDelegate(delphyTokenAddr, storemanGroupWANByDelegate, {from: owner, gasPrice: "0x"+(GasPrice).toString(16)})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroupAdmin_smgClaimSystemBonusByDelegate] should succeed to enable bonus mechanism', async () => {
+    // enable delphy token bonus mechanism
+    await tokenManagerInstance.setSystemEnableBonus(delphyTokenAddr, true, testBonusPeriodBlocks)
+
+    tokenInfo = await getTokenInfo(delphyTokenAddr)
+    assert.equal(tokenInfo[8].toNumber(), testBonusPeriodBlocks)
+    assert.notEqual(tokenInfo[6].toNumber(), 0)
+    // deposit wan token for future bonus claim
+    ret = await storemanGroupAdminInstance.depositSmgBonus(delphyTokenAddr, {from: owner, value: web3.toWei(100)})
+    assert.web3Event(ret, {
+      event: 'StoremanGroupDepositBonusLogger',
+      args: {
+        tokenOrigAddr: delphyTokenAddr,
+        sender: owner,
+        wancoin: parseInt(web3.toWei(100))
+      }
+    })
+    tokenInfo = await getTokenInfo(delphyTokenAddr)
+    assert.equal(tokenInfo[7].toNumber(), parseInt(web3.toWei(100)))
+    // make sure storemanGroupWANByDelegate is a valid storemanGroup for delphy token
+    storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(delphyTokenAddr, storemanGroupWANByDelegate)
+    assert.equal(storemanGroupInfo[0].toNumber(), web3.toWei(10*regDeposit))
+    assert.equal(storemanGroupInfo[1].toString(), storemanGroupETH)
+    assert.equal(storemanGroupInfo[3].toNumber(), storemanTxFeeRatio)
+    assert.equal(storemanGroupInfo[5].toString(), sender)
+    assert.equal(storemanGroupInfo[6].toNumber(), 0)  
+  })
+
+  it('[StoremanGroupAdmin_smgClaimSystemBonusByDelegate] should succeed to claim bonus', async () => {
+    await sleep(30*1000*3)
+    let startBonusBlockNumber, endBonusBlockNumber, bonusRatio, bonus
+    ret = await storemanGroupAdminInstance.smgClaimSystemBonusByDelegate(delphyTokenAddr, storemanGroupWANByDelegate, {from: sender})
+    storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(delphyTokenAddr, storemanGroupWANByDelegate)
+    // affirm this smg has not applied unregistration
+    assert.equal(storemanGroupInfo[2].toNumber(), 0)
+    tokenInfo = await getTokenInfo(delphyTokenAddr)
+    startBonusBlockNumber = tokenInfo[6].toNumber()
+    endBonusBlockNumber = ret.receipt.blockNumber
+    bonusRatio = tokenInfo[9].toNumber()
+        // calculate bonus with given params
+    bonus = manCalBonus(startBonusBlockNumber, endBonusBlockNumber, testBonusPeriodBlocks, web3.fromWei(storemanGroupInfo[0].toNumber()), bonusRatio, DEFAULT_PRECISE)
+    assert.web3Event(ret, {
+      event: 'StoremanGroupClaimSystemBonusLogger',
+      args: {
+        tokenOrigAddr: delphyTokenAddr,
+        bonusRecipient: sender,
+        bonus: bonus
+      } 
+    })
+  })
+
   // transferDeposit
   it('[StoremanGroupAdmin_transferSmgDeposit] should fail to invoke transferDeposit in case by no owner', async () => {
    let retError
