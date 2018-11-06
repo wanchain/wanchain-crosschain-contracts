@@ -109,7 +109,7 @@ async function getTokenInfo(addr) {
 
 function manCalBonus(startBlk, endBlk, bonusPeriodInBlks, deposit, bonusRatio, precise) {
   let bonus
-  bonus = deposit*bonusRatio*(endBlk-startBlk)/bonusPeriodInBlks/precise
+  bonus = deposit*bonusRatio*parseInt((endBlk-startBlk)/bonusPeriodInBlks)/precise
   return parseInt(web3.toWei(bonus))
   // parseInt(web3.toWei(regDeposit*bonusRatio*(ret.receipt.blockNumber-startBonusBlockNumber)/testBonusPeriodBlocks/DEFAULT_PRECISE))
 }
