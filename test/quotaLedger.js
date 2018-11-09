@@ -171,7 +171,8 @@ contract('QuotaLedger_UNITs', async ([owner, HTLCWAN, storemanGroupAdmin, storem
     await quotaLedgerInstance.setHTLCWAN(HTLCWAN, {from: owner})
     assert.equal(await quotaLedgerInstance.HTLCWAN(), HTLCWAN)
 
-    await tokenManagerInstance.injectDependencies(quotaLedgerInstanceAddress, origHtlc, wanHtlc, {from: owner})
+    await tokenManagerInstance.injectDependencies(storemanGroupAdminInstanceAddress, quotaLedgerInstanceAddress, origHtlc, wanHtlc, {from: owner})
+    assert.equal(await tokenManagerInstance.storemanGroupAdmin(), storemanGroupAdminInstanceAddress)
     assert.equal(await tokenManagerInstance.quotaLedger(), quotaLedgerInstanceAddress)
     assert.equal(await tokenManagerInstance.origHtlc(), origHtlc)
     assert.equal(await tokenManagerInstance.wanHtlc(), wanHtlc)
