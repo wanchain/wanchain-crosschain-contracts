@@ -103,7 +103,7 @@ contract('TokenManager_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN
     console.log(colors.green('[INFO] storemanGroupWAN: ', storemanGroupWAN))
 
     // deploy token manager
-      tokenManagerInstance = await TokenManager.new({from: owner})
+    tokenManagerInstance = await TokenManager.new({from: owner})
     tokenManagerInstanceAddress = tokenManagerInstance.address
     console.log(colors.green('[INFO] tokenManagerInstanceAddress: ', tokenManagerInstanceAddress))
     assert.equal(await tokenManagerInstance.halted(), true)
@@ -115,11 +115,12 @@ contract('TokenManager_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN
     assert.equal(await quotaLedgerInstance.halted(), true)
 
     // set dependencies among these contracts
+    await storemanGroupAdminInstance.injectDependencies(tokenManagerInstanceAddress, quotaLedgerInstanceAddress, {from: owner})
     await quotaLedgerInstance.setTokenManager(tokenManagerInstanceAddress, {from: owner})
     assert.equal(await quotaLedgerInstance.tokenManager(), tokenManagerInstanceAddress)
 
-    await tokenManagerInstance.injectDependencies(quotaLedgerInstanceAddress, origHtlc, wanHtlc, {from: owner})
-    assert.equal(await tokenManagerInstance.quotaLedger(), quotaLedgerInstanceAddress)
+    await tokenManagerInstance.injectDependencies(storemanGroupAdminInstanceAddress, quotaLedgerInstanceAddress, origHtlc, wanHtlc, {from: owner})
+    assert.equal(await tokenManagerInstance.storemanGroupAdmin(), storemanGroupAdminInstanceAddress)
     assert.equal(await tokenManagerInstance.origHtlc(), origHtlc)
     assert.equal(await tokenManagerInstance.wanHtlc(), wanHtlc)
     console.log(colors.green('[INFO] origHtlc: ', origHtlc))
@@ -520,15 +521,35 @@ contract('TokenManager_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN
     assert.notEqual(retError, undefined)
   })
 
+  it('[TokenManager_updateTotalBonus] should fail in case invoked by no StoremanGroupAdmin', async () => {
+    let retError
+    try {
+      await tokenManagerInstance.updateTotalBonus(testTokenAddr, web3.toWei(0.01), true)
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
   it('[TokenManager_updateTotalBonus] should update total bonus correctly', async () => {
-    await tokenManagerInstance.updateTotalBonus(testTokenAddr, web3.toWei(0.01), true)
-    key = await tokenManagerInstance.mapKey(testTokenAddr)
-    tokenInfo = await tokenManagerInstance.mapTokenInfo(key)
-    assert.equal(tokenInfo[7].toNumber(), web3.toWei(0.01))
-    await tokenManagerInstance.updateTotalBonus(testTokenAddr, web3.toWei(0.01), false)
-    key = await tokenManagerInstance.mapKey(testTokenAddr)
-    tokenInfo = await tokenManagerInstance.mapTokenInfo(key)
-    assert.equal(tokenInfo[7].toNumber(), 0)
+    await tokenManagerInstance.setSystemEnableBonus(testTokenAddr, true, testBonusPeriodBlocks, {from: owner})
+
+    tokenInfo = await getTokenInfo(testTokenAddr)
+    assert.equal(tokenInfo[8].toNumber(), testBonusPeriodBlocks)
+    assert.notEqual(tokenInfo[6].toNumber(), 0)
+
+    ret = await storemanGroupAdminInstance.depositSmgBonus(testTokenAddr, {from: owner, value: web3.toWei(100)})
+    assert.web3Event(ret, {
+      event: 'StoremanGroupDepositBonusLogger',
+      args: {
+        tokenOrigAddr: testTokenAddr,
+        sender: owner,
+        wancoin: parseInt(web3.toWei(100))
+      }
+    })
+
+    tokenInfo = await getTokenInfo(testTokenAddr)
+    assert.equal(tokenInfo[7].toNumber(), parseInt(web3.toWei(100)))
   })
 })
 
