@@ -54,6 +54,8 @@ contract TokenManager is Halt {
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
 
+    /// storemanGroupAdmin instance address
+    address public storemanGroupAdmin;
     /// quotaLedger instance address
     address public quotaLedger;   
     /// htlc contract instance address of orginal blockchain chain
@@ -146,13 +148,14 @@ contract TokenManager is Halt {
     /// @param quotaLedgerAddr       quotaLedger contract instance address
     /// @param origHtlcAddr          htlc address of original blockchain
     /// @param wanHtlcAddr           htlc address of wanchain
-    function injectDependencies(address quotaLedgerAddr, address origHtlcAddr, address wanHtlcAddr)
+    function injectDependencies(address storemanGroupAdminAddr, address quotaLedgerAddr, address origHtlcAddr, address wanHtlcAddr)
         public
         onlyOwner
         isHalted
     {
-        require(quotaLedgerAddr != address(0) && origHtlcAddr != address(0) && wanHtlcAddr != address(0));
+        require(storemanGroupAdminAddr != address(0) && quotaLedgerAddr != address(0) && origHtlcAddr != address(0) && wanHtlcAddr != address(0));
 
+        storemanGroupAdmin = storemanGroupAdminAddr;
         quotaLedger = quotaLedgerAddr;
         origHtlc = origHtlcAddr;
         wanHtlc = wanHtlcAddr;
@@ -243,7 +246,6 @@ contract TokenManager is Halt {
     function setTokenEconomics(address tokenOrigAddr, uint ratio, uint delayTime, uint bonusRatio, address penaltyReceiver)    
         public
         onlyOwner
-        isHalted
     {
         require(isTokenRegistered(tokenOrigAddr));
         require(ratio > 0);
@@ -294,6 +296,7 @@ contract TokenManager is Halt {
         external
         returns (bool)
     {
+        require(msg.sender == storemanGroupAdmin);
         require(isTokenRegistered(tokenOrigAddr));
 
         TokenInfo storage tokenInfo = mapTokenInfo[mapKey[tokenOrigAddr]];
