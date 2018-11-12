@@ -36,8 +36,8 @@ contract WanToken is StandardToken, Owned {
    **
    **************************************/
 
-  bytes public name;
-  bytes public symbol;
+  string public name;
+  string public symbol;
   uint8 public decimals;
 
   /// Token manager address
@@ -91,7 +91,7 @@ contract WanToken is StandardToken, Owned {
   ///@param tokenName The token name to be used
   ///@param tokenSymbol The token symbol to be used
   ///@param tokenDecimal The token decimals to be used
-  function WanToken(address qlAddr, bytes tokenName, bytes tokenSymbol, uint8 tokenDecimal)
+  function WanToken(address qlAddr, string tokenName, string tokenSymbol, uint8 tokenDecimal)
     public
   {
       name = tokenName;

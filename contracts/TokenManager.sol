@@ -225,7 +225,7 @@ contract TokenManager is Halt {
         require(mapTokenInfo[key].tokenOrigAddr == address(0) && mapTokenInfo[key].tokenWanAddr == address(0)); 
 
         // generate an ERC20 token mirror instance
-        address tokenInst = new WanToken(quotaLedger, candidateInfo.name, candidateInfo.symbol, candidateInfo.decimals);
+        address tokenInst = new WanToken(quotaLedger, string(candidateInfo.name), string(candidateInfo.symbol), candidateInfo.decimals);
 
         // create a new record
         mapTokenInfo[key] = TokenInfo(tokenOrigAddr, tokenInst, candidateInfo.token2WanRatio, candidateInfo.minDeposit, candidateInfo.withdrawDelayTime, true, 0, 0, DEFAULT_BONUS_PERIOD_BLOCKS, DEFAULT_BONUS_RATIO_FOR_DEPOSIT);
