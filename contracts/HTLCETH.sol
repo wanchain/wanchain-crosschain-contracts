@@ -29,10 +29,7 @@ pragma solidity ^0.4.24;
 import "./HTLCBase.sol";
 
 interface ERC20Token {
-    function approve(address _spender, uint _value) public returns (bool success);
     function balanceOf(address _owner) public returns (uint balance);
-    function transfer(address _to, uint _value) public returns (bool success);
-    function transferFrom(address _from, address _to, uint _value) public returns (bool success);
 }
 
 contract HTLCETH is HTLCBase {
@@ -97,7 +94,7 @@ contract HTLCETH is HTLCBase {
         uint beforeBalance;
         uint afterBalance;
         beforeBalance = ERC20Token(tokenOrigAddr).balanceOf(destination);
-        ERC20Token(tokenOrigAddr).transfer(destination, value);
+        tokenOrigAddr.call(bytes4(keccak256("transfer(address,uint256)")), destination, value);
         afterBalance = ERC20Token(tokenOrigAddr).balanceOf(destination);
         return afterBalance == beforeBalance.add(value);
     }
@@ -110,7 +107,7 @@ contract HTLCETH is HTLCBase {
         uint beforeBalance;
         uint afterBalance;
         beforeBalance = ERC20Token(tokenOrigAddr).balanceOf(to);
-        ERC20Token(tokenOrigAddr).transferFrom(from, to, value);
+        tokenOrigAddr.call(bytes4(keccak256("transferFrom(address,address,uint256)")), from, to, value);
         afterBalance = ERC20Token(tokenOrigAddr).balanceOf(to);
         return afterBalance == beforeBalance.add(value);
     }
@@ -132,7 +129,6 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        // require(ERC20Token(tokenOrigAddr).transferFrom(msg.sender, this, value));
         require(transferFrom(tokenOrigAddr, msg.sender, this, value));
 
         addHTLCTx(tokenOrigAddr, TxDirection.Inbound, msg.sender, storemanGroup, xHash, value, true, wanAddr);
@@ -152,7 +148,6 @@ contract HTLCETH is HTLCBase {
 
         // transfer ERC20 token
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
-        // require(ERC20Token(tokenOrigAddr).transfer(info.destination, info.value));
         require(transfer(tokenOrigAddr, info.destination, info.value));
 
         emit InboundRedeemLogger(info.destination, info.source, xHash, x, tokenOrigAddr);
@@ -177,12 +172,10 @@ contract HTLCETH is HTLCBase {
         uint left = info.value.sub(fee);
         
         if (left > 0) {
-            // require(ERC20Token(tokenOrigAddr).transfer(info.source, left));
             require(transfer(tokenOrigAddr, info.source, left));
         }
 
         if (fee > 0) {
-            // require(ERC20Token(tokenOrigAddr).transfer(info.destination, fee));
             require(transfer(tokenOrigAddr, info.destination, fee));
         }
 
@@ -200,7 +193,6 @@ contract HTLCETH is HTLCBase {
         notHalted
         returns(bool) 
     {
-        // require(ERC20Token(tokenOrigAddr).transferFrom(msg.sender, this, value));
         require(transferFrom(tokenOrigAddr, msg.sender, this, value));
 
         addHTLCTx(tokenOrigAddr, TxDirection.Outbound, msg.sender, user, xHash, value, false, address(0x00));
@@ -220,7 +212,6 @@ contract HTLCETH is HTLCBase {
         
         // transfer ERC20 token
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
-        // require(ERC20Token(tokenOrigAddr).transfer(info.destination, info.value));
         require(transfer(tokenOrigAddr, info.destination, info.value));
 
         emit OutboundRedeemLogger(info.destination, info.source, xHash, x, tokenOrigAddr);
@@ -239,7 +230,6 @@ contract HTLCETH is HTLCBase {
 
         // transfer ERC20 token
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
-        // require(ERC20Token(tokenOrigAddr).transfer(info.source, info.value));
         require(transfer(tokenOrigAddr, info.source, info.value));
 
         emit OutboundRevokeLogger(info.source, xHash, tokenOrigAddr);
