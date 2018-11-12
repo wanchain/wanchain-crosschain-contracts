@@ -295,20 +295,15 @@ contract HTLCWAN is HTLCBase {
     /// @param  value           HTLC tx value
     /// @return                 needful fee
     function getOutboundFee(address tokenOrigAddr, address storemanGroup, uint value)
-        public
+        private
         returns(uint)
     {
-        bytes32 key;
-        uint defaultPrecise;
-        uint token2WanRatio;
-        uint txFeeratio;
         TokenInterface ti = TokenInterface(tokenManager);
         StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
-        defaultPrecise = ti.DEFAULT_PRECISE();
-        key = TokenInterface(tokenManager).mapKey(tokenOrigAddr);
-        (,,token2WanRatio,,,,,,,) = ti.mapTokenInfo(key);
-        (,,,txFeeratio,,,) = smgi.mapStoremanGroup(tokenOrigAddr, storemanGroup);
-        return value.mul(token2WanRatio).mul(txFeeratio).div(defaultPrecise).div(defaultPrecise);
+        var (,tokenWanAddr,token2WanRatio,,,,,,,) = ti.mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
+        var (,,,txFeeratio,,,) = smgi.mapStoremanGroup(tokenOrigAddr, storemanGroup);
+        uint temp = value.mul(token2WanRatio).mul(txFeeratio).div(ti.DEFAULT_PRECISE()).div(ti.DEFAULT_PRECISE());
+        return temp.mul(1 ether).div(10**uint(WERCProtocol(tokenWanAddr).decimals()));
     }
 
     /// @notice                 set quota ledger SC address(only owner have the right)
