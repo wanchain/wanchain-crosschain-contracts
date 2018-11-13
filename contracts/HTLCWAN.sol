@@ -51,6 +51,7 @@ interface QuotaInterface {
 interface WERCProtocol {
     function transfer(address, uint) public returns (bool);
     function transferFrom(address, address, uint) public returns (bool);
+    function decimals() public returns(uint8);
 }
 
 contract HTLCWAN is HTLCBase {
