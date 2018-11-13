@@ -276,7 +276,7 @@ contract HTLCWBTC is HTLCBase {
         payable
         returns(bool)
     {
-        require(!isContract(msg.sender));
+        require(tx.origin == msg.sender);
 
         // check withdraw fee
         uint fee = getWbtc2BtcFee(storeman, value);
@@ -393,23 +393,6 @@ contract HTLCWBTC is HTLCBase {
         SmgAdminInterface smga = SmgAdminInterface(storemanGroupAdmin);
         var (,,,txFeeratio,,,) = smga.mapCoinSmgInfo(BTC_INDEX, storeman);
         return value.mul(coin2WanRatio).mul(txFeeratio).div(defaultPrecise).div(defaultPrecise);
-    }
-
-    /// @notice      internal function to determine if an address is a contract
-    /// @param  addr the address being queried
-    /// @return      true if `addr` is a contract
-    function isContract(address addr)
-        internal
-        view
-        returns(bool)
-    {
-        uint size;
-        if (addr == 0) return false;
-        assembly {
-            size := extcodesize(addr)
-        }
-
-        return size > 0;
     }
 
 }
