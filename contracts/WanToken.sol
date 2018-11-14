@@ -66,8 +66,8 @@ contract WanToken is StandardToken, Owned {
   /// @notice Logger for token mint
   /// @dev Logger for token mint
   /// @param account Whom these token will be minted to
-  /// @param value Amount of ERC/WERC to be minted
-  /// @param totalSupply Total amount of WERC after token mint
+  /// @param value Amount of ETH/WETH to be minted
+  /// @param totalSupply Total amount of WETH after token mint
   event TokenMintedLogger(
     address indexed account, 
     uint indexed value,
@@ -77,8 +77,8 @@ contract WanToken is StandardToken, Owned {
   /// @notice Logger for token burn
   /// @dev Logger for token burn
   /// @param account Initiator address
-  /// @param value Amount of WERC to be burnt
-  /// @param totalSupply Total amount of WERC after token burn
+  /// @param value Amount of WETH to be burnt
+  /// @param totalSupply Total amount of WETH after token burn
   event TokenBurntLogger(
     address indexed account,
     uint indexed value, 
