@@ -337,7 +337,7 @@ contract StoremanGroupAdmin is Halt{
         uint restBalance = smg.deposit;
 
         if (smg.punishPercent > 0) {
-            // transfer penalty to penalty receiver of the token
+            // transfer penalty to the penaltyReceiver of corresponding ERC20 token
             restBalance = restBalance.sub(restBalance.mul(smg.punishPercent).div(100));
             address penaltyReceiver = TokenInterface(tokenManager).mapPenaltyReceiver(tokenOrigAddr);
             require(penaltyReceiver != address(0));
@@ -384,8 +384,10 @@ contract StoremanGroupAdmin is Halt{
     {
         // make sure the address who registered this smg initiated this transaction
         require(mapStoremanGroup[tokenOrigAddr][storemanGroup].initiator == msg.sender); 
+        
         StoremanGroup storage smg = mapStoremanGroup[tokenOrigAddr][storemanGroup];
         require(smg.bonusBlockNumber != 0 && smg.unregisterApplyTime == 0); 
+        
         doClaimSystemBonus(tokenOrigAddr, storemanGroup);
     }
 
@@ -435,7 +437,6 @@ contract StoremanGroupAdmin is Halt{
         public
         onlyOwner
     {
-
         if (isTransferAll && halted) {
             owner.transfer(address(this).balance);
         } else {
