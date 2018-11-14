@@ -151,8 +151,8 @@ contract QuotaLedger is Halt {
 		return true;
 	}
 
-	/// @notice                 frozen WRC token quota
-  	/// @dev                    frozen WRC token quota
+	/// @notice                 frozen WERC token quota
+  	/// @dev                    frozen WERC token quota
   	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    handler address 
 	/// @param recipient        recipient's address, and it could be a storemanGroup applied unregistration
@@ -213,7 +213,7 @@ contract QuotaLedger is Halt {
 		return true;
 	}
 
-	/// @notice                 mint WRC token or payoff storemanGroup debt
+	/// @notice                 mint WERC token or payoff storemanGroup debt
 	/// @dev                    mint WERC20 token or payoff storemanGroup debt
 	/// @param tokenOrigAddr    address of token supported
 	/// @param storemanGroup    handler address
@@ -252,16 +252,16 @@ contract QuotaLedger is Halt {
 			return true;
 		  
 		} else if (mapUnregistration[tokenOrigAddr][recipient]) {
-			/// Branch - storemanGroup unregistration
-			StoremanGroupQuota storage _r = mapQuota[tokenOrigAddr][recipient];
-			/// Adjust the unregistering smg debt
-			if (value >= _r._debt) {
-				_r._debt = 0;
-		  	} else {
-		    	_r._debt = _r._debt.sub(value);
-		  	}
+		  /// Branch - storemanGroup unregistration
+		  StoremanGroupQuota storage _r = mapQuota[tokenOrigAddr][recipient];
+		  /// Adjust the unregistering smg debt
+		  if (value >= _r._debt) {
+		    _r._debt = 0;
+		  } else {
+		    _r._debt = _r._debt.sub(value);
+		  }
 
-		  	return true;
+		  return true;
 		}
 
 		return false;
@@ -408,7 +408,7 @@ contract QuotaLedger is Halt {
         return quotaInfo._receivable == uint(0) && quotaInfo._payable == uint(0) && quotaInfo._debt == uint(0);
     }
 
-        /// @notice function for destroy contract
+    /// @notice function for destroy contract
     function kill() 
         public
         isHalted
