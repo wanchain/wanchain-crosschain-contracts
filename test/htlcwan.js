@@ -6,6 +6,10 @@ const StoremanGroupAdmin = artifacts.require('./StoremanGroupAdmin.sol')
 const TokenManager = artifacts.require('./TokenManager.sol')
 const QuotaLedger = artifacts.require('./QuotaLedger.sol')
 const HTLCWAN = artifacts.require('./HTLCWAN.sol')
+const StoremanGroupAdminABI = artifacts.require('./StoremanGroupAdmin.sol').abi
+const TokenManagerABI = artifacts.require('./TokenManager.sol').abi
+const QuotaLedgerABI = artifacts.require('./QuotaLedger.sol').abi
+const HTLCWANABI = artifacts.require('./HTLCWAN.sol').abi
 const WanTokenABI = artifacts.require('./WanToken.sol').abi
 const WanToken = web3.eth.contract(WanTokenABI)
 
@@ -69,13 +73,13 @@ const x6 = '0x0000000000000000000000000000000000000000000000000000000000000006'
 const xHash6 = '0xf652222313e28459528d920b65115c16c04f3efc82aaedc97be59f3f377c0d3f'
 
 const x7 = '0x0000000000000000000000000000000000000000000000000000000000000007'
-const xHash7 = '0xf652222313e28459528d920b65115c16c04f3efc82aaedc97be59f3f377c0d3f'
+const xHash7 = '0xa66cc928b5edb82af9bd49922954155ab7b0942694bea4ce44661d9a8736c688'
 
 const x8 = '0x0000000000000000000000000000000000000000000000000000000000000008'
-const xHash8 = '0xf652222313e28459528d920b65115c16c04f3efc82aaedc97be59f3f377c0d3f'
+const xHash8 = '0xf3f7a9fe364faab93b216da50a3214154f22a0a2b415b23a84c8169e8b636ee3'
 
 const x9 = '0x0000000000000000000000000000000000000000000000000000000000000009'
-const xHash9 = '0xf652222313e28459528d920b65115c16c04f3efc82aaedc97be59f3f377c0d3f'
+const xHash9 = '0x6e1540171b6c0c960b71a7020d9f60077f6af931a8bbf590da0223dacf75c7af'
 
 let storemanGroupAdminInstance,
   storemanGroupAdminInstanceAddress,
@@ -90,6 +94,8 @@ let storemanGroupAdminInstance,
   tokenInfo,
   testTokenMirrorInstance,
   testTokenMirrorInstanceAddress,
+  delphyTokenMirrorInstance,
+  delphyTokenMirrorInstanceAddress,
   storemanGroupInfo,
   quota,
   quotaInfo,
@@ -101,14 +107,17 @@ let storemanGroupAdminInstance,
   blockNumber,
   penalty,
   refundFee,
-  revokeFee
+  revokeFee,
+  refundFeeDPY,
+  revokeFeeDPY
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 async function setHalt(contract, state, operator) {
-    await contract.setHalt(state, {from: operator})
+    let ret = await contract.setHalt(state, {from: operator})
+    // await sleep(10*1000)
     assert.equal(await contract.halted(), state)
 }
 
@@ -144,7 +153,6 @@ function manCalBonus(startBlk, endBlk, bonusPeriodInBlks, deposit, bonusRatio, p
   let bonus
   bonus = deposit*bonusRatio*(endBlk-startBlk)/bonusPeriodInBlks/precise
   return parseInt(web3.toWei(bonus))
-  // parseInt(web3.toWei(regDeposit*bonusRatio*(ret.receipt.blockNumber-startBonusBlockNumber)/testBonusPeriodBlocks/DEFAULT_PRECISE))
 }
 
 function manCalPenalty(deposit, rate) {
@@ -157,17 +165,30 @@ function manCalQuota(deposit, precise, ratio, decNumerator, decDenominator) {
   return quota.toNumber()
 }
 
-function manCalRefundFee(val, precise) {
+function manCalRefundFee(val, precise, decNumerator, decDenominator, ratio) {
   let x = new BigNumber(val)
-  return x.multipliedBy(storemanTxFeeRatio).multipliedBy(ratioTestToken).dividedBy(precise).dividedBy(precise)
+  let y = new BigNumber(10)
+  return x.multipliedBy(storemanTxFeeRatio).multipliedBy(ratio).multipliedBy(y.exponentiatedBy(decNumerator)).dividedBy(precise).dividedBy(precise).dividedBy(y.exponentiatedBy(decDenominator));
 }
 
 function manCalRevokeFee(base, ratio, precise) {
   return base.multipliedBy(ratio).dividedBy(precise)
 }
 
+function tokenToWei(token, decimals) {
+    let wei = web3.toBigNumber(token).times("1e" + decimals).trunc();
+    return wei.toString(10);
+}
+
+function weiToToken(tokenWei, decimals) {
+    return web3.toBigNumber(tokenWei).dividedBy('1e' + decimals).toString(10);
+}
+
+
+// const blockLimit = 7000000
+
 contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, storemanGroupWANByDelegate, storemanGroupNotWL, sender, recipient]) => {
-  before('should do all preparations', async () => {
+  it('should do all preparations', async () => {
     // unlock accounts
     // await web3.personal.unlockAccount(owner, 'wanglu', 99999)
     // await web3.personal.unlockAccount(storemanGroupETH, 'wanglu', 99999)
@@ -231,22 +252,20 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
     await HTLCWANInstance.setQuotaLedger(quotaLedgerInstanceAddress, {from: owner})
     await HTLCWANInstance.setTokenManager(tokenManagerInstanceAddress, {from: owner})
     await HTLCWANInstance.setStoremanGroupAdmin(storemanGroupAdminInstanceAddress, {from: owner})
-    await HTLCWANInstance.setLockedTime(HTLCLockedTime, {from: owner})
-    await HTLCWANInstance.setRevokeFeeRatio(HTLCRevokeFeeRatio, {from: owner})
+    // await HTLCWANInstance.setRevokeFeeRatio(HTLCRevokeFeeRatio, {from: owner})
     assert.equal(await HTLCWANInstance.quotaLedger(), quotaLedgerInstanceAddress)
     assert.equal(await HTLCWANInstance.tokenManager(), tokenManagerInstanceAddress)
     assert.equal(await HTLCWANInstance.storemanGroupAdmin(), storemanGroupAdminInstanceAddress)
     assert.equal(await HTLCWANInstance.lockedTime(), HTLCLockedTime)
-    assert.equal((await HTLCWANInstance.revokeFeeRatio()).toNumber(), HTLCRevokeFeeRatio)
+    // assert.equal((await HTLCWANInstance.revokeFeeRatio()).toNumber(), HTLCRevokeFeeRatio)
 
     await setHalt(tokenManagerInstance, false, owner)
     await setHalt(quotaLedgerInstance, false, owner)
     await setHalt(storemanGroupAdminInstance, false, owner)
     await setHalt(HTLCWANInstance, false, owner)
 
-    // register testToken and its storeman group
+    // register testToken 
     ret = await tokenManagerInstance.addCandidate(testTokenAddr, ratioTestToken, web3.toWei(100), withdrawDelayTimeUnit*100, tokenNameTest, tokenSymbolTest, decimals18, {from: owner})
-
     assert.web3Event(ret, {
       event: 'CandidateAddedLogger', 
       args: {
@@ -278,35 +297,13 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
       }
     })
 
-    // register delphyToken
-    ret = await tokenManagerInstance.addCandidate(delphyTokenAddr, ratioDelphyToken, web3.toWei(100), withdrawDelayTimeUnit*100, tokenNameDelphy, tokenSymbolDelphy, decimals8, {from: owner})
-    assert.web3Event(ret, {
-      event: 'CandidateAddedLogger', 
-      args: {
-        tokenOrigAddr: delphyTokenAddr,
-        ratio: ratioDelphyToken,
-        minDeposit: parseInt(web3.toWei(100)),
-        withdrawDelayTime: withdrawDelayTimeUnit*100,
-        name: web3.fromAscii(tokenNameDelphy),
-        symbol: web3.fromAscii(tokenSymbolDelphy),
-        decimals: decimals8
-      }
-    })
-    ret = await tokenManagerInstance.addToken(delphyTokenAddr, {from: sender})
-    // disable token registration whitelist
-    await setHalt(tokenManagerInstance, true, owner)
+    // register storeman group for test token
     ret = await tokenManagerInstance.setSmgEnableUserWhiteList(testTokenAddr, false, {from: owner})
-    ret = await tokenManagerInstance.setSmgEnableUserWhiteList(delphyTokenAddr, false, {from: owner})
-    await setHalt(tokenManagerInstance, false, owner)
     tokenInfo = await getTokenInfo(testTokenAddr)
     assert.equal(tokenInfo[5], false)
-    tokenInfo = await getTokenInfo(delphyTokenAddr)
-    assert.equal(tokenInfo[5], false)
-
-    // register storeman group for test token
-    ret = await storemanGroupAdminInstance.storemanGroupRegister(testTokenAddr, storemanGroupETH, storemanTxFeeRatio, {from: storemanGroupWAN, value: web3.toWei(regDeposit), gas: 4700000, gasPrice: "0x"+(GasPrice).toString(16)})
+    ret = await storemanGroupAdminInstance.storemanGroupRegisterByDelegate(testTokenAddr, storemanGroupWAN, storemanGroupETH, storemanTxFeeRatio, {from: owner, value: web3.toWei(regDeposit), gas: 4700000, gasPrice: "0x"+(GasPrice).toString(16)})
     quota = manCalQuota(regDeposit, DEFAULT_PRECISE, ratioTestToken, decimals18, decimals18) 
-    console.log(colors.green('[INFO] quota of 100 wan coin: ', web3.fromWei(quota)))
+    console.log(colors.green('[INFO] Test token quota of 100 wan coin: ', web3.fromWei(quota)))
     assert.web3Event(ret, {
       event: 'StoremanGroupRegistrationLogger', 
       args: {
@@ -323,8 +320,55 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
     assert.equal(storemanGroupInfo[0].toNumber(), web3.toWei(regDeposit))
     assert.equal(storemanGroupInfo[1].toString(), storemanGroupETH)
     assert.equal(storemanGroupInfo[3].toNumber(), storemanTxFeeRatio)
-    assert.equal(storemanGroupInfo[5].toString(), emptyAddress)
+    assert.equal(storemanGroupInfo[5].toString(), owner)
     assert.equal(storemanGroupInfo[6].toNumber(), 0)
+
+    // register delphyToken
+    ret = await tokenManagerInstance.addCandidate(delphyTokenAddr, ratioDelphyToken, web3.toWei(100), withdrawDelayTimeUnit*100, tokenNameDelphy, tokenSymbolDelphy, decimals8, {from: owner})
+    assert.web3Event(ret, {
+      event: 'CandidateAddedLogger', 
+      args: {
+        tokenOrigAddr: delphyTokenAddr,
+        ratio: ratioDelphyToken,
+        minDeposit: parseInt(web3.toWei(100)),
+        withdrawDelayTime: withdrawDelayTimeUnit*100,
+        name: web3.fromAscii(tokenNameDelphy),
+        symbol: web3.fromAscii(tokenSymbolDelphy),
+        decimals: decimals8
+      }
+    })
+    ret = await tokenManagerInstance.addToken(delphyTokenAddr, {from: sender})
+    ret = await tokenManagerInstance.setSmgEnableUserWhiteList(delphyTokenAddr, false, {from: owner})
+    tokenInfo = await getTokenInfo(delphyTokenAddr)
+    delphyTokenMirrorInstanceAddress = tokenInfo[1].toString()
+    delphyTokenMirrorInstance = WanToken.at(delphyTokenMirrorInstanceAddress)
+    assert.equal(tokenInfo[5], false)
+
+    // register storeman group for delphy token
+    ret = await storemanGroupAdminInstance.storemanGroupRegisterByDelegate(delphyTokenAddr, storemanGroupWAN, storemanGroupETH, storemanTxFeeRatio, {from: owner, value: web3.toWei(regDeposit), gas: 4700000, gasPrice: "0x"+(GasPrice).toString(16)})
+    quota = manCalQuota(regDeposit, DEFAULT_PRECISE, ratioDelphyToken, decimals8, decimals18) 
+    console.log(colors.green('[INFO] Delphy token quota of 100 wan coin: ', weiToToken(quota, 8)))
+    assert.web3Event(ret, {
+      event: 'StoremanGroupRegistrationLogger', 
+      args: {
+        tokenOrigAddr: delphyTokenAddr,
+        smgWanAddr: storemanGroupWAN,
+        smgOrigAddr: storemanGroupETH,
+        wanDeposit: parseInt(web3.toWei(regDeposit)),
+        quota: quota,
+        txFeeRatio: storemanTxFeeRatio
+      }
+    })
+    assert.equal(await storemanGroupAdminInstance.mapSmgWhiteList(testTokenAddr, storemanGroupWAN), false)
+    storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(delphyTokenAddr, storemanGroupWAN)
+    console.log(colors.red(storemanGroupInfo[0].toNumber()))
+    assert.equal(storemanGroupInfo[0].toNumber(), web3.toWei(regDeposit))
+    assert.equal(storemanGroupInfo[1].toString(), storemanGroupETH)
+    assert.equal(storemanGroupInfo[3].toNumber(), storemanTxFeeRatio)
+    assert.equal(storemanGroupInfo[5].toString(), owner)
+    assert.equal(storemanGroupInfo[6].toNumber(), 0)
+    quotaInfo = await getQuotaInfo(delphyTokenAddr, storemanGroupWAN) 
+    assert.equal(quotaInfo[0].toNumber(), tokenToWei(500, 8))
   })
 
   /**
@@ -483,7 +527,7 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
         assert.notEqual(retError, undefined)
     })
 
-    it('[HTLCWAN_inboundRedeem] should refund correctly', async () => {
+    it('[HTLCWAN_inboundRedeem] should refund WTEST correctly', async () => {
       // inbound lock
       ret = await HTLCWANInstance.inboundLock(testTokenAddr, xHash2, recipient, web3.toWei(transferAmount*2), {from: storemanGroupWAN})
         assert.web3Event(ret, {
@@ -522,6 +566,48 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
     assert.equal(quotaInfo[3].toNumber(), web3.toWei(1))
     assert.equal(quotaInfo[4].toNumber(), 0)
     assert.equal(quotaInfo[5].toNumber(), web3.toWei(2))
+    })
+
+    it('[HTLCWAN_inboundRedeem] should inbound refund WDPY correctly', async () => {
+      // inbound lock
+      ret = await HTLCWANInstance.inboundLock(delphyTokenAddr, xHash5, recipient, tokenToWei(200, 8), {from: storemanGroupWAN})
+        assert.web3Event(ret, {
+          event: 'InboundLockLogger',
+          args: {
+            storemanGroup: storemanGroupWAN,
+            wanAddr: recipient,
+            xHash: xHash5,
+            value: parseInt(tokenToWei(200, 8)),
+            tokenOrigAddr: delphyTokenAddr
+          }
+        })
+        quotaInfo = await getQuotaInfo(delphyTokenAddr, storemanGroupWAN) 
+        console.log(colors.red(weiToToken(quotaInfo[0].toNumber(), 8)))
+    assert.equal(quotaInfo[0].toNumber(), tokenToWei(500, 8))
+    assert.equal(quotaInfo[1].toNumber(), tokenToWei(300, 8))
+    assert.equal(quotaInfo[2].toNumber(), 0)
+    assert.equal(quotaInfo[3].toNumber(), tokenToWei(200, 8))
+    assert.equal(quotaInfo[4].toNumber(), 0)
+    assert.equal(quotaInfo[5].toNumber(), 0)
+    // inbound redeem
+    ret = await HTLCWANInstance.inboundRedeem(delphyTokenAddr, x5, {from: recipient})
+    assert.web3Event(ret, {
+      event: 'InboundRedeemLogger',
+      args: {
+        wanAddr: recipient,
+        storemanGroup: storemanGroupWAN,
+        xHash: xHash5,
+        x: x5,
+        tokenOrigAddr: delphyTokenAddr
+      }
+    })
+    quotaInfo = await getQuotaInfo(delphyTokenAddr, storemanGroupWAN) 
+    assert.equal(quotaInfo[0].toNumber(), tokenToWei(500, 8))
+    assert.equal(quotaInfo[1].toNumber(), tokenToWei(300, 8))
+    assert.equal(quotaInfo[2].toNumber(), tokenToWei(200, 8))
+    assert.equal(quotaInfo[3].toNumber(), 0)
+    assert.equal(quotaInfo[4].toNumber(), 0)
+    assert.equal(quotaInfo[5].toNumber(), tokenToWei(200, 8))
     })
 
     it('[HTLCWAN_inboundRedeem] should fail in case a duplicated refund operation', async () => {
@@ -617,7 +703,8 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
      *
      **/ 
     it('[HTLCWAN_outboundLock] should throw an exception in case Tx value less than tx fee', async () => {
-      refundFee = await manCalRefundFee(web3.toWei(transferAmount), 10000)
+      refundFee = await manCalRefundFee(web3.toWei(transferAmount), 10000, decimals18, decimals18, ratioTestToken)
+      console.log(colors.yellow('refund fee for 1 test token in wan is: ', web3.fromWei(refundFee.toNumber())))
       console.log(colors.green('revoke fee for ', web3.toWei(transferAmount), ' test token is ', refundFee.toNumber()))
       await approve(testTokenMirrorInstance, recipient, HTLCWANInstanceAddress, web3.toWei(transferAmount))
       // input value which less than revoke fee calculated
@@ -653,9 +740,10 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
         assert.notEqual(retError, undefined)
     })
 
-    it('[HTLCWAN_outboundLock] should outbound lock correctly', async () => {
+    it('[HTLCWAN_outboundLock] should outbound lock WTEST correctly', async () => {
       beforeTokenBalance = await getBalance(HTLCWANInstanceAddress, testTokenMirrorInstance)
       console.log(colors.green('before balance of htlcwan: ', beforeTokenBalance.toNumber()))
+      console.log('recipient: ', recipient)
       ret = await HTLCWANInstance.outboundLock(testTokenAddr, xHash3, storemanGroupWAN, sender, web3.toWei(transferAmount), {from: recipient, value: refundFee.toNumber()})
         assert.web3Event(ret, {
           event: 'OutboundLockLogger',
@@ -672,6 +760,30 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
         afterTokenBalance = await getBalance(HTLCWANInstanceAddress, testTokenMirrorInstance)
         console.log(colors.green('after balance of htlcwan: ', afterTokenBalance.toNumber()))
         assert.equal((beforeTokenBalance.plus(web3.toWei(transferAmount))).toNumber(), afterTokenBalance.toNumber())
+    })
+
+    it('[HTLCWAN_outboundLock] should outbound lock WDPY correctly', async () => {
+      refundFeeDPY = await manCalRefundFee(tokenToWei(1, decimals8), 10000, decimals18, decimals8, ratioDelphyToken)
+      console.log(colors.yellow('refund fee for 1 dpy in wan is: ', web3.fromWei(refundFeeDPY.toNumber())))
+      await approve(delphyTokenMirrorInstance, recipient, HTLCWANInstanceAddress, tokenToWei(1, 8))
+      beforeTokenBalance = await getBalance(HTLCWANInstanceAddress, delphyTokenMirrorInstance)
+      console.log(colors.green('before balance of htlcwan of WDPY: ', beforeTokenBalance.toNumber()))
+      ret = await HTLCWANInstance.outboundLock(delphyTokenAddr, xHash6, storemanGroupWAN, sender, tokenToWei(1, decimals8), {from: recipient, value: refundFeeDPY.toNumber()})
+        assert.web3Event(ret, {
+          event: 'OutboundLockLogger',
+          args: {
+            wanAddr: recipient,
+            storemanGroup: storemanGroupWAN,
+            xHash: xHash6,
+            value: parseInt(tokenToWei(1, decimals8)),
+            ethAddr: sender,
+            fee: refundFeeDPY.toNumber(),
+            tokenOrigAddr: delphyTokenAddr
+          }
+        })
+        afterTokenBalance = await getBalance(HTLCWANInstanceAddress, delphyTokenMirrorInstance)
+        console.log(colors.green('after balance of htlcwan: ', afterTokenBalance.toNumber()))
+        assert.equal((beforeTokenBalance.plus(tokenToWei(1, decimals8))).toNumber(), afterTokenBalance.toNumber())
     })
 
     it('[HTLCWAN_outboundLock] should reject an outbound lock with duplicated hashes', async () => {
@@ -858,7 +970,7 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
       let userActual, smgActual, beforeSMGBalance, afterSMGBalance, gasUsed, gasFee
       beforeBalance = await getBalance(recipient)
       beforeSMGBalance = await getBalance(storemanGroupWAN)
-      revokeFee = manCalRevokeFee(refundFee, HTLCRevokeFeeRatio, DEFAULT_PRECISE)
+      revokeFee = manCalRevokeFee(refundFee, (await HTLCWANInstance.revokeFeeRatio()).toNumber(), DEFAULT_PRECISE)
       ret = await HTLCWANInstance.outboundRevoke(testTokenAddr, xHash3, {from: recipient})
       afterBalance = await getBalance(recipient)
       afterSMGBalance = await getBalance(storemanGroupWAN)
@@ -874,12 +986,6 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
       })
       userActual = (beforeBalance.plus(refundFee.minus(revokeFee))).minus(gasFee)
       smgActual = beforeSMGBalance.plus(revokeFee)
-      // console.log(colors.green('revokeFee: ', revokeFee.toNumber()))
-      // console.log(colors.green('userExpected: ', afterBalance.toNumber()))
-      // console.log(colors.green('smgExpected: ', afterSMGBalance.toNumber()))
-      // console.log(colors.green('userActual: ', userActual.toNumber()))
-      // console.log(colors.green('smgActual: ', smgActual.toNumber()))
-
       assert.equal(userActual.toNumber(), afterBalance.toNumber())
       assert.equal(smgActual.toNumber(), afterSMGBalance.toNumber())
     })
@@ -916,4 +1022,62 @@ contract('HTLCWAN_UNITs', async ([owner, storemanGroupETH, storemanGroupWAN, sto
         assert.equal(ret, '0x')
     })
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
