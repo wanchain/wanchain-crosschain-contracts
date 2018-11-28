@@ -363,7 +363,7 @@ contract StoremanGroupAdmin is Halt {
        smgInfo.initiator = address(0);
 
        //send event
-       emit SmgWithdraw(msg.sender,coin,restBalance,deposit);
+       emit SmgWithdraw(smgAddr,coin,restBalance,deposit);
 
     }
 
