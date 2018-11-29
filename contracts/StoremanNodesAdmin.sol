@@ -23,7 +23,7 @@
 //
 //  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./Halt.sol";
@@ -129,6 +129,11 @@ contract StoremanNodesAdmin is Halt {
         _;
     }
 
+    modifier mpcReady() {
+        require(mpcIsReady());
+        _;
+    }
+
     /**
      * MANIPULATIONS
      */
@@ -226,7 +231,7 @@ contract StoremanNodesAdmin is Halt {
     onlyOwner
     isHalted
     {
-        isEnabledWhiteList =penable;
+        isEnabledWhiteList = penable;
     }
 
     function setSmWhiteList(address smAddr)
@@ -235,7 +240,7 @@ contract StoremanNodesAdmin is Halt {
     {
         require(isEnabledWhiteList);
         require(!smWhiteList[smAddr]);
-        require(smAddr!=address(0));
+        require(smAddr != address(0));
 
         smWhiteList[smAddr] = true;
     }
@@ -249,6 +254,42 @@ contract StoremanNodesAdmin is Halt {
         withdrawDelayTime = delayTime;
     }
 
+
+    function setMpcSmgRunningTime(  uint   pSmgStartTime,
+                                    uint   pSmgEndTime,
+                                    uint   pbounusClaimPeriod
+                                 )
+    public
+    onlyOwner
+    isHalted
+    {
+        mpcSmgStartTime = pSmgStartTime;
+        mpcSmgEndTime = pSmgEndTime;
+        bounusClaimPeriod = pbounusClaimPeriod;
+    }
+
+    function mpcIsReady()
+    public
+    returns (bool)
+    {
+        require(smgAdminAddr != address(0));
+
+        require(withdrawDelayTime > 0);
+
+        require(mpcSmgStartTime > 0);
+        require(bounusClaimPeriod > 0);
+        require(now > mpcSmgStartTime && now < mpcSmgEndTime);
+
+        require(mpcLeader != address(0));
+
+        require(smOpenCount == openNodes);
+        require(smCount == maxNodes);
+
+        require(txFeeRatio != 0);
+
+        return true;
+    }
+
     /*********************node constract calling interface*************************************************************/
     function registerNode(address smAddress,bytes32 nodekey1,bytes32 nodekey2)
     payable
@@ -256,6 +297,7 @@ contract StoremanNodesAdmin is Halt {
     {
         //require it is contract
         require(tx.origin != msg.sender);
+
         registerSmNode(smAddress,nodekey1,nodekey2,false);
     }
 
@@ -270,6 +312,9 @@ contract StoremanNodesAdmin is Halt {
     function applyUnregisterSmNode(address smAddr)
     public
     {
+        //only apply unregister after mpc smg end time
+        require(now > mpcSmgEndTime);
+
         require(smNodes[smAddr].initiator == msg.sender);
         smNodes[smAddr].unregisterApplyTime = now;
         //if there are bonus,then return bonus to sm node
@@ -281,6 +326,9 @@ contract StoremanNodesAdmin is Halt {
     function withdrawSmNodeDeposit(address smAddr)
     public
     {
+        //only withdraw deposit after mpc smg end time
+        require(now > mpcSmgEndTime);
+
         require(smNodes[smAddr].initiator == msg.sender);
         require(now > smNodes[smAddr].unregisterApplyTime + withdrawDelayTime);
         require(isDepositGotBackFromAdmin);
@@ -298,6 +346,8 @@ contract StoremanNodesAdmin is Halt {
     function claimSmNodeBonus(address smAddr)
     public
     {
+        //claim bonus only during the mpc smg running time,the bonus which is not claimed after end time will be give when node apply unregister
+        require(now > mpcSmgStartTime && now < mpcSmgEndTime);
         //the intiator has permission to clainm bonus
         require(smNodes[smAddr].initiator == msg.sender);
         require(smNodes[smAddr].unregisterApplyTime == 0);
@@ -314,21 +364,21 @@ contract StoremanNodesAdmin is Halt {
     public
     onlyMpcSinger
     {
+        //only can be set before mpc start time
+        require(now < mpcSmgStartTime);
         txFeeRatio = ptxFeeRatio;
     }
 
     function mpcRegisterToSmgAdminSc()
     public
+    mpcReady
     notHalted
-    payable
     onlyMpcSinger
+    payable
     {
 
         bool res;
         bytes4 methodId;
-
-        require(smOpenCount == openNodes);
-        require(smCount == maxNodes);
 
         if(tokenOrigAddr == address(0x0)) {
             //storemanGroupRegisterByDelegate(address tokenOrigAddr, address storemanGroup, address originalChainAddr,uint txFeeRatio)
@@ -343,17 +393,14 @@ contract StoremanNodesAdmin is Halt {
 
     }
 
-
     function mpcStoremanGroupApplyUnregister()
     public
+    mpcReady
     notHalted
     onlyMpcSinger
     {
         bool res;
         bytes4 methodId;
-
-        require(smOpenCount == openNodes);
-        require(smCount == maxNodes);
 
         //record the unregister time
         unregisterApplyTime = now;
@@ -371,14 +418,12 @@ contract StoremanNodesAdmin is Halt {
 
     function mpcStoremanGroupWithdrawDeposit()
     public
+    mpcReady
     notHalted
     onlyMpcSinger
     {
         bool res;
         bytes4 methodId;
-
-        require(smOpenCount == openNodes);
-        require(smCount == maxNodes);
 
         uint preBalance = this.balance;
 
@@ -401,14 +446,13 @@ contract StoremanNodesAdmin is Halt {
 
     function mpcStoremanGroupClaimSystemBonus()
     public
+    mpcReady
     notHalted
     onlyMpcSinger
     {
         bool res;
         bytes4 methodId;
 
-        require(smOpenCount == openNodes);
-        require(smCount == maxNodes);
         uint preBalance = this.balance;
 
         if(tokenOrigAddr == address(0x0)) {
@@ -443,8 +487,12 @@ contract StoremanNodesAdmin is Halt {
 
         require(smAddr!=address(0));
         require(msg.value > minDeposit);
+
         require(smCount <  maxNodes);
         require(smOpenCount < openNodes);
+
+        //register sm node only early than start time for store man group
+        require(now < mpcSmgStartTime);
 
         smNodesScAddr[smCount] = smAddr;
         smNodes[smAddr] = StoremanNode(nodekey1,nodekey2,msg.value,0,0,smCount,msg.sender,0,isFoundation);
@@ -469,7 +517,6 @@ contract StoremanNodesAdmin is Halt {
         }
 
     }
-
 
 }
 

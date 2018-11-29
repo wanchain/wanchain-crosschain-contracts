@@ -23,7 +23,7 @@
 //
 //  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 import "./SafeMath.sol";
 import "./Halt.sol";
@@ -53,22 +53,28 @@ contract StoremanNode is Halt {
 
     SCStatus    public      scStatus = SCStatus.Financing;
 
+    uint    public     maxOpenStake;
+
     uint    public     maxUserStake;
     uint    public     minUserStake;
+
     uint    public     maxPartnerStake;
     uint    public     minPartnerStake;
+
     uint    public     stakingPhase1StartTime;
     uint    public     stakingPhase1EndTime;
+
     uint    public     stakingPhase2StartTime;
     uint    public     stakingPhase2EndTime;
-    uint    public     partnerAddress;
+
+    address    public     partnerAddress;
 
     uint    public     userLockTime;
     uint    public     partnerLockTime;
 
 
     struct  member{
-        uint        principal;           //1 the participant's principal
+        uint        stake;           //1 the participant's stake
         uint        bonus;               //2 the bonus which is not claimed back
         uint        index;               //3 index in the address array
         uint        unregisterApplyTime; //4 the time for storeman group applied exit
@@ -83,7 +89,6 @@ contract StoremanNode is Halt {
     member public partnerInfo;
 
     /// @notice modifier for checking if contract is initialized
-    /// @param coin   coin name
     modifier initialized() {
         require(partnerAddress!=address(0x0));
         _;
@@ -102,38 +107,23 @@ contract StoremanNode is Halt {
     function () public
     notHalted
     payable
-    {
-        //need the tx sender is contract
+    {   //need the tx sender is contract
         if(tx.origin != msg.sender) {
             //the bonus and depost is send to nodesc by nodescAdmin through mpc signer
             if(msg.sender != storemanNodesAdmin) {
                 //do not accept other cocontract tranfer
                 revert();
             }
-
         } else if(msg.sender == partnerAddress) {
-
             partnerInfo = member(msg.value,0,0,0,0);
-
         }  else {
-
-            require(partnerInfo.principal > 0);//need owner to input principal in advance
-
-            if(now > stakingPhase1StartTime && now < stakingPhase1EndTime){
-                phase1Staking();
-            } else if(now > stakingPhase2StartTime && now < stakingPhase2EndTime){
-                phase2Staking();
-            } else {
-                revert();
-            }
-
+            staking();
         }// if(msg.sender == owner) {owner
 
     }
 
 
-    function initialize(
-                            address psmAdminAddr,
+    function initialize(    address psmAdminAddr,
                             bytes32 pnodesId1,
                             bytes32 pnodesId2,
                             address ppartnerAddress,
@@ -164,6 +154,7 @@ contract StoremanNode is Halt {
 
     function setBonusDivideRatio(uint ratio)
     public
+    isHalted
     onlyOwner
     {
         require(ratio > 0);
@@ -171,17 +162,18 @@ contract StoremanNode is Halt {
     }
 
 
-    function setStakingParameters(
-                                    uint    public     pminUserStake,
-                                    uint    public     pmaxUserStake,
-                                    uint    public     pminPartnerStake,
-                                    uint    public     pmaxPartnerStake,
-                                    uint    public     pstakingPhase1StartTime,
-                                    uint    public     pstakingPhase1EndTime,
-                                    uint    public     pstakingPhase2StartTime,
-                                    uint    public     pstakingPhase2EndTime,
+    function setStakingParameters(  uint  pminUserStake,
+                                    uint  pmaxUserStake,
+                                    uint  pminPartnerStake,
+                                    uint  pmaxPartnerStake,
+                                    uint  pmaxOpenStake,
+                                    uint  pstakingPhase1StartTime,
+                                    uint  pstakingPhase1EndTime,
+                                    uint  pstakingPhase2StartTime,
+                                    uint  pstakingPhase2EndTime
                                   )
     public
+    isHalted
     onlyOwner
     {
         require(pminUserStake > 0);
@@ -189,6 +181,8 @@ contract StoremanNode is Halt {
 
         require(pminPartnerStake > 0);
         require(pmaxPartnerStake > pminPartnerStake);
+
+        require(pmaxOpenStake > pmaxUserStake);
 
         require(pstakingPhase1StartTime > 0);
         require(pstakingPhase1EndTime > pstakingPhase1StartTime);
@@ -198,40 +192,49 @@ contract StoremanNode is Halt {
 
         maxUserStake = pmaxUserStake;
         minUserStake = pminUserStake;
+
         maxPartnerStake = pmaxPartnerStake;
         minPartnerStake = pminPartnerStake;
 
+        maxOpenStake = pmaxOpenStake;
+
         stakingPhase1StartTime = pstakingPhase1StartTime;
         stakingPhase1EndTime = pstakingPhase1EndTime;
+
         stakingPhase2StartTime = pstakingPhase2StartTime;
         stakingPhase2EndTime = pstakingPhase2EndTime;
     }
 
 
-    function buyShares()
+    function staking()
     public
     notHalted
     payable
     {
+        require(partnerInfo.stake > 0);//need owner to input stake in advance
 
+        if(now > stakingPhase1StartTime && now < stakingPhase1EndTime){
+            phase1Staking();
+        } else if(now > stakingPhase2StartTime && now < stakingPhase2EndTime){
+            phase2Staking();
+        } else {
+            revert();
+        }
     }
-
-    function claimBonus()
+//////////////////////////////////////////////////////////////user interface////////////////////////////////////////////
+    function claimBonusByUser()
     public
     {
         require(tx.origin == msg.sender);
-
-        //require(now > financingEndTime && now < closeTime);
-
         require(scStatus == SCStatus.Registered);
         uint bonus = 0;
 
         if(msg.sender == owner) {
-            require(partnerInfo.principal > 0);
+            require(partnerInfo.stake > 0);
             bonus = partnerInfo.bonus;
             partnerInfo.bonus = 0;
         } else {
-            require(allMembers[msg.sender].principal > 0);
+            require(allMembers[msg.sender].stake > 0);
             require(allMembers[msg.sender].unregisterApplyTime == 0);
 
             bonus = allMembers[msg.sender].bonus;
@@ -250,37 +253,33 @@ contract StoremanNode is Halt {
 
     }
 
-    function userWithDrawPrincipal()
+    function withdrawStakeByUser()
     public
     {
-        //require(now > closeTime);
         require(scStatus == SCStatus.Withdrawed);
-
-        uint principal = 0;
+        uint stake = 0;
 
         if(msg.sender == owner) {
-            require(partnerInfo.principal != 0);
-            principal = partnerInfo.principal.add(partnerInfo.bonus);
+            require(partnerInfo.stake != 0);
+            stake = partnerInfo.stake.add(partnerInfo.bonus);
         } else {
 
-            require(allMembers[msg.sender].principal != 0);
+            require(allMembers[msg.sender].stake != 0);
 
-            principal = allMembers[msg.sender].principal;
+            stake = allMembers[msg.sender].stake;
             uint idx = allMembers[msg.sender].index;
-            userTotalStake = userTotalStake.sub(principal);
+            userTotalStake = userTotalStake.sub(stake);
 
             if(allMembers[msg.sender].bonus > 0) {
-                principal = principal.add(allMembers[msg.sender].bonus);
+                stake = stake.add(allMembers[msg.sender].bonus);
                 bonusLeft = bonusLeft.sub(allMembers[msg.sender].bonus);
             }
 
             delete allMembers[msg.sender];
             delete allMemberAddress[idx];
-
-
         }
 
-        msg.sender.transfer(principal);
+        msg.sender.transfer(stake);
 
     }
 
@@ -298,7 +297,7 @@ contract StoremanNode is Halt {
         scStatus = SCStatus.Registered;
     }
 
-    function applyUnregisterSmToNodesAdmin()
+    function applyUnregisterNodeToNodesAdmin()
     public
     {
        // require(now > closeTime); //for test
@@ -309,13 +308,11 @@ contract StoremanNode is Halt {
 
         require(res);
 
-
-
         scStatus = SCStatus.ApplyUnregistered;
     }
 
     //any one can call it after contract closed
-    function withDrawSmFromNodesAdmin()
+    function withDrawNodeFromNodesAdmin()
     public
     {
        // require(now > closeTime); //for test
@@ -327,15 +324,15 @@ contract StoremanNode is Halt {
         require(res);
 
         //emit SmgClaimSystemBonus(storemanNodesAdmin,this.balance.sub(preBalance), userTotalStake);
-        require(this.balance.sub(preBalance) == userTotalStake.add(partnerInfo.principle));
+        require(this.balance.sub(preBalance) == userTotalStake.add(partnerInfo.stake));
 
         scStatus = SCStatus.Withdrawed;
     }
 
-    function claimBonusFromNodesAdmin()
+    function claimBonusNodeFromNodesAdmin()
     public
     {
-        require(allMembers[msg.sender].principal > 0);
+        require(allMembers[msg.sender].stake > 0);
         require(scStatus == SCStatus.Registered);
 
         uint preBalance = this.balance;
@@ -366,7 +363,7 @@ contract StoremanNode is Halt {
                 continue;
             }
 
-            bonusForUser = bonus.mul(DEFAULT_PRECISE).mul(DEFAULT_PRECISE.sub(feeRatio)).mul(bonusDivideRatio).mul(allMembers[allMemberAddress[i]].principal);
+            bonusForUser = bonus.mul(DEFAULT_PRECISE).mul(DEFAULT_PRECISE.sub(feeRatio)).mul(bonusDivideRatio).mul(allMembers[allMemberAddress[i]].stake);
 
             bonusForUser = bonusForUser.div(userTotalStake).div(DEFAULT_PRECISE).div(DEFAULT_PRECISE).div(DEFAULT_PRECISE);
 
@@ -385,23 +382,23 @@ contract StoremanNode is Halt {
     {
         //input is a permitted value
         require(msg.value > 0 && msg.value < maxUserStake);
-        //the user's principal need to be lower than max user stake
-        require(allMembers[msg.sender].principal < maxUserStake);
+        //the user's stake need to be lower than max user stake
+        require(allMembers[msg.sender].stake < maxUserStake);
 
-        if(allMembers[msg.sender].principal == 0) {
+        if(allMembers[msg.sender].stake == 0) {
             allMembers[msg.sender] = member(0,0,memberIdx,0,0);
             allMemberAddress.push(msg.sender);
             memberIdx++;
         }
 
-        uint allLeftQuota = maxOpenSupply.sub(userTotalStake);
+        uint allLeftQuota = maxOpenStake.sub(userTotalStake);
         uint userReturn = 0;
 
         if(allLeftQuota <= msg.value) {
 
             userReturn = msg.value.sub(allLeftQuota);
-            //allow principal of the lastest user can be over the stake limit for each user, to be a lucky one
-            allMembers[msg.sender].principal = allMembers[msg.sender].principal.add(allLeftQuota);;
+            //allow stake of the lastest user can be over the stake limit for each user, to be a lucky one
+            allMembers[msg.sender].stake = allMembers[msg.sender].stake.add(allLeftQuota);
 
             //updated userTotalStake value
             userTotalStake = userTotalStake.add(allLeftQuota);
@@ -410,18 +407,17 @@ contract StoremanNode is Halt {
 
         } else {
 
-            uint userLeftQuota = limitOfEachUser.sub(allMembers[msg.sender].principal);
+            uint userLeftQuota = maxUserStake.sub(allMembers[msg.sender].stake);
             if (userLeftQuota < msg.value ) {
 
                 userReturn = msg.value.sub(userLeftQuota);
-                allMembers[msg.sender].principal = allMembers[msg.sender].principal.add(userLeftQuota);
+                allMembers[msg.sender].stake = allMembers[msg.sender].stake.add(userLeftQuota);
                 //updated userTotalStake value
                 userTotalStake = userTotalStake.add(userLeftQuota);
-
                 msg.sender.transfer(userReturn);
 
             } else {
-                allMembers[msg.sender].principal = allMembers[msg.sender].principal.add(msg.value);
+                allMembers[msg.sender].stake = allMembers[msg.sender].stake.add(msg.value);
                 //updated userTotalStake value
                 userTotalStake = userTotalStake.add(msg.value);
             }
@@ -433,10 +429,16 @@ contract StoremanNode is Halt {
     function phase2Staking()
     private
     {
-        uint allLeftQuota = maxOpenSupply.sub(userTotalStake);
+        uint allLeftQuota = maxOpenStake.sub(userTotalStake);
         uint userReturn = 0;
         if(allLeftQuota < msg.value){
-
+            userReturn = msg.value.sub(allLeftQuota);
+            allMembers[msg.sender].stake = allMembers[msg.sender].stake.add(allLeftQuota);
+            userTotalStake = userTotalStake.add(allLeftQuota);
+            msg.sender.transfer(userReturn);
+        } else {
+            allMembers[msg.sender].stake = allMembers[msg.sender].stake.add(msg.value);
+            userTotalStake = userTotalStake.add(msg.value);
         }
     }
 
