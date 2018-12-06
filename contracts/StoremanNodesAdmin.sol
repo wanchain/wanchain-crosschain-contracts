@@ -139,10 +139,8 @@ contract StoremanNodesAdmin is Halt {
      */
     /// @notice default tranfer to contract
     function () public payable {
-         // only smg adminstrator can send ether
-        if(msg.sender != smgAdminAddr) {
-            revert();
-        }
+       // only smg adminstrator can send ether or the contract in the whitelist
+       require(msg.sender == smgAdminAddr || smWhiteList[msg.sender]);
     }
 
 
@@ -278,6 +276,7 @@ contract StoremanNodesAdmin is Halt {
 
         require(mpcSmgStartTime > 0);
         require(bounusClaimPeriod > 0);
+
         require(now > mpcSmgStartTime && now < mpcSmgEndTime);
 
         require(mpcLeader != address(0));
@@ -479,14 +478,17 @@ contract StoremanNodesAdmin is Halt {
     {
 
         require(smNodes[smAddr].deposit == 0);
+
         if(isEnabledWhiteList) {
             require(smWhiteList[smAddr]);
         }
+
         require( nodekey1 != EMPTY_BYTE32);
         require( nodekey2 != EMPTY_BYTE32);
 
         require(smAddr!=address(0));
-        require(msg.value > minDeposit);
+
+        require(msg.value >= minDeposit);
 
         require(smCount <  maxNodes);
         require(smOpenCount < openNodes);
