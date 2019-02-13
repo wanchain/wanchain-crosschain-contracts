@@ -362,11 +362,12 @@ contract StoremanGroup is Halt {
         require(_lotterNum > 0, "Invalid lotter number");  
         require(address(0) != locatedLotteryAddr, "Invalid lottery instance");
 
+        totalLotteryBonus = totalLotteryBonus.add(msg.value);
+
         bytes4 methodId = bytes4(keccak256("setSmgLotteryInfo(uint256,uint256)"));
-        bool res = locatedLotteryAddr.call(methodId, msg.value, _lotterNum);
+        bool res = locatedLotteryAddr.call(methodId, totalLotteryBonus, _lotterNum);
         require(res, "setSmgLotteryInfo failed");
 
-        totalLotteryBonus = totalLotteryBonus.add(msg.value);
         emit StoremanGroupInjectLotteryBonusLogger(msg.sender, msg.value, totalLotteryBonus, _lotterNum);
     }
 
@@ -545,6 +546,7 @@ contract StoremanGroup is Halt {
     function applySmgDebtTransfer(address _objectSmgAddr, address _tokenOrigAddr, uint256 _value)
     public
     notHalted
+    onlyOwner
     {
         require((now > runningEndTime) && (scStatus == SCStatus.Registered), "cannot unregister smg now");
 

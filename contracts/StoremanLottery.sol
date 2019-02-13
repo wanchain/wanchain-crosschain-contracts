@@ -172,5 +172,14 @@ contract StoremanLottery is Halt{
         selfdestruct(owner);
     } 
 
+    /// @notice If token coin is sent to this address, send it back.
+    /// @dev If token coin is sent to this address, send it back.
+    function () 
+    public
+    payable 
+    {
+        revert();
+    } 
+
 }
 
