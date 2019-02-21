@@ -31,13 +31,13 @@ import "./Halt.sol";
 contract StoremanGroup is Halt {
 
     using SafeMath for uint;
-    enum SCStatus {Invalid,StakingPhase,StakerElection,Lottery,Initial,Registered,Unregistered,Withdrawed,WorkDone}
+    enum SCStatus {Invalid,StakerElection,Lottery,Initial,Registered,Unregistered,Withdrawed,WorkDone}
 
     ///the minumum deposit for each depositor which is reuqired by storeman group
     uint public constant    DEFAULT_PRECISE     = 10000;
-    uint public constant    MIN_DEPOSIT         =    1000000000000000000000;
-    uint public constant    MAX_COMMISION_BASE  =    5000000000000000000000;
-    uint public constant    MAX_DEPOSIT_SUM     = 4000000000000000000000000; 
+    uint public constant    MIN_DEPOSIT         =  1000000000000000000000;
+    uint public constant    MAX_COMMISION_BASE  =  5000000000000000000000;
+    uint public constant    MAX_DEPOSIT_SUM     = 30000000000000000000000; 
 
     ///the storeman group administration contract address
     address public      storemanGroupAdmin;
@@ -159,21 +159,25 @@ contract StoremanGroup is Halt {
 
     /// @notice                           event for smg to refeem total bonus from admin
     /// @param _smgAmin                   the address of smg admin
-    /// @param _tokenOrigAddr             token origin address
+    /// @param _tokenOrigAddr             token origin 
+    /// @param _smgRegAddr                the storeman group register address  
+    /// @param _originalChainAddr         the storeman group info on original chain
     /// @param _deposit                   total deposit that smg refeem from admin 
-    event StoremanGroupApplyRegisterLogger(address indexed _smgAmin, address _tokenOrigAddr, address _originalChainAddr, uint256 _deposit, uint256 _txFeeRatio);
+    event StoremanGroupApplyRegisterLogger(address indexed _smgAmin, address indexed _tokenOrigAddr, address indexed _smgRegAddr, address _originalChainAddr, uint256 _deposit, uint256 _txFeeRatio);
 
     /// @notice                           event for smg to refeem total bonus from admin
     /// @param _smgAmin                   the address of smg
     /// @param _tokenOrigAddr             token origin address
-    event StoremanGroupApplyUnRegisterLogger(address indexed _smgAmin, address _tokenOrigAddr);
+    /// @param _smgRegAddr                storemanGroup registed address 
+    event StoremanGroupApplyUnRegisterLogger(address indexed _smgAmin, address indexed _tokenOrigAddr, address indexed _smgRegAddr);
 
     /// @notice                           event for smg to refeem  deposit from admin 
     /// @param _smgAmin                   smg address
     /// @param _tokenOrigAddr             token origin address
+    /// @param _smgRegAddr                the storeman group register address  
     /// @param _depositRevoked            deposit that smg refeem from admin by one token type
     /// @param _restDeposit               total rest deposit that still deposited in admin 
-    event StoremanGroupRefeemDepositLogger(address indexed _smgAmin, address _tokenOrigAddr, uint256 _depositRevoked, uint256 _restDeposit);
+    event StoremanGroupRefeemDepositLogger(address indexed _smgAmin, address indexed _tokenOrigAddr, address indexed _smgRegAddr, uint256 _depositRevoked, uint256 _restDeposit);
 
     /// @notice                           event for staker to refeem  assert from smg 
     /// @param _stakerAddr                the address of staker
@@ -206,26 +210,19 @@ contract StoremanGroup is Halt {
 
     /// @notice                         for setting smg admin
     /// @param _smgAdmin                smg admin address
-    function setSmgAdmin(address _smgAdmin)
+    /// @param _smgLottery              smg lottery sc address
+    /// @param _smgRegAddr              the storeman group register address
+    function InjectDependencies(address _smgAdmin,address _smgLottery,address _smgRegAddr)
     public
+    isHalted
     onlyOwner
     {
+        require((_smgAdmin != address(0)) && (_smgLottery != address(0)) && (_smgRegAddr != address(0)), "this is not valid smg admin");
         require((now < runningStartTime) || (0 == runningStartTime), "SmgAddr must be set before running start");
-        require(_smgAdmin != address(0), "this is not valid smg admin");
 
         storemanGroupAdmin = _smgAdmin;
-    }  
-
-    /// @notice                         for setting smg lottery
-    /// @param _smgLottery              smg lottery sc address
-    function setSmgLocatedLottery(address _smgLottery)
-    public
-    onlyOwner
-    {
-        require((now < runningStartTime) || (0 == runningStartTime), "SmgLottery must be set before running start");
-        require(_smgLottery != address(0), "this is not valid smg lottery address");
-
         locatedLotteryAddr = _smgLottery;
+        locatedMpcAddr = _smgRegAddr;
     }  
   
     /// @notice                         for setting start and stop time for staking phase
@@ -233,6 +230,7 @@ contract StoremanGroup is Halt {
     /// @param _stakingEndTime          staking end time 
     function setSmgStakingTime(uint256 _stakingStartTime, uint256 _stakingEndTime) 
     public 
+    isHalted
     onlyOwner
     {
         require((0 == stakingStartTime) || (now < stakingStartTime), "Cannot config staking time any more");
@@ -245,10 +243,11 @@ contract StoremanGroup is Halt {
     /// @notice                         for setting start and stop time for running phase
     /// @param _runningStartTime        smg running start time
     function setSmgRunningTime(uint256 _runningStartTime, uint256 _runningEndTime) 
-    public      
+    public
+    isHalted      
     onlyOwner
     {
-        require((0 == runningStartTime) || (now < runningStartTime), "Cannot config staking time any more");
+        require((0 != stakingEndTime) && ((0 == runningStartTime) || (now < runningStartTime)), "Cannot config staking time any more");
         require((_runningStartTime > now) && (_runningStartTime > stakingEndTime), "Invalid running start time");
         require((_runningEndTime > now) && (_runningStartTime < _runningEndTime), "Invalid running end time");
 
@@ -276,11 +275,11 @@ contract StoremanGroup is Halt {
             require(_deposit >= MIN_DEPOSIT, "Invalid deposit");
 
             mapDepositorInfo[_account].deposit = _deposit;
-            mapDepositorInfo[_account].stakerQuota = 0;
-            mapDepositorInfo[_account].stakerBonus = 0;
-            mapDepositorInfo[_account].stakerRank = 0;
-            mapDepositorInfo[_account].lotterRank = 0;
-            mapDepositorInfo[_account].lotterBonus = 0;
+            // mapDepositorInfo[_account].stakerQuota = 0;
+            // mapDepositorInfo[_account].stakerBonus = 0;
+            // mapDepositorInfo[_account].stakerRank = 0;
+            // mapDepositorInfo[_account].lotterRank = 0;
+            // mapDepositorInfo[_account].lotterBonus = 0;
             mapDepositorInfo[_account].hasRevoked = false;
             mapDepositorInfo[_account].bidTimeStamp = now;
 
@@ -337,29 +336,15 @@ contract StoremanGroup is Halt {
         }
     }
 
-    /// @notice                         to compute commision per unit
-    /// @param _commision               commision value
-    function getCommisionPerUnit(uint256 _commision)
-    private
-    onlyOwner
-    returns(uint256)
-    {
-        require(totalStakerQuota > 0, "There is no quota for smg");
-        // to confirm final bonus rule
-        uint256 commisionPerUnit = _commision.mul(DEFAULT_PRECISE).div(totalStakerQuota);
-        
-        return commisionPerUnit;
-    }
-
     /// @notice                         to inject lottery bonus 
     /// @param _lotterNum               the numbler of total lotter
     function injectLotteryBonus(uint256 _lotterNum)
     public
     payable
     notHalted
+    onlyOwner
     {
-        require(msg.value > 0, "Invalid lottery bonus");
-        require(_lotterNum > 0, "Invalid lotter number");  
+        require((msg.value > 0) && (_lotterNum > 0), "Invalid lottery info, please confirm lottery bonus");  
         require(address(0) != locatedLotteryAddr, "Invalid lottery instance");
 
         totalLotteryBonus = totalLotteryBonus.add(msg.value);
@@ -376,6 +361,7 @@ contract StoremanGroup is Halt {
     public
     payable
     notHalted
+    onlyOwner
     {
         require(msg.value > 0, "Invalid bonus");
         totalBonus = totalBonus.add(msg.value);
@@ -512,7 +498,7 @@ contract StoremanGroup is Halt {
     onlyOwner
     notHalted
     {
-        require((_tokenOrigAddr != address(0)) && (_tokenOrigAddr != address(0)), "Invalid token address");
+        require((address(0) != locatedMpcAddr) && (_tokenOrigAddr != address(0)) && (_originalChainAddr != address(0)), "Invalid token address");
         require((now > stakingEndTime) && ((now < runningEndTime) || (0 == runningEndTime)), "cannot regist smg to admin now");
         require((SCStatus.Initial == scStatus) || (SCStatus.Registered == scStatus), "the smg statu cannot support regist now");
         require(this.balance >= _deposit, "Invalid smg balance");
@@ -524,8 +510,8 @@ contract StoremanGroup is Halt {
             require(SCStatus.Invalid == mapTokenSmgStatus[_tokenOrigAddr].statu, "this token type is listed by the smg by now");
         }
 
-        bytes4 methodId = bytes4(keccak256("storemanGroupRegister(address,address,uint256)"));
-        bool res = storemanGroupAdmin.call.value(_deposit)(methodId, _tokenOrigAddr, _originalChainAddr,_txFeeRatio);
+        bytes4 methodId = bytes4(keccak256("storemanGroupRegisterByDelegate(address,address,address,uint256)"));
+        bool res = storemanGroupAdmin.call.value(_deposit)(methodId, _tokenOrigAddr,locatedMpcAddr,_originalChainAddr,_txFeeRatio);
         require(res, "storemanGroupRegister failed");
 
         depositedQuota = depositedQuota.add(_deposit);
@@ -537,7 +523,7 @@ contract StoremanGroup is Halt {
 
         scStatus = SCStatus.Registered;
 
-        emit StoremanGroupApplyRegisterLogger(storemanGroupAdmin, _tokenOrigAddr, _originalChainAddr, _deposit, _txFeeRatio);        
+        emit StoremanGroupApplyRegisterLogger(storemanGroupAdmin, _tokenOrigAddr, locatedMpcAddr, _originalChainAddr, _deposit, _txFeeRatio);        
     }
  
     /// @notice                            function for storemanGroup applying unregister (needed to confirm further)
@@ -548,6 +534,8 @@ contract StoremanGroup is Halt {
     notHalted
     onlyOwner
     {
+        require((address(0) != locatedMpcAddr)&&(address(0) != _objectSmgAddr)&&(address(0) != _tokenOrigAddr), "Invalid token original chain address");
+        require(_value > 0, "Invalid token original chain address");
         require((now > runningEndTime) && (scStatus == SCStatus.Registered), "cannot unregister smg now");
 
         emit StoremanGroupDebtTransferLogger(_objectSmgAddr, _tokenOrigAddr, locatedMpcAddr, _value);     
@@ -560,15 +548,16 @@ contract StoremanGroup is Halt {
     notHalted
     onlyOwner
     {
+        require((address(0) != locatedMpcAddr) && (address(0) != _tokenOrigAddr), "Invalid token original chain address");
         require((now > runningEndTime) && (SCStatus.Registered == mapTokenSmgStatus[_tokenOrigAddr].statu), "cannot unregister smg now");
 
-        bytes4 methodId = bytes4(keccak256("storemanGroupApplyUnregister(address)"));
-        bool res = storemanGroupAdmin.call(methodId, _tokenOrigAddr);
-        require(res, "storemanGroupApplyUnregister failed");
+        bytes4 methodId = bytes4(keccak256("smgApplyUnregisterByDelegate(address,address)"));
+        bool res = storemanGroupAdmin.call(methodId, _tokenOrigAddr, locatedMpcAddr);
+        require(res, "smgApplyUnregisterByDelegate failed");
 
         mapTokenSmgStatus[_tokenOrigAddr].statu = SCStatus.Unregistered;
 
-        emit StoremanGroupApplyUnRegisterLogger(storemanGroupAdmin, _tokenOrigAddr);     
+        emit StoremanGroupApplyUnRegisterLogger(storemanGroupAdmin, _tokenOrigAddr, locatedMpcAddr);     
     }
 
 
@@ -579,12 +568,13 @@ contract StoremanGroup is Halt {
     notHalted
     onlyOwner
     {
+        require((address(0) != locatedMpcAddr) && (address(0) != _tokenOrigAddr), "Invalid token original chain address");
         require((now > runningEndTime) && (SCStatus.Unregistered == mapTokenSmgStatus[_tokenOrigAddr].statu), "cannot withdraw smg now");
         uint preBalance = this.balance;
 
-        bytes4 methodId = bytes4(keccak256("storemanGroupWithdrawDeposit(address)"));
-        bool res = storemanGroupAdmin.call(methodId, _tokenOrigAddr);
-        require(res, "storemanGroupWithdrawDeposit failed");  
+        bytes4 methodId = bytes4(keccak256("smgWithdrawDepositByDelegate(address,address)"));
+        bool res = storemanGroupAdmin.call(methodId, _tokenOrigAddr, locatedMpcAddr);
+        require(res, "smgWithdrawDepositByDelegate failed");  
 
         uint aftBalance = this.balance;
         uint revokedDeposit = aftBalance.sub(preBalance);
@@ -599,7 +589,7 @@ contract StoremanGroup is Halt {
             scStatus = SCStatus.Withdrawed;
         }
 
-        emit StoremanGroupRefeemDepositLogger(storemanGroupAdmin, _tokenOrigAddr, revokedDeposit, depositedQuota);
+        emit StoremanGroupRefeemDepositLogger(storemanGroupAdmin, _tokenOrigAddr, locatedMpcAddr, revokedDeposit, depositedQuota);
     }
 
     /// @notice function for destroy contract

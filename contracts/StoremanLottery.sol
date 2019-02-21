@@ -74,7 +74,8 @@ contract StoremanLottery is Halt{
     /// @param _smgAddr                   the address of smg
     /// @param _rank                      the rank for lottery 
     /// @param _random                    the seeded random 
-    event LotterySeededRandomLogger(address indexed _smgAddr, uint256 _rank, uint256 _random);
+    /// @param _bonus                     the bonus for this lottery rank 
+    event LotterySeededRandomLogger(address indexed _smgAddr, uint256 _rank, uint256 _random, uint256 _bonus);
 
     /// @dev `owner` is the only address that can call a function with this
     /// modifier
@@ -93,16 +94,6 @@ contract StoremanLottery is Halt{
         storemanGroupAddr = _smgAddr;
     }
 
-    /// @notice                         to set block hash when staking end time 
-    /// @param _blockHash               the hask of block
-    function setStakingEndBlockHash(bytes32 _blockHash)
-    public
-    onlyOwner
-    {
-        require(bytes32(0) != _blockHash, "BlockHash can't be 0");
-        stakingEndBlockhash = _blockHash;
-    }
-
     /// @notice                         to set block hash when staking end time
     /// @param _bonus                   the bonus value of this lotter rank 
     /// @param _num                     the lotter number of this lotter rank 
@@ -117,10 +108,13 @@ contract StoremanLottery is Halt{
     }
 
     /// @notice                         to get random seed for lottery
-    function genLotteryRandomSeed()  
+    function genLotteryRandomSeed(bytes32 _blockHash)  
     public
     onlyOwner
     {
+        require(bytes32(0) != _blockHash, " Invalid stakingEndBlockhash");
+
+        stakingEndBlockhash = _blockHash;
         storemanRandomSeed = uint256(keccak256(abi.encodePacked(stakingEndBlockhash, msg.sender)));
         emit LotteryRandomSeedLogger(storemanGroupAddr, storemanRandomSeed);
     }
@@ -133,6 +127,7 @@ contract StoremanLottery is Halt{
     public
     onlyOwner
     {
+        require(uint256(0) != storemanRandomSeed, "storemanRandomSeed hasn't generated");
         require(0 == mapSmgLotteryBonus[_rank].lotterNum, "This lotter rank has been generated");
 
         uint restBonus;
@@ -143,8 +138,8 @@ contract StoremanLottery is Halt{
         for(uint i = 0; i < _num; i++ ){
             recoredNum = recoredNum.add(1);
 
-            uint random = uint(keccak256(abi.encodePacked(storemanRandomSeed, recoredNum, _bonus))) % totalLotterNum;
-            emit LotterySeededRandomLogger(storemanGroupAddr, _rank, random);
+            uint random = uint(keccak256(abi.encodePacked(storemanRandomSeed, recoredNum, _bonus)));
+            emit LotterySeededRandomLogger(storemanGroupAddr, _rank, random, _bonus);
 
             seededRandomArray.push(random);
             recoredBonus = recoredBonus.add(_bonus);

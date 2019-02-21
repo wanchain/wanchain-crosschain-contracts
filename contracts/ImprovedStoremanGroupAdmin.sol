@@ -76,19 +76,6 @@ contract ImprovedStoremanGroupAdmin is Halt{
         uint    punishPercent;            /// punish rate of deposit, which is an integer from 0 to 100
     }
 
-    struct TokenInfo {
-        address            tokenOrigAddr;       /// ERC20 token address on Ethereum mainnet
-        address            tokenWanAddr;        /// a wanchain address of supported ERC20 token
-        uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
-        uint               minDeposit;          /// the minimum deposit for a valid storeman group
-        uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied unregistration
-        bool               useWhiteList;        /// if the storeman group address is in white list if the storeman register is controlled
-        uint               startBonusBlk;       /// the beginning blk number for system bonus
-        uint               bonusTotal;          /// the total bonus provided from issuer
-        uint               bonusPeriodBlks;     /// the bonus period in block numbers
-        uint               bonusRatio;          /// the bonus ratio deposit*ratio/precise
-    }
-
     /**
     *
     * EVENTS
@@ -137,6 +124,13 @@ contract ImprovedStoremanGroupAdmin is Halt{
     /// @param bonus                      the bonus for storeman claim       
     event StoremanGroupClaimSystemBonusLogger(address indexed tokenOrigAddr, address indexed bonusRecipient, uint indexed bonus);
     
+	
+    /// @dev  only registed Old SmgAdmin can call this function 
+    /// modifier
+    modifier onlyRegistedOldSmgAdmin() {
+        require(true == mapRegistedOldSmgAdmin[msg.sender]);
+        _;
+    }
 
     /**
      *
@@ -455,9 +449,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
     function mapKey(address tokenOrigAddr) 
     public 
     view
+	onlyRegistedOldSmgAdmin
     returns(bytes32)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         require(tokenOrigAddr != address(0), "Invalid token Origin Address");
 
         bytes32 keyHash = TokenInterface(tokenManager).mapKey(tokenOrigAddr);
@@ -470,9 +465,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
     function mapTokenInfo(bytes32 keyHash) 
     public
     view
+	onlyRegistedOldSmgAdmin
     returns(address, address, uint, uint, uint, bool, uint, uint, uint, uint)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         require(keyHash != bytes32(0), "Invalid key hash");
 
         return TokenInterface(tokenManager).mapTokenInfo(keyHash);
@@ -483,9 +479,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
     function mapPenaltyReceiver(address tokenOrigAddr) 
     public
     view
+	onlyRegistedOldSmgAdmin
     returns(address)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         require(tokenOrigAddr != address(0), "Invalid token Origin Address");
 
         address receiver = TokenInterface(tokenManager).mapPenaltyReceiver(tokenOrigAddr);
@@ -500,9 +497,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
     /// @param isAdded                      plus if true, else do a minus operation    
     function updateTotalBonus(address tokenOrigAddr, uint bonus, bool isAdded) 
     external
+	onlyRegistedOldSmgAdmin
     returns(bool)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         require(tokenOrigAddr != address(0), "Invalid token Origin Address");
         
         bool ifUpdated = TokenInterface(tokenManager).updateTotalBonus(tokenOrigAddr, bonus, isAdded);
@@ -513,10 +511,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
     /// @notice                             agent function for oldStoremanGroupAdmin to get DEFAULT_PRECISE from TokenManager
     function DEFAULT_PRECISE() 
     public
+	onlyRegistedOldSmgAdmin
     returns(uint)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
-        
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");        
         uint defaultPrecise = TokenInterface(tokenManager).DEFAULT_PRECISE();
 
         return defaultPrecise;
@@ -527,10 +525,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
 	/// @param storemanGroup                storemanGroup address
     function applyUnregistration(address tokenOrigAddr, address storemanGroup) 
     external
+	onlyRegistedOldSmgAdmin
     returns (bool)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
-
+        // require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         bool ifSucc = QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAddr, storemanGroup);
 
         return ifSucc;
@@ -542,6 +540,7 @@ contract ImprovedStoremanGroupAdmin is Halt{
 	/// @param quota                        a storemanGroup's quota         
     function setStoremanGroupQuota(address tokenOrigAddr, address storemanGroup, uint quota) 
     external
+	onlyRegistedOldSmgAdmin
     returns (bool)
     {
         return false;
@@ -553,10 +552,10 @@ contract ImprovedStoremanGroupAdmin is Halt{
 	/// @param isNormal                     whether this unregister operation is in normal condition       
     function unregisterStoremanGroup(address tokenOrigAddr, address storemanGroup, bool isNormal) 
     external 
+	onlyRegistedOldSmgAdmin
     returns (bool)
     {
-        require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
-
+        //require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         bool ifSucc = QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAddr, storemanGroup, isNormal);
 
         return ifSucc;
