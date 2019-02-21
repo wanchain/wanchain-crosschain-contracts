@@ -189,8 +189,9 @@ contract StoremanGroup is Halt {
     /// @param _objectSmgAddr             address of storemanGroup where debt will be transfered
     /// @param _tokenOrigAddr             address of ERC20 token
     /// @param _locatedMpcAddr            address of current smg locked Mpc node
+    /// @param _xHash                     hash of random number x
     /// @param _debtValue                 debt value of which needed to transfer to _objectSmgAddr
-    event StoremanGroupDebtTransferLogger(address indexed _objectSmgAddr, address indexed _tokenOrigAddr, address indexed _locatedMpcAddr, uint256 _debtValue);
+    event StoremanGroupDebtTransferLogger(address indexed _objectSmgAddr, address indexed _tokenOrigAddr, address indexed _locatedMpcAddr, bytes32 _xHash, uint256 _debtValue);
     
 
     /**
@@ -528,17 +529,19 @@ contract StoremanGroup is Halt {
  
     /// @notice                            function for storemanGroup applying unregister (needed to confirm further)
     /// @param _objectSmgAddr              address of smg which used to accept debt
+    /// @param _tokenOrigAddr              address of token on original chain 
+    /// @param _xHash                      hash of random number x
     /// @param _value                      debt value that needed to transfer  
-    function applySmgDebtTransfer(address _objectSmgAddr, address _tokenOrigAddr, uint256 _value)
+    function applySmgDebtTransfer(address _objectSmgAddr, address _tokenOrigAddr, bytes32 _xHash, uint256 _value)
     public
     notHalted
     onlyOwner
     {
-        require((address(0) != locatedMpcAddr)&&(address(0) != _objectSmgAddr)&&(address(0) != _tokenOrigAddr), "Invalid token original chain address");
-        require(_value > 0, "Invalid token original chain address");
-        require((now > runningEndTime) && (scStatus == SCStatus.Registered), "cannot unregister smg now");
+        require((address(0) != locatedMpcAddr) && (address(0) != _objectSmgAddr) && (address(0) != _tokenOrigAddr), "Invalid address value!");
+        require((_value > 0) && (bytes32(0) != _xHash), "Invalid hash(X) or debt value, please check again!");
+        require((now > runningEndTime) && (scStatus == SCStatus.Registered), "Do not transfer smg's debt right now");
 
-        emit StoremanGroupDebtTransferLogger(_objectSmgAddr, _tokenOrigAddr, locatedMpcAddr, _value);     
+        emit StoremanGroupDebtTransferLogger(_objectSmgAddr, _tokenOrigAddr, locatedMpcAddr, _xHash, _value);     
     }
 
     /// @notice                            function for storemanGroup applying unregister
