@@ -68,14 +68,13 @@ const minSmgStakingDeposit = 1000
 
 let SCStatus = {
   Invalid : 0,
-  StakingPhase: 1,
-  StakerElection: 2,
-  Lottery: 3,
-  Initial: 4,
-  Registered: 5,
-  Unregistered: 6,
-  Withdrawed: 7,
-  WorkDone: 8
+  StakerElection: 1,
+  Lottery: 2,
+  Initial: 3,
+  Registered: 4,
+  Unregistered: 5,
+  Withdrawed: 6,
+  WorkDone: 7
 }
 
 let storemanGroupAdminInstance,
@@ -268,11 +267,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.equal((await instance.decimals()).toNumber(), decimals18)
     console.log(colors.green('[INFO] testTokenAddr TestTokenMirrorAddress: ', testTokenMirrorInstanceAddress))
 
-    ret = await storemanGroupAdminInstance.setSmgWhiteList(testTokenAddr, storemanGroupInstanceAddress, {from: owner})
+    ret = await storemanGroupAdminInstance.setSmgWhiteList(testTokenAddr, smgWAN, {from: owner})
     assert.web3Event(ret, {
         event: 'SmgEnableWhiteListLogger', 
         args: {
-          smgWanAddr: storemanGroupInstanceAddress,
+          smgWanAddr: smgWAN,
           tokenOrigAddr: testTokenAddr
         }
     })
@@ -298,11 +297,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.equal((await instance.decimals()).toNumber(), decimals8)
     console.log(colors.green('[INFO] delphyTokenAddr TestTokenMirrorAddress: ', testTokenMirrorInstanceAddress))
 
-    ret = await storemanGroupAdminInstance.setSmgWhiteList(delphyTokenAddr, storemanGroupInstanceAddress, {from: owner})
+    ret = await storemanGroupAdminInstance.setSmgWhiteList(delphyTokenAddr, smgWAN, {from: owner})
     assert.web3Event(ret, {
         event: 'SmgEnableWhiteListLogger', 
         args: {
-          smgWanAddr: storemanGroupInstanceAddress,
+          smgWanAddr: smgWAN,
           tokenOrigAddr: delphyTokenAddr
         }
     })
@@ -328,11 +327,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.equal((await instance.decimals()).toNumber(), decimals6)
     console.log(colors.green('[INFO] augurTokenAddr TestTokenMirrorAddress: ', testTokenMirrorInstanceAddress))
 
-    ret = await storemanGroupAdminInstance.setSmgWhiteList(augurTokenAddr, storemanGroupInstanceAddress, {from: owner})
+    ret = await storemanGroupAdminInstance.setSmgWhiteList(augurTokenAddr, smgWAN, {from: owner})
     assert.web3Event(ret, {
         event: 'SmgEnableWhiteListLogger', 
         args: {
-          smgWanAddr: storemanGroupInstanceAddress,
+          smgWanAddr: smgWAN,
           tokenOrigAddr: augurTokenAddr
         }
     })
@@ -343,15 +342,16 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
   })
 
 
+  //
   ///////////////////////////////////////////////////////////////
   // part 3: to do the storemanGroup interface unit testing    //
   ///////////////////////////////////////////////////////////////
-  //StoremanGroup_setSmgAdmin: to inject deposit during staking
-  it('[StoremanGroup_setSmgAdmin] should fail in case of non-halted', async () => {
+  //StoremanGroup_setSmgAdmin: to inject deposit during staking (storemanGroupAdminInstanceAddress,storemanLotteryInstance,smgWAN)
+  it('[StoremanGroup_InjectDependencies] should fail in case of noHalt status ', async () => {
     let retError
 
     try {
-      await storemanGroupInstance.setSmgAdmin(storemanGroupAdminInstanceAddress,{from: sender})
+      await storemanGroupInstance.InjectDependencies(storemanGroupAdminInstanceAddress,storemanLotteryInstanceAddress,smgWAN,{from: owner})
     } catch (e) {
       retError = e
     }
@@ -359,11 +359,13 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.notEqual(retError, undefined)
   })
 
-  it('[StoremanGroup_setSmgAdmin] should fail in case of non-owner', async () => {
+  it('[StoremanGroup_InjectDependencies] should fail in case of invalid admin address', async () => {
     let retError
 
+    await setHalt(storemanGroupInstance, true, owner)
+
     try {
-      await storemanGroupInstance.setSmgAdmin(storemanGroupAdminInstanceAddress,{from: sender})
+      await storemanGroupInstance.InjectDependencies(emptyAddress,storemanLotteryInstanceAddress,smgWAN,{from: owner})
     } catch (e) {
       retError = e
     }
@@ -371,11 +373,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.notEqual(retError, undefined)
   })
 
-  it('[StoremanGroup_setSmgAdmin] should fail in case of invalid admin address', async () => {
+  it('[StoremanGroup_InjectDependencies] should fail in case of invalid lottery address', async () => {
     let retError
 
     try {
-      await storemanGroupInstance.setSmgAdmin(emptyAddress,{from: owner})
+      await storemanGroupInstance.InjectDependencies(storemanGroupAdminInstanceAddress,emptyAddress,smgWAN,{from: owner})
     } catch (e) {
       retError = e
     }
@@ -383,47 +385,67 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.notEqual(retError, undefined)
   })
 
-  it('[StoremanGroup_setSmgAdmin] should succeed in case of valid admin address by owner', async () => {  
+  it('[StoremanGroup_InjectDependencies] should fail in case of invalid mpc address', async () => {
+    let retError
+
+    try {
+      await storemanGroupInstance.InjectDependencies(storemanGroupAdminInstanceAddress,storemanLotteryInstanceAddress,emptyAddress,{from: owner})
+    } catch (e) {
+      retError = e
+    }
+
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_InjectDependencies] should fail in case of non-owner ', async () => {
+    let retError
+
+    try {
+      await storemanGroupInstance.InjectDependencies(storemanGroupAdminInstanceAddress,storemanLotteryInstanceAddress,smgWAN,{from: sender})
+    } catch (e) {
+      retError = e
+    }
+
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_InjectDependencies] should succeed in case of valid admin address by owner', async () => {  
     
-    await storemanGroupInstance.setSmgAdmin(storemanGroupAdminInstanceAddress, {from: owner})
+    await storemanGroupInstance.InjectDependencies(storemanGroupAdminInstanceAddress,storemanLotteryInstanceAddress,smgWAN,{from: owner})
     assert.equal(await storemanGroupInstance.storemanGroupAdmin(), storemanGroupAdminInstanceAddress)
-  })
-
-  // StoremanGroup_setSmgLocatedLottery: to inject deposit during staking
-  it('[StoremanGroup_setSmgLocatedLottery] should fail in case of non-owner', async () => {
-    let retError
-
-    try {
-      await storemanGroupInstance.setSmgLocatedLottery(storemanLotteryInstanceAddress,{from: sender})
-    } catch (e) {
-      retError = e
-    }
-
-    assert.notEqual(retError, undefined)
-  })
-
-  it('[StoremanGroup_setSmgLocatedLottery] should fail in case of invalid admin address', async () => {
-    let retError
-
-    try {
-      await storemanGroupInstance.setSmgLocatedLottery(emptyAddress,{from: owner})
-    } catch (e) {
-      retError = e
-    }
-
-    assert.notEqual(retError, undefined)
-  })
-
-  it('[StoremanGroup_setSmgLocatedLottery] should succeed in case of valid admin address by owner', async () => {  
-    
-    await storemanGroupInstance.setSmgLocatedLottery(storemanLotteryInstanceAddress, {from: owner})    
     assert.equal(await storemanGroupInstance.locatedLotteryAddr(), storemanLotteryInstanceAddress)
+    assert.equal(await storemanGroupInstance.locatedMpcAddr(), smgWAN)
+
+    await setHalt(storemanGroupInstance, false, owner)
+
   })
 
   // StoremanGroup_setSmgStakingTime: to inject deposit during staking
+  it('[StoremanGroup_setSmgStakingTime] should succeed in case of not halt', async () => {
+    let now = (Date.now() - Date.now()%1000)/1000;
+    let retError
+
+    try{
+      await storemanGroupInstance.setSmgStakingTime(now + SMG_NAP_TIME, now + SMG_NAP_TIME + STAKING_DURING_TIME, {from: owner})   
+    }catch(e){
+      retError = e
+    }
+
+    assert.notEqual(retError, undefined)
+    await setHalt(storemanGroupInstance, true, owner)
+
+  })
+
   it('[StoremanGroup_setSmgStakingTime] should fail in case of non-owner', async () => {
     let retError
     let now = (Date.now() - Date.now()%1000)/1000;
+
+    let utc_start = Date.UTC(2019,3,15,0,0,0,0)/1000  // the unit of utc time is 'ms', needed to transfer to 's'
+    let utc_end = Date.UTC(2019,3,31,23,59,0,0)/1000
+
+    console.log(colors.green('[INFO] StoremanGroup_setSmgStakingTime current time: ', now))
+    console.log(colors.green('[INFO] StoremanGroup_setSmgStakingTime utc_start: ', utc_start))
+    console.log(colors.green('[INFO] StoremanGroup_setSmgStakingTime utc_end: ', utc_end))
 
     try {
       await storemanGroupInstance.setSmgStakingTime(now, now + STAKING_DURING_TIME, {from: sender})
@@ -453,6 +475,9 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
 
     assert.equal(await storemanGroupInstance.stakingStartTime(), now + SMG_NAP_TIME) 
     assert.equal(await storemanGroupInstance.stakingEndTime(), now + SMG_NAP_TIME + STAKING_DURING_TIME)
+
+
+    await setHalt(storemanGroupInstance, false, owner)
   })
 
   /////////////////////////////////////////
@@ -656,7 +681,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
 
   it('[StoremanGroup_injectLotteryBonus] should succeed to inject lottery bonus', async () => {
 
-    ret = await storemanGroupInstance.injectLotteryBonus(lotteryNum, {from: sender, value: web3.toWei(lotteryBonus), gas: 500000})
+    ret = await storemanGroupInstance.injectLotteryBonus(lotteryNum, {from: owner, value: web3.toWei(lotteryBonus), gas: 500000})
     // assert.web3Event(ret, {
     //   event: 'StoremanGroupInjectLotteryBonusLogger',
     //   args: {
@@ -910,6 +935,22 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
   //   register StoremanGroup tests      //
   /////////////////////////////////////////
   // StoremanGroup_setSmgRunningTime: to set smg running time 
+
+    
+  it('[StoremanGroup_setSmgRunningTime] should fail in case of not halt ', async () => {
+    let retError
+    let now = (Date.now() - Date.now()%1000)/1000;
+
+    try {      
+      await storemanGroupInstance.setSmgRunningTime(now + SMG_NAP_TIME, now + SMG_NAP_TIME + RUNNING_DURING_TIME,{from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+
+    await setHalt(storemanGroupInstance, true, owner)
+  })
+
   it('[StoremanGroup_setSmgRunningTime] should fail in case of non-owner', async () => {
     let retError
     let now = (Date.now() - Date.now()%1000)/1000;
@@ -950,9 +991,31 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.equal(startTime, now + SMG_NAP_TIME)
     assert.equal(endTime, now + SMG_NAP_TIME + RUNNING_DURING_TIME)
 
+    await setHalt(storemanGroupInstance, false, owner)
+
   })
 
   // StoremanGroup_applyRegisterSmgToAdmin: to register smg to admin 
+  it('[StoremanGroup_applyRegisterSmgToAdmin] should fail in case provided _originalChainAddr address is invalid', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applyRegisterSmgToAdmin(testTokenAddr, 0, storemanTxFeeRatio, web3.toWei(regDeposit), {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applyRegisterSmgToAdmin] should fail in case provided _tokenOrigAddr address is invalid', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applyRegisterSmgToAdmin(0, smgETH, storemanTxFeeRatio, web3.toWei(regDeposit), {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
   it('[StoremanGroup_applyRegisterSmgToAdmin] should fail in case provided token not been supported', async () => {
     let retError
     try {
@@ -1015,6 +1078,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
         args: {
           _smgAmin: storemanGroupAdminInstanceAddress,
           _tokenOrigAddr: tokenAddr,
+          _smgRegAddr: smgWAN,
           _originalChainAddr: smgETH,
           _deposit: parseInt(web3.toWei(regDeposit)),
           _txFeeRatio: storemanTxFeeRatio
@@ -1022,11 +1086,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
       })
 
       console.log(colors.green('[INFO] tokenArray address: ', tokenAddr))
-      storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, storemanGroupInstanceAddress)
+      storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, smgWAN)
       assert.equal(storemanGroupInfo[0].toNumber(), web3.toWei(regDeposit))
       assert.equal(storemanGroupInfo[1].toString(), smgETH)
       assert.equal(storemanGroupInfo[3].toNumber(), storemanTxFeeRatio)
-      assert.equal(storemanGroupInfo[5].toString(), emptyAddress)
+      assert.equal(storemanGroupInfo[5].toString(), storemanGroupInstanceAddress)
       assert.equal(storemanGroupInfo[6].toNumber(), 0)
 
       // to check the smg token status
@@ -1062,11 +1126,11 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
 
   it('[StoremanGroup_injectSmgBonus] should succeed to add deposit', async () => {
 
-    ret = await storemanGroupInstance.injectSmgBonus({from: sender, value: web3.toWei(smgBonus)})
+    ret = await storemanGroupInstance.injectSmgBonus({from: owner, value: web3.toWei(smgBonus)})
     assert.web3Event(ret, {
       event: 'StoremanGroupInjectSmgBonusLogger',
       args: {
-        _foundationAddr: sender,
+        _foundationAddr: owner,
         _bonus: parseInt(web3.toWei(smgBonus)),
         _totalBonus: parseInt(web3.toWei(smgBonus)),
       }
@@ -1132,7 +1196,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
       let tokenAddr = tokenArray[i]
       assert.notEqual(tokenArray[1], emptyAddress)
       
-      let storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, storemanGroupInstanceAddress)
+      let storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, smgWAN)
 
       let smgTokenInfo = await storemanGroupInstance.mapTokenSmgStatus(tokenAddr)
       assert.equal(smgTokenInfo[1].toNumber(), SCStatus.Registered)
@@ -1143,7 +1207,8 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
         event: 'StoremanGroupApplyUnRegisterLogger',
         args: {
           _smgAmin: storemanGroupAdminInstanceAddress,
-          _tokenOrigAddr: tokenAddr
+          _tokenOrigAddr: tokenAddr,
+          _smgRegAddr: smgWAN
         }
       })
 
@@ -1151,7 +1216,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
       assert.equal(smgTokenInfo[1].toNumber(), SCStatus.Unregistered)
       console.log(colors.green('[INFO] token status after unregister: ', smgTokenInfo[1].toNumber()))
 
-      storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, storemanGroupInstanceAddress)
+      storemanGroupInfo = await storemanGroupAdminInstance.mapStoremanGroup(tokenAddr, smgWAN)
       assert.notEqual(storemanGroupInfo[2].toNumber(), 0)
     }
 
@@ -1203,13 +1268,13 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
       let tokenAddr = tokenArray[i]
       assert.notEqual(tokenArray[1], emptyAddress)
 
-      let StoremanGroupQuota = await quotaLedgerInstance.mapQuota(tokenAddr, storemanGroupInstanceAddress)
+      let StoremanGroupQuota = await quotaLedgerInstance.mapQuota(tokenAddr, smgWAN)
       console.log(colors.green('[INFO] _quota : ', StoremanGroupQuota[0].toNumber()))
       console.log(colors.green('[INFO] _receivable : ', StoremanGroupQuota[1].toNumber()))
       console.log(colors.green('[INFO] _payable : ', StoremanGroupQuota[2].toNumber()))
       console.log(colors.green('[INFO] _debt : ', StoremanGroupQuota[3].toNumber()))
 
-      let beUnregisted = await quotaLedgerInstance.mapUnregistration(tokenAddr, storemanGroupInstanceAddress)
+      let beUnregisted = await quotaLedgerInstance.mapUnregistration(tokenAddr, smgWAN)
       console.log(colors.green('[INFO] beUnregisted : ', beUnregisted))
 
       let smgTokenInfo = await storemanGroupInstance.mapTokenSmgStatus(tokenAddr)
