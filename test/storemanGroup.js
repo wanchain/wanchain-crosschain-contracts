@@ -35,6 +35,9 @@ const delphyTokenAddr = '0x6c2adc2073994fb2ccc5032cc2906fa221e9b391'
 const augurTokenAddr = '0x1985365e9f78359a9b6ad760e32412f4a445e862'
 const gnosisTokenAddr = '0x6810e776880C02933D47DB1b9fc05908e5386b96'
 
+const xHash =  '0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6'
+const debtValue = 10
+
 const storemanTxFeeRatio = 1
 const regDeposit = 100
 const GasPrice = 180000000000
@@ -1152,6 +1155,16 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
     assert.notEqual(retError, undefined)
   })
 
+  it('[StoremanGroup_applySmgDebtTransfer] should fail while running time is not over', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, smgWAN, xHash, debtValue, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
   it('[StoremanGroup_applyUnregisterSmgFromAdmin] should fail in case of token not been supported', async () => {
 
     await sleep((SMG_NAP_TIME + RUNNING_DURING_TIME) * 1000)  
@@ -1173,6 +1186,82 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
       retError = e
     }
     assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invoked not by owner', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, smgWAN, xHash, debtValue, {from: sender})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invalid address of object smg ', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(emptyAddress, testTokenAddr, smgWAN, xHash, debtValue, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invalid address of token on original chain', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, emptyAddress, smgWAN, xHash, debtValue, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invalid address of smg', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, emptyAddress, xHash, debtValue, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invalid xhash value', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, smgWAN, 0, debtValue, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should fail in case invalid debt value', async () => {
+    let retError
+    try {
+      await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, smgWAN, xHash, 0, {from: owner})
+    } catch (e) {
+      retError = e
+    }
+    assert.notEqual(retError, undefined)
+  })
+
+  it('[StoremanGroup_applySmgDebtTransfer] should succeed to transfer smg debt form smgWan to smgEth', async () => {
+   
+    ret = await storemanGroupInstance.applySmgDebtTransfer(smgETH, testTokenAddr, xHash, debtValue, {from: owner})
+    assert.web3Event(ret, {
+      event: 'StoremanGroupDebtTransferLogger',
+      args: {
+          _objectSmgAddr: smgETH,
+          _tokenOrigAddr: testTokenAddr,
+          _locatedMpcAddr: smgWAN,
+          _xHash: xHash,
+          _debtValue: debtValue
+      }
+    })
+
   })
 
   it('[StoremanGroup_withDrawSmgFromAdmin] should fail to invoke this method in case of smg which is still register status', async () => {
@@ -1225,7 +1314,6 @@ contract('StoremanGroupAdmin_UNITs', async ([owner,bid1,bid2,bid3,bid4,bid5,bid6
   /////////////////////////////////////////
   // storemanGroup Withdraw Deposit tests//
   /////////////////////////////////////////  
-
   it('[StoremanGroup_withDrawSmgFromAdmin] should fail to invoke this method in case of delay time is not over', async () => {
 
     let retError
