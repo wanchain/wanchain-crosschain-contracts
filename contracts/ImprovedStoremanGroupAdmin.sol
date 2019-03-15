@@ -546,6 +546,7 @@ contract ImprovedStoremanGroupAdmin is Halt{
         return false;
     }
     
+
 	/// @notice                             gent function for oldStoremanGroupAdmin to set storeman group's quota
 	/// @param tokenOrigAddr                token address of original chain
 	/// @param storemanGroup                storemanGroup address
@@ -558,7 +559,24 @@ contract ImprovedStoremanGroupAdmin is Halt{
         //require(mapRegistedOldSmgAdmin[msg.sender], "It is not an valid old storeman group admin object");
         bool ifSucc = QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAddr, storemanGroup, isNormal);
 
+        if(ifSucc){
+            StoremanGroup storage smg = mapStoremanGroup[tokenOrigAddr][storemanGroup];
+            smg.txFeeRatio = 0;
+        }
+
         return ifSucc;
+    }
+
+    /// @notice                            function for storeman registration, this method should be invoked by the storemanGroup himself
+    /// @param tokenOrigAddr               token address of original chain
+    /// @param storemanGroup               the storeman group address
+    /// @param txFeeRatio                  the transaction fee required by storeman group 
+    function oldStoremanGroupRegister(address tokenOrigAddr, address storemanGroup, uint256 txFeeRatio)
+    public
+    onlyOwner
+    {
+        require(tokenOrigAddr != address(0) && storemanGroup != address(0) && txFeeRatio > 0, "Invalid parameters");
+        mapStoremanGroup[tokenOrigAddr][storemanGroup] = StoremanGroup(0, 0, 0, txFeeRatio, 0, 0, 0); 
     }
 
 }  
