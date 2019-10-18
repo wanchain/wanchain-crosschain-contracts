@@ -513,8 +513,6 @@ contract HTLCInbound is HTLCBase {
          addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
          require(QuotaInterface(quotaLedger).lockQuota(tokenOrigAccount, storemanPK, value));
 
-         //emit InboundLockLogger(msg.sender, wanAddr, xHash, value, tokenOrigAccount);
-         emit InboundLockLogger(storemanPK, wanAddr, xHash, value, tokenOrigAccount);
          return true;
      }
 
@@ -525,15 +523,15 @@ contract HTLCInbound is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, address, bytes, bytes32) 
     {
         var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         bytes32 xHash= redeemHTLCTx(tokenOrigAccount, x, ha, TxDirection.Inbound);
         var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
         require(QuotaInterface(quotaLedger).mintToken(tokenOrigAccount, storemanPK, destination, value));
 
-        emit InboundRedeemLogger(destination, storemanPK, xHash, x, tokenOrigAccount);
-        return true;
+        //emit InboundRedeemLogger(destination, storemanPK, xHash, x, tokenOrigAccount);
+        return (true, destination, storemanPK, xHash);
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
@@ -545,7 +543,7 @@ contract HTLCInbound is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, bytes) 
     {
         /// bytes memory mesg=abi.encode(tokenOrigAccount, xHash);
         bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, xHash));
@@ -555,8 +553,8 @@ contract HTLCInbound is HTLCBase {
         var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
         require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAccount, storemanPK, value));
 
-        emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
-        return true;
+        //emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
+        return (true, storemanPK);
     }
 
 

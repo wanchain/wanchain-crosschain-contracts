@@ -452,7 +452,7 @@ contract HTLCOutbound is HTLCBase {
 
     /// @notice                 event of exchange original chain token with WERC20 token request
     /// @param wanAddr          address of user, where the WERC20 token come from
-    /// @param storemanGroup    address of storemanGroup, where the original chain token come from
+    /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
     /// @param userOrigAccount  account of original chain, used to receive token
@@ -531,7 +531,7 @@ contract HTLCOutbound is HTLCBase {
         }
 
         // TODO: add fee lead to stack too deep
-        emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
+        // emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
         
         return true;
     }
@@ -545,7 +545,8 @@ contract HTLCOutbound is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, address) 
+        //returns(bool) 
     {
         /// bytes memory mesg=abi.encode(tokenOrigAccount, x);
         /// bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, x));
@@ -554,7 +555,7 @@ contract HTLCOutbound is HTLCBase {
         var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         //TODO: redeem will check caller is dest of lock, but before it's storeman, now how should we check it???
         bytes32 xHash = redeemHTLCTx(tokenOrigAccount, x, ha, TxDirection.Outbound);
-        var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
+        var (,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
 
         require(QuotaInterface(quotaLedger).burnToken(tokenOrigAccount, storemanPK, value));
 
@@ -562,8 +563,9 @@ contract HTLCOutbound is HTLCBase {
         //destination.transfer(mapXHashFee[tokenOrigAccount][xHash]); 
         StoremanGroupInterface(storemanGroupAdmin).receiveFee(tokenOrigAccount, storemanPK, mapXHashFee[tokenOrigAccount][xHash]);
 
-        emit OutboundRedeemLogger(destination, source, xHash, x, tokenOrigAccount);
-        return true;
+        //emit OutboundRedeemLogger(destination, source, xHash, x, tokenOrigAccount);
+        return (true, destination );
+        //return true;
     }
 
     /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
@@ -574,20 +576,21 @@ contract HTLCOutbound is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, address, bytes) 
     {
         revokeHTLCTx(tokenOrigAccount, xHash, TxDirection.Outbound, true);
         var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
 
         require(QuotaInterface(quotaLedger).unlockToken(tokenOrigAccount, storemanPK, value));
 
-        bytes32 key;
-        key = TokenInterface(tokenManager).mapKey(tokenOrigAccount);
+        //bytes32 key;
+        //key = TokenInterface(tokenManager).mapKey(tokenOrigAccount);
         address instance;
-        (,instance,,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(key);
+        (,instance,,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         require(WERCProtocol(instance).transfer(source, value));
 
-        uint revokeFee = mapXHashFee[tokenOrigAccount][xHash].mul(revokeFeeRatio).div(RATIO_PRECISE);
+        require(transferRevoke(tokenOrigAccount, xHash, storemanPK, source));
+        /*uint revokeFee = mapXHashFee[tokenOrigAccount][xHash].mul(revokeFeeRatio).div(RATIO_PRECISE);
         uint left = mapXHashFee[tokenOrigAccount][xHash].sub(revokeFee);
 
         if (revokeFee > 0) {
@@ -597,10 +600,11 @@ contract HTLCOutbound is HTLCBase {
         
         if (left > 0) {
             source.transfer(left);
-        }
+        }*/
         
-        emit OutboundRevokeLogger(source, xHash, tokenOrigAccount);
-        return true;
+        //emit OutboundRevokeLogger(source, xHash, tokenOrigAccount);
+
+        return (true, source, storemanPK);
     }
     
     /// @notice                 getting outbound tx fee
@@ -618,6 +622,30 @@ contract HTLCOutbound is HTLCBase {
         var (,,txFeeratio,,,) = smgi.mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
         uint temp = value.mul(token2WanRatio).mul(txFeeratio).mul(1 ether);
         return temp.div(ti.DEFAULT_PRECISE()).div(ti.DEFAULT_PRECISE()).div(10**uint(WERCProtocol(tokenWanAddr).decimals()));
+    }
+
+    /// @notice                 transfer revoke 
+    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  storemanPK PK of storemanGroup
+    /// @param  src             address of source
+    /// @return                 needful fee
+    function transferRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes storemanPK, address src)
+        private
+        returns(bool)
+    {
+        uint revokeFee = mapXHashFee[tokenOrigAccount][xHash].mul(revokeFeeRatio).div(RATIO_PRECISE);
+        uint left = mapXHashFee[tokenOrigAccount][xHash].sub(revokeFee);
+
+        if (revokeFee > 0) {
+            //destination.transfer(revokeFee);
+            StoremanGroupInterface(storemanGroupAdmin).receiveFee(tokenOrigAccount, storemanPK, revokeFee);
+        }
+        
+        if (left > 0) {
+            src.transfer(left);
+        }
+
+        return true;
     }
 
     /// @notice             verify signature    
