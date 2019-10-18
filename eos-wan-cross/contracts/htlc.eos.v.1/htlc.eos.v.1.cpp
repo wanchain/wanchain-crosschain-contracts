@@ -401,7 +401,7 @@ ACTION htlc::lkdebt(eosio::name htlc, std::string r, std::string s, std::string 
 
     eosio::name storeman = eosio::name(v[hSig::lockDebtIndex::storeman]);
     eosio::asset quantity = stringToAsset(v[hSig::lockDebtIndex::quantity]);
-    std::string_view npkView = v[hSig::lockDebtIndex::npk];
+    std::string_view npkView = v[hSig::lockDebtIndex::pk];
     std::string_view xHashView = v[hSig::lockDebtIndex::xHash];
     #ifdef _DEBUG
     eosio::print("\t[lockdebt => storeman: ", storeman, ", quantity:", quantity, \
@@ -662,36 +662,39 @@ ACTION htlc::rvkdebt(eosio::name htlc, std::string r, std::string s, std::string
     return;
 }
 
-ACTION htlc::withdraw(eosio::name from, std::string pk, std::string sym, std::string r, std::string s) {
-    eosio_assert(is_account(from) and from != get_self(), hError::error::INVALID_ACCOUNT.data());
-    eosio::require_auth(from);
+ACTION htlc::withdraw(eosio::name storeman, std::string sym, std::string pk, std::string r, std::string s) {
+    eosio_assert(is_account(storeman) and storeman != get_self(), hError::error::INVALID_ACCOUNT.data());
+    eosio::require_auth(storeman);
 
     /* sha256(pk) */
     capi_checksum256 pkHash;
     std::string_view pkView = pk;
-    std::string_view fromView = from.to_string();
+    std::string_view storemanView = storeman.to_string();
     std::string_view symView = sym;
 
     htlc::pk_t pkInfo;
     eosio_assert(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_RECORD.data());
 
-    /* find fee from fees table by pk id */
-    fees fee_table(get_self(), pkInfo.id);
-    // check if xHash exists
-    if (symView.empty()) {
-        eosio_assert(fee_table.begin() != fee_table.end(), hError::error::NOT_FOUND_RECORD.data());
-    } else {
-        auto fItr = fee_table.find(eosio::symbol_code(symView).raw());
-        eosio_assert(fItr != fee_table.end(), hError::error::NOT_FOUND_RECORD.data());
-    }
-
     // make action data
     std::string actionData;
     std::string encodedActionData;
-    int32_t maxSize = fromView.size() + pkView.size() + symView.size() + hSig::withdrawIndex::total - 1;
+    int32_t maxSize = storemanView.size() + symView.size() + hSig::withdrawIndex::total - 1;
+
+    // check sym and fee
+    if (symView.empty()) {
+        --maxSize;
+        /* find fee from fees table by pk id */
+        fees fee_table(get_self(), pkInfo.id);
+        eosio_assert(fee_table.begin() != fee_table.end(), hError::error::NOT_FOUND_RECORD.data());
+    } else {
+        /* find fee from fees table by pk id */
+        fees fee_table(get_self(), pkInfo.id);
+        auto fItr = fee_table.find(eosio::symbol_code(symView).raw());
+        eosio_assert(fItr != fee_table.end(), hError::error::NOT_FOUND_RECORD.data());
+    }
     actionData.resize(maxSize);
 
-    common::join(const_cast<char *>(actionData.data()), tMemo::separator, &fromView, &pkView, &symView, &common::strEOF);
+    common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &symView, &common::strEOF);
     crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
 
     /* for debug */
@@ -733,18 +736,17 @@ ACTION htlc::wdr(eosio::name htlc, std::string r, std::string s, std::string pk,
         hError::error::INVALID_MEMO.data());
 
     eosio::name storeman = eosio::name(v[hSig::withdrawIndex::storeman]);
-    std::string_view pkView = v[hSig::withdrawIndex::pk];
     std::string_view symView;
     if (v.size() == hSig::withdrawIndex::total) {
         symView = v[hSig::withdrawIndex::sym];
     }
 
     htlc::pk_t pkInfo;
-    eosio_assert(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_RECORD.data());
+    eosio_assert(findPK(pk, &pkInfo), hError::error::NOT_FOUND_RECORD.data());
 
     #ifdef _DEBUG
     eosio::print("\t [Htlc contract => wdr running => storeman:", storeman, \
-        ", pk:", std::string({pkView.data(), pkView.data() + pkView.size()}), "]\t");
+        ", pk:", pk, "]\t");
     #endif
 
     /* eosio::action_wrapper invoke end */
@@ -950,7 +952,7 @@ ACTION htlc::inrevoke(eosio::name user, std::string xHash) {
         std::string_view wanAddrView = tItr->wanAddr;
         std::string_view pkView = pkInfo.pk;
 
-        int32_t maxSize = xHashView.size() + tItr->wanAddr.size() + pkInfo.pk.size() + hSig::revokeIndex::total - 1;
+        int32_t maxSize = hStatus::status::inrevoke.size() + xHashView.size() + wanAddrView.size() + pkView.size() + 3;
         memo.resize(maxSize);
 
         common::join(const_cast<char *>(memo.data()), tMemo::separator, \
@@ -1021,14 +1023,13 @@ ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::asset quanti
     std::string_view qView = quantity.to_string();
     std::string_view xHashView = xHash;
     std::string_view wanAddrView = wanAddr;
-    std::string_view pkView = pk;
 
-    int32_t maxSize = storemanView.size() + userView.size() + qView.size() + xHashView.size() + wanAddr.size() + pk.size() + hSig::lockIndex::total - 1;
+    int32_t maxSize = storemanView.size() + userView.size() + qView.size() + xHashView.size() + wanAddr.size() + hSig::lockIndex::total - 1;
     actionData.resize(maxSize);
 
     /* storeman:user:quantity:xHash:wanAddr:pk */
     common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &userView, \
-        &qView, &xHashView, &wanAddrView, &pkView, &common::strEOF);
+        &qView, &xHashView, &wanAddrView, &common::strEOF);
     crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
 
     /* for debug */
@@ -1073,7 +1074,6 @@ ACTION htlc::outlk(eosio::name htlc, std::string r, std::string s, std::string p
     eosio::name user = eosio::name(v[hSig::lockIndex::user]);
     std::string_view xHashView = v[hSig::lockIndex::xHash];
     std::string_view wanAddrView = v[hSig::lockIndex::wanAddr];
-    std::string_view pkView = v[hSig::lockIndex::pk];
 
     eosio_assert(is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
     eosio_assert(is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
@@ -1086,7 +1086,7 @@ ACTION htlc::outlk(eosio::name htlc, std::string r, std::string s, std::string p
         ", wanAddr:", static_cast<std::string>(wanAddrView), " ]\t");
     #endif
 
-    lockHTLCTx(user, quantity, xHashView, wanAddrView, pkView, hStatus::status::outlock, false);
+    lockHTLCTx(user, quantity, xHashView, wanAddrView, pk, hStatus::status::outlock, false);
 
     // notify user that storeman locked
     require_recipient(user);
@@ -1143,7 +1143,7 @@ ACTION htlc::outredeem(eosio::name user, std::string x) {
     // make memo
     std::string memo;
     std::string_view xView = x;
-    int32_t maxSize = hStatus::status::outredeem.size() + xView.size() + hSig::redeemIndex::total - 1;
+    int32_t maxSize = hStatus::status::outredeem.size() + xView.size() + 1;
     memo.resize(maxSize);
 
     common::join(const_cast<char *>(memo.data()), tMemo::separator, &hStatus::status::outredeem, \

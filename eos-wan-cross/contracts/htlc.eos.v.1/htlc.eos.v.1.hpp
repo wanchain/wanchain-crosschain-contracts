@@ -11,10 +11,10 @@
 #include <eosiolib/asset.hpp>
 #include <eosiolib/time.hpp>
 
-#define _DEBUG
-#define _DEBUG_LEVEL_1
-#define _DEBUG_LEVEL_2
-#define _DEBUG_LEVEL_3
+// #define _DEBUG
+// #define _DEBUG_LEVEL_1
+// #define _DEBUG_LEVEL_2
+// #define _DEBUG_LEVEL_3
 // #define USING_LISTENER
 
 namespace htlc {
@@ -183,8 +183,7 @@ namespace htlc {
             static constexpr int quantity = 2;
             static constexpr int xHash = 3;
             static constexpr int wanAddr = 4;
-            static constexpr int pk = 5;
-            static constexpr int total = 6;
+            static constexpr int total = 5;
         } lockIndex;
 
         typedef struct revokeMsgIndex {
@@ -195,9 +194,8 @@ namespace htlc {
 
         typedef struct withdrawMsgIndex {
             static constexpr int storeman = 0;
-            static constexpr int pk = 1;
-            static constexpr int sym = 2;
-            static constexpr int total = 3;
+            static constexpr int sym = 1;
+            static constexpr int total = 2;
         } withdrawIndex;
 
         typedef struct updatePkMsgIndex {
@@ -214,7 +212,7 @@ namespace htlc {
         typedef struct lockDebtMsgIndex {
             static constexpr int storeman = 0;
             static constexpr int quantity = 1;
-            static constexpr int npk = 2;
+            static constexpr int pk = 2;
             static constexpr int xHash = 3;
             static constexpr int total = 4;
         } lockDebtIndex;
@@ -487,7 +485,7 @@ namespace htlc {
 
         ACTION truncate(eosio::name table, std::string scope);
 
-        ACTION withdraw(eosio::name storeman, std::string pk, std::string sym, std::string r, std::string s);
+        ACTION withdraw(eosio::name storeman, std::string sym, std::string pk, std::string r, std::string s);
         ACTION wdr(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
 
         /* signature contract */
@@ -515,7 +513,7 @@ namespace htlc {
         ACTION kk(std::string x);
 
         #ifdef USING_LISTENER
-        /* 注册监听合约信息 */
+        /* listen TOKEN the issue contract transfer */
         TABLE listen_t {
             eosio::name                  code;
             eosio::name                  action;
