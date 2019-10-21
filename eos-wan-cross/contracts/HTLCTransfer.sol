@@ -424,7 +424,7 @@ contract HTLCBase is Halt {
     
 }
 
-contract HTLCWAN is HTLCBase {
+contract HTLCDebtTransfer is HTLCBase {
 
     /**
      *
@@ -506,13 +506,13 @@ contract HTLCWAN is HTLCBase {
          //bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, xHash, srcStoremanPK, dstStoremanPK));
          require(verifySignature(keccak256(abi.encode(tokenOrigAccount, xHash, srcStoremanPK, dstStoremanPK)), R, s));
        
-         var (,,,,,debt) = QuotaInterface(quotaLedger).queryStoremanGroupQuota(tokenOrigAccount, srcStoremanPK);
-         require(value<=debt);
+         //var (,,,,,debt) = QuotaInterface(quotaLedger).queryStoremanGroupQuota(tokenOrigAccount, srcStoremanPK);
+         //require(value<=debt);
 
          addHTLCTx(tokenOrigAccount, TxDirection.DebtTransfer, msg.sender, address(0), xHash, value, false, new bytes(0), dstStoremanPK, srcStoremanPK);
          require(QuotaInterface(quotaLedger).lockDebt(tokenOrigAccount, dstStoremanPK, srcStoremanPK, value));
          // emit logger...
-         emit DebtLockLogger(srcStoremanPK, dstStoremanPK, xHash, value, tokenOrigAccount);
+         //emit DebtLockLogger(srcStoremanPK, dstStoremanPK, xHash, value, tokenOrigAccount);
          return true;
      }
 
@@ -523,11 +523,11 @@ contract HTLCWAN is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, bytes, bytes32) 
     {
          require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAccount));
-         bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, x));
-         require(verifySignature(mhash, R, s));
+         //bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, x));
+         require(verifySignature(keccak256(abi.encode(tokenOrigAccount, x)), R, s));
 
         var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         bytes32 xHash= redeemHTLCTx(tokenOrigAccount, x, ha, TxDirection.DebtTransfer);
@@ -535,8 +535,8 @@ contract HTLCWAN is HTLCBase {
         var srcPK = getDebtTransferSrcPK(tokenOrigAccount, xHash);
         require(QuotaInterface(quotaLedger).redeemDebt(tokenOrigAccount, storemanPK, srcPK, value));
 
-        emit DebtRedeemLogger(storemanPK, xHash, x, tokenOrigAccount);
-        return true;
+        //emit DebtRedeemLogger(storemanPK, xHash, x, tokenOrigAccount);
+        return (true, storemanPK, xHash);
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
@@ -548,7 +548,7 @@ contract HTLCWAN is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool) 
+        returns(bool, address, bytes) 
     {
         /// bytes memory mesg=abi.encode(tokenOrigAccount, xHash);
         bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, xHash));
@@ -559,25 +559,8 @@ contract HTLCWAN is HTLCBase {
         var srcPK = getDebtTransferSrcPK(tokenOrigAccount, xHash);
         require(QuotaInterface(quotaLedger).unlockDebt(tokenOrigAccount, storemanPK, srcPK, value));
 
-        emit DebtRevokeLogger(source, storemanPK, xHash, tokenOrigAccount);
-        return true;
-    }
-
-    /// @notice                 getting outbound tx fee
-    /// @param  tokenOrigAccount  account of original chain token  
-    /// @param  storemanGroupPK   address of storemanGroup
-    /// @param  value           HTLC tx value
-    /// @return                 needful fee
-    function getOutboundFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
-        private
-        returns(uint)
-    {
-        TokenInterface ti = TokenInterface(tokenManager);
-        StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
-        var (,tokenWanAddr,token2WanRatio,,,,,,,,,) = ti.mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-        var (,,txFeeratio,,,) = smgi.mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
-        uint temp = value.mul(token2WanRatio).mul(txFeeratio).mul(1 ether);
-        return temp.div(ti.DEFAULT_PRECISE()).div(ti.DEFAULT_PRECISE()).div(10**uint(WERCProtocol(tokenWanAddr).decimals()));
+        //emit DebtRevokeLogger(source, storemanPK, xHash, tokenOrigAccount);
+        return (true, source, storemanPK);
     }
 
     /// @notice             verify signature    
