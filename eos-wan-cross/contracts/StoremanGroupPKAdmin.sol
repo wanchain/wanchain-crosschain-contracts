@@ -144,52 +144,51 @@ contract Halt is Owned {
     }
 }
 
-interface TokenInterface {
-    function mapKey(bytes) external view returns(bytes32);
-    function mapTokenInfo(bytes32) public view returns(bytes, address, uint, uint, uint, bool, uint, uint, uint, uint, uint, bytes);
-    function mapPenaltyReceiver(bytes) external view returns(address);
-    function updateTotalBonus(bytes, uint, bool) external returns(bool);
-    function DEFAULT_PRECISE() public returns (uint);
+interface StoremanGroupStorageInterface {
+    function newStoremanGroup(bytes, bytes, uint, uint, uint, address) external returns (bool);
+    function mapStoremanGroup(bytes, bytes) external view returns (uint, uint, uint, uint, address, uint);
+    function isActiveStoremanGroup(bytes, bytes) external view returns (bool);
+    function isInWriteList(bytes, bytes) external view returns (bool);
+    function setSmgWriteList(bytes, bytes, bool) external returns (bool);
+    function updateStoremanGroupBounceBlock(bytes, bytes, uint) external returns (bool);
+    function updateStoremanGroupPunishPercent(bytes, bytes, uint) external returns (bool);
+    function setStoremanGroupUnregisterTime(bytes, bytes) external returns (bool);
+    function resetStoremanGroup(bytes, bytes) external returns (bool);
 }
 
-interface QuotaInterface {
-    function applyUnregistration(bytes, bytes) external returns (bool);
-    function setStoremanGroupQuota(bytes, bytes, uint) external returns (bool);
-    function unregisterStoremanGroup(bytes, bytes, bool) external returns (bool);
-    function updateStoremanGroupPK(bytes, bytes, bytes) external returns (bool);
+interface StoremanGroupRegistrarInterface {
+    function mapStoremanGroup(bytes, bytes) external view returns(uint, uint, uint, uint, address, uint);
+    function setSmgWhiteList(bytes, bytes) external;
+    function storemanGroupRegisterByDelegate(bytes, bytes, uint) external returns (uint);
+    function smgApplyUnregisterByDelegate(bytes, bytes) external returns (bool, address, uint);
+    function storemanGroupUpdatePK(bytes, bytes, bytes, bytes, bytes) external;
+    function smgWithdrawDepositByDelegate(bytes, bytes) external returns (uint, uint);
 }
 
-interface WERCProtocol {
-    function decimals() public returns(uint8);
-}
-
-interface SignatureVerifier {
-    function verify(bytes32, bytes, bytes) public returns(bool);
+interface StoremanGroupDepositInterface {
+    function storemanGroupClaimSystemBonus(bytes, bytes) external returns (bool, address, uint);
+    function smgClaimSystemBonusByDelegate(bytes, bytes) external returns (bool, address, uint);
+    function depositSmgBonus(bytes) external;
+    function receiveFee(bytes, bytes, uint) external;
 }
 
 contract StoremanGroupPKAdmin is Halt{
     using SafeMath for uint;
     
-    /// token manager instance address
-    address public tokenManager;
-    /// quotaLedger instance address
-    address public quotaLedger;
-    /// signature verifier instance address
-    address public signVerifier;
+    /// storeman registrar instance address
+    address public storemanRegistrar;
+    /// storeman deposit instance address
+    address public storemanDeposit;
 
-    /// a map from addresses to storeman group information (tokenOrigAddr->storemanGroupPK->StoremanGroup)
-    mapping(bytes=>mapping(bytes => StoremanGroup)) private storemanGroupMap;     
-    /// a map from addresses to storeman group white list information
-    mapping(bytes=>mapping(bytes => bool)) private mapSmgWhiteList;                
-
-    struct StoremanGroup {
-        uint    deposit;                  /// the storeman group deposit in wan coins
-        uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
-        uint    txFeeRatio;               /// the fee ratio required by storeman group
-        uint    bonusBlockNumber;         /// the start block number for bonus calculation for storeman group
-        address initiator;                /// the account for registering a storeman group which provides storeman group deposit
-        uint    punishPercent;            /// punish rate of deposit, which is an integer from 0 to 100
-        uint    rcvFee;                   /// received fees
+    /**
+     *
+     * Modifiers
+     *
+     */
+    modifier initialized() {
+        require(storemanRegistrar != address(0));
+        require(storemanDeposit != address(0));
+        _;
     }
 
     /**
@@ -251,50 +250,6 @@ contract StoremanGroupPKAdmin is Halt{
     /// @param destAddress the destination address of deposit
     event SmgTranferDepositLogger(bytes tokenOrigAccount, address indexed smgAddress,address destAddress,uint deposit);
 
-    /**
-     *
-     * private methods
-     *
-     */
-
-    /// @notice                           function for bonus claim
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storeman group pk 
-    function doClaimSystemBonus(bytes tokenOrigAccount, bytes storemanGroupPK)
-        private
-    {
-        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        
-        var (,,,,,,startBonusBlk,bonusTotal,bonusPeriodBlks,bonusRatio,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-
-        if(smgInfo.punishPercent != 0 || startBonusBlk == 0){
-          return;
-        }
-
-        smgInfo.bonusBlockNumber = smgInfo.bonusBlockNumber < startBonusBlk ? startBonusBlk : smgInfo.bonusBlockNumber;
-       
-        if (block.number.sub(smgInfo.bonusBlockNumber) >= bonusPeriodBlks && smgInfo.deposit > 0) {
-            uint cycles = (block.number.sub(smgInfo.bonusBlockNumber)).div(bonusPeriodBlks);
-
-            smgInfo.bonusBlockNumber = smgInfo.bonusBlockNumber.add(cycles.mul(bonusPeriodBlks));
-
-            uint bonus = smgInfo.deposit.mul(bonusRatio).div(TokenInterface(tokenManager).DEFAULT_PRECISE());
-            bonus = bonus.mul(cycles);
-
-            if (bonusTotal >= bonus && bonus > 0) {
-                require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, bonus, false));
-                    if (smgInfo.initiator != address(0)) {
-                        smgInfo.initiator.transfer(bonus);
-                        emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, smgInfo.initiator, bonus);      
-                    } else {
-                        msg.sender.transfer(bonus);
-                        emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, msg.sender, bonus);     
-                    }
-            } else {
-                  emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, msg.sender, 0);
-            }
-        }
-    }
 
     /**
      *
@@ -308,78 +263,50 @@ contract StoremanGroupPKAdmin is Halt{
     function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
+        initialized
         returns (uint, uint, uint, uint, address, uint)
     {
-        StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        return (sg.deposit, sg.unregisterApplyTime, sg.txFeeRatio, sg.bonusBlockNumber, sg.initiator, sg.punishPercent);
+        return StoremanGroupRegistrarInterface(storemanRegistrar).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
-    /// @notice                           set tokenManager instance address and quotaLedger instance address
-    /// @param tm                         token manager instance address
-    /// @param ql                         quota ledger instance address
-    function injectDependencies(address tm, address ql)
+    /// @notice              Set storeman group storage instance address
+    /// @param regAddr       Storeman group registrar instance address
+    /// @param depAddr       Storeman group deposit instance address
+    function setStoremanGroupInfo(address regAddr, address depAddr)
         public
         onlyOwner
         isHalted
     {
-        require(tm != address(0) && ql != address(0));
-        tokenManager = tm;
-        quotaLedger = ql;
+        require(regAddr != address(0)&& depAddr != address(0));
+        storemanRegistrar = regAddr;
+        storemanDeposit = depAddr;
     }
 
-    /// @notice                           function for setting smg white list by owner
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storemanGroup PK for whitelist    
+
+    /// @notice                  function for setting smg white list by owner
+    /// @param tokenOrigAccount  token account of original chain
+    /// @param storemanGroupPK   storemanGroup PK for whitelist    
     function setSmgWhiteList(bytes tokenOrigAccount, bytes storemanGroupPK)
         public
         onlyOwner
+        initialized
     {
-        require(storemanGroupPK.length!=0);
-
-        // make sure white list mechanism is enabled
-        var (,,,,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-        require(useWhiteList);        
-
-        require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].bonusBlockNumber == 0);
-        require(!mapSmgWhiteList[tokenOrigAccount][storemanGroupPK]);
-
-        mapSmgWhiteList[tokenOrigAccount][storemanGroupPK] = true;
-            
+        StoremanGroupRegistrarInterface(storemanRegistrar).setSmgWhiteList(tokenOrigAccount, storemanGroupPK);
         emit SmgEnableWhiteListLogger(storemanGroupPK, tokenOrigAccount);
     }    
                 
-    /// @notice                           function for storeman register by sender this method should be
-    ///                                   invoked by a storemanGroup registration proxy or wanchain foundation
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            the storeman group PK address  
-    /// @param txFeeRatio                 the transaction fee required by storeman group  
+    /// @notice                  function for storeman register by sender this method should be
+    ///                          invoked by a storemanGroup registration proxy or wanchain foundation
+    /// @param tokenOrigAccount  token account of original chain
+    /// @param storemanGroupPK   the storeman group PK address  
+    /// @param txFeeRatio        the transaction fee required by storeman group  
     function storemanGroupRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK, uint txFeeRatio)
         public
         payable
         notHalted
+        initialized
     {
-        require(storemanGroupPK.length != 0 && txFeeRatio > 0);
-        require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].deposit == uint(0));
-        
-        var (,tokenWanAddr,token2WanRatio,minDeposit,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-
-        require(msg.value >= minDeposit && storemanGroupMap[tokenOrigAccount][storemanGroupPK].bonusBlockNumber == 0);
-
-        // white list filter
-        if (useWhiteList) {
-            require(mapSmgWhiteList[tokenOrigAccount][storemanGroupPK]);
-            mapSmgWhiteList[tokenOrigAccount][storemanGroupPK] = false;
-        }
-
-        uint quota = (msg.value).mul(TokenInterface(tokenManager).DEFAULT_PRECISE()).div(token2WanRatio).mul(10**uint(WERCProtocol(tokenWanAddr).decimals())).div(1 ether);
-
-        // regsiter this storeman group with calculated quota
-        require(QuotaInterface(quotaLedger).setStoremanGroupQuota(tokenOrigAccount, storemanGroupPK, quota));
-
-        // TODO:  1. how to set initiator address??
-        //           As current flow, only support delegator to register, so set msg.sender as initiator
-        storemanGroupMap[tokenOrigAccount][storemanGroupPK] = StoremanGroup(msg.value, 0, txFeeRatio, block.number, msg.sender, 0, 0);
-           
+        var quota = StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupRegisterByDelegate(tokenOrigAccount, storemanGroupPK, txFeeRatio);
         /// fire event
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroupPK, msg.value, quota,txFeeRatio);
     }  
@@ -391,28 +318,13 @@ contract StoremanGroupPKAdmin is Halt{
     function smgApplyUnregisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
         public
         notHalted
+        initialized
     {
-        // TODO: always check initiator as msg.sender, that who register can deregister it.
-        //if (msg.sender != storemanGroup) {
-            require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].initiator == msg.sender);
-        //}
+        var (isClaim, rcvr, amount) = StoremanGroupRegistrarInterface(storemanRegistrar).smgApplyUnregisterByDelegate(tokenOrigAccount, storemanGroupPK);
 
-        // make sure this storemanGroup has registered
-        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        require(smg.bonusBlockNumber > 0);
-        // make sure this storemanGroup has not applied
-        require(smg.unregisterApplyTime == 0);
-
-        smg.unregisterApplyTime = now;
-
-        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-
-        if (startBonusBlk > 0 && smg.punishPercent==0) {
-            doClaimSystemBonus(tokenOrigAccount, storemanGroupPK);
+        if (isClaim) {
+            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
         }
-
-        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAccount, storemanGroupPK));
-
         // fire event
         emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAccount, storemanGroupPK, now);
     }
@@ -425,37 +337,13 @@ contract StoremanGroupPKAdmin is Halt{
     function storemanGroupUpdatePK(bytes tokenOrigAccount, bytes oldStoremanGroupPK, bytes newStoremanGroupPK, bytes R, bytes s)
         public
         notHalted
+        initialized
     {
-        bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
-        require(verifySignature(mhash, R, s));
+        StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupUpdatePK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK, R, s);
 
-        require(oldStoremanGroupPK.length > 0 && newStoremanGroupPK.length > 0);
+        // TODO: emit event
+    }
 
-        require(storemanGroupMap[tokenOrigAccount][oldStoremanGroupPK].deposit > uint(0));
-        require(storemanGroupMap[tokenOrigAccount][newStoremanGroupPK].deposit == uint(0));
-       
-        StoremanGroup storage oldsmg = storemanGroupMap[tokenOrigAccount][oldStoremanGroupPK];
-        require(oldsmg.unregisterApplyTime == 0);
-
-        // regsiter this storeman group with calculated quota
-        require(QuotaInterface(quotaLedger).updateStoremanGroupPK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
-
-        // TODO: should we claim bounce for old PK??
-        storemanGroupMap[tokenOrigAccount][newStoremanGroupPK] = StoremanGroup(oldsmg.deposit, oldsmg.unregisterApplyTime, oldsmg.txFeeRatio, oldsmg.bonusBlockNumber, oldsmg.initiator, oldsmg.punishPercent, oldsmg.rcvFee);
-           
-        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAccount, oldStoremanGroupPK));
-
-        // withdraw oldPK
-        oldsmg.deposit = 0;   
-        oldsmg.unregisterApplyTime = 0;
-        oldsmg.txFeeRatio = 0;           
-        oldsmg.bonusBlockNumber = 0;  
-        oldsmg.punishPercent = 0;
-        oldsmg.initiator = address(0);
-
-        /// fire event
-        // emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroupPK, msg.value, quota,txFeeRatio);
-    }  
     /// @notice                           withdraw deposit through a proxy
     /// @dev                              withdraw deposit through a proxy
     /// @param tokenOrigAccount           token account of original chain
@@ -463,44 +351,9 @@ contract StoremanGroupPKAdmin is Halt{
     function smgWithdrawDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
         public
         notHalted
+        initialized
     {
-        // TODO: 3 need check initiator ??? who register storeman can deregister it???
-        //if (msg.sender != storemanGroup) {
-            require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].initiator == msg.sender);     
-        //}
-          
-        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        var (,,,,withdrawDelayTime,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-
-        require(now > smg.unregisterApplyTime.add(withdrawDelayTime) && smg.deposit > 0);
-
-        require(QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAccount, storemanGroupPK, true));
-        
-        uint deposit = smg.deposit;
-        uint restBalance = smg.deposit;
-
-        if (smg.punishPercent > 0) {
-            // transfer penalty to the penaltyReceiver of corresponding ERC20 token
-            restBalance = restBalance.sub(restBalance.mul(smg.punishPercent).div(100));
-            address penaltyReceiver = TokenInterface(tokenManager).mapPenaltyReceiver(tokenOrigAccount);
-            require(penaltyReceiver != address(0));
-            penaltyReceiver.transfer(deposit.sub(restBalance));
-        }
-        
-        smg.deposit = 0;   
-        //smg.smgOrigAccount = new bytes(0);
-        smg.unregisterApplyTime = 0;
-        smg.txFeeRatio = 0;           
-        smg.bonusBlockNumber = 0;  
-        smg.punishPercent = 0;
-       
-        // TODO: always transfer it to initiator???
-        if (smg.initiator != address(0)) {
-            smg.initiator.transfer(restBalance);
-        } else {
-            msg.sender.transfer(restBalance);   
-        }
-        smg.initiator = address(0);
+        var (restBalance, deposit) = StoremanGroupRegistrarInterface(storemanRegistrar).smgWithdrawDepositByDelegate(tokenOrigAccount, storemanGroupPK);
 
         emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroupPK, restBalance, deposit);
     }
@@ -508,15 +361,16 @@ contract StoremanGroupPKAdmin is Halt{
     /// @notice                           function for storeman claiming system bonus
     /// @dev                              function for storeman claiming system bonus
     /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanPK            storemanGroup PK 
     function storemanGroupClaimSystemBonus(bytes tokenOrigAccount, bytes storemanPK)
         public
         notHalted
+        initialized
     {
-        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanPK];
-        require(smg.bonusBlockNumber != 0 && smg.unregisterApplyTime == 0);
-       
-       // TODO: pass smg PK, do we need this???
-        doClaimSystemBonus(tokenOrigAccount, storemanPK);
+        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).storemanGroupClaimSystemBonus(tokenOrigAccount, storemanPK);
+        if (isClaim) {
+            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
+        }
     }
 
     /// @notice                           function for storeman claiming system bonus through a proxy  
@@ -526,14 +380,12 @@ contract StoremanGroupPKAdmin is Halt{
     function smgClaimSystemBonusByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
         public
         notHalted
+        initialized
     {
-        // make sure the address who registered this smg initiated this transaction
-        require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].initiator == msg.sender); 
-        
-        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        require(smg.bonusBlockNumber != 0 && smg.unregisterApplyTime == 0); 
-        
-        doClaimSystemBonus(tokenOrigAccount, storemanGroupPK);
+        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).smgClaimSystemBonusByDelegate(tokenOrigAccount, storemanGroupPK);
+        if (isClaim) {
+            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
+        }
     }
 
     /// @notice                           function for bonus deposit
@@ -543,17 +395,25 @@ contract StoremanGroupPKAdmin is Halt{
         public
         payable
         onlyOwner
+        initialized
     {
-        require(msg.value > 0);
-        
-        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-        require(startBonusBlk > 0);
-        
-        require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, msg.value, true));
+        StoremanGroupDepositInterface(storemanDeposit).depositSmgBonus(tokenOrigAccount);
 
         emit StoremanGroupDepositBonusLogger(tokenOrigAccount, msg.sender, msg.value);
     }
-                    
+
+    /// @notice                 receive fee for participant in outbound 
+    /// @param tokenOrigAccount token account of original chain
+    /// @param storemanGroupPK  PK of storeman group
+    /// @param fee              value of fee to receive
+    function receiveFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint fee)
+        external 
+        notHalted
+        initialized
+    {
+        StoremanGroupDepositInterface(storemanDeposit).receiveFee(tokenOrigAccount, storemanGroupPK, fee);
+    }
+
     /// @notice function for destroy contract
     function kill() 
         public
@@ -568,42 +428,5 @@ contract StoremanGroupPKAdmin is Halt{
        revert();
     }
 
-    function receiveFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint fee)
-        external 
-        notHalted
-    {
-        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
-        if (smg.initiator != address(0)) {
-            smg.initiator.transfer(fee);
-        }
-        //smg.rcvFee = smg.rcvFee.add(fee);
-    }
-
-    /// @notice             verify signature    
-    /// @param  mesg        message to be verified 
-    /// @param  R           Sigature info R
-    /// @param  s           Sigature info s
-    /// @return             true/false
-    function verifySignature(bytes32 mesg, bytes R, bytes s) 
-        private
-        returns (bool)
-    {
-        require(SignatureVerifier(signVerifier).verify(mesg, R, s));
-        return true;
-    }
-
-    /// @notice                 set token manager SC instance address
-    /// @param  addr            token manager SC instance address    
-    function setSignVerifier(address addr)
-        public
-        onlyOwner
-        isHalted
-        returns (bool)
-    {
-        require(addr != address(0));
-        signVerifier = addr;
-
-        return true;
-    }
 }  
 

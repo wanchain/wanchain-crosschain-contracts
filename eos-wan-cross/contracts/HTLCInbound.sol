@@ -175,7 +175,7 @@ interface WERCProtocol {
 }
 
 interface SignatureVerifier {
-    function verify(bytes32, bytes, bytes) public returns(bool);
+    function verify(bytes32, bytes32, bytes32, bytes32, bytes32, bytes32) public returns(bool);
 }
 
 contract HTLCBase is Halt {
@@ -352,6 +352,24 @@ contract HTLCBase is Halt {
         return xHashHTLCTxsMap[tokenOrigAccount][xHash].status != TxStatus.None;
     }
     
+    /// @notice                 compute xhash
+    /// @param  x               random number of HTLC
+    /// @param  hashAlgorithms  hash algorithms to calculate xHash
+    function computeXHash(bytes32 x, uint hashAlgorithms) 
+        internal
+        returns(bytes32 xHash)
+    {
+        if (hashAlgorithms == uint(HashAlgorithms.sha256)) {
+            xHash = sha256(x);
+        } else if (hashAlgorithms == uint(HashAlgorithms.ripemd160)) {
+            xHash = ripemd160(x);
+        } else { // default
+            xHash = keccak256(x);
+        }
+
+        return xHash;
+    }
+
     /// @notice                 add HTLC transaction info
     /// @param  tokenOrigAccount  account of original chain token 
     /// @param  direction       HTLC transaction direction
@@ -381,13 +399,7 @@ contract HTLCBase is Halt {
         internal
         returns(bytes32 xHash)
     {
-        if (hashAlgorithms == uint(HashAlgorithms.sha256)) {
-            xHash = sha256(x);
-        } else if (hashAlgorithms == uint(HashAlgorithms.ripemd160)) {
-            xHash = ripemd160(x);
-        } else { // default
-            xHash = keccak256(x);
-        }
+        xHash = computeXHash(x, hashAlgorithms);
         
         HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAccount][xHash];
         require(info.status == TxStatus.Locked);
@@ -499,7 +511,7 @@ contract HTLCInbound is HTLCBase {
     /// @param  storemanPK      PK of storeman
     /// @param  R               signature
     /// @param  s               signature
-     function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes s) 
+     function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes32 s) 
          public 
          initialized 
          notHalted
@@ -507,8 +519,8 @@ contract HTLCInbound is HTLCBase {
      {
          require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAccount));
          ///bytes memory mesg=abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK);
-         bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
-         require(verifySignature(mhash, R, s));
+         bytes32 mhash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
+         require(verifySignature(mhash, storemanPK, R, s));
         
          addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
          require(QuotaInterface(quotaLedger).lockQuota(tokenOrigAccount, storemanPK, value));
@@ -539,35 +551,52 @@ contract HTLCInbound is HTLCBase {
     /// @param xHash            hash of HTLC random number
     /// @param  R               signature
     /// @param  s               signature
-    function revoke(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes s) 
+    function revoke(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes32 s) 
         public 
         initialized 
         notHalted
         returns(bool, bytes) 
     {
         /// bytes memory mesg=abi.encode(tokenOrigAccount, xHash);
-        bytes32 mhash = keccak256(abi.encode(tokenOrigAccount, xHash));
-        verifySignature(mhash, R, s);
+        bytes32 mhash = sha256(abi.encode(tokenOrigAccount, xHash));
+        var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
+        verifySignature(mhash, storemanPK, R, s);
 
         revokeHTLCTx(tokenOrigAccount, xHash, TxDirection.Inbound, false);
-        var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
         require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAccount, storemanPK, value));
 
         //emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
         return (true, storemanPK);
     }
 
+    /// @notice       convert bytes to bytes32
+    /// @param b      bytes array
+    /// @param offset offset of array to begin convert
+    function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+        bytes32 out;
+      
+        for (uint i = 0; i < 32; i++) {
+          out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+        }
+        return out;
+    }
 
     /// @notice             verify signature    
     /// @param  mesg        message to be verified 
     /// @param  R           Sigature info R
     /// @param  s           Sigature info s
     /// @return             true/false
-    function verifySignature(bytes32 mesg, bytes R, bytes s) 
+    function verifySignature(bytes32 mesg, bytes PK, bytes R, bytes32 s) 
         private
         returns (bool)
     {
-        require(SignatureVerifier(signVerifier).verify(mesg, R, s));
+        bytes32 PKx=bytesToBytes32(PK, 1);
+        bytes32 PKy=bytesToBytes32(PK, 33);
+
+        bytes32 Rx=bytesToBytes32(R, 1);
+        bytes32 Ry=bytesToBytes32(R, 33);
+
+        require(SignatureVerifier(signVerifier).verify(s, PKx, PKy, Rx, Ry, mesg));
         return true;
     }
 
