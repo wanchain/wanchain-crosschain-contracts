@@ -151,8 +151,8 @@ namespace htlc {
 
         typedef struct memo_size_t {
             static constexpr int xHash = 64;
-            static constexpr int wanAddr = 42; // wan address with '0x'
-            static constexpr int pk = 64; // pk
+            static constexpr int wanAddr = 40; // wan address without '0x'
+            static constexpr int pk = 130; // pk
             static constexpr int status = 6; // inlock
             static constexpr int min = 3 + memo_size_t::xHash + memo_size_t::wanAddr + memo_size_t::pk + sysLimit::accountSize::min;
             static constexpr int max = 3 + memo_size_t::xHash + memo_size_t::wanAddr + memo_size_t::pk + sysLimit::accountSize::max;

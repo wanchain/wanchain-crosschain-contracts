@@ -1130,11 +1130,17 @@ ACTION htlc::outredeem(eosio::name user, std::string x) {
     /* pk asset should be more than cross-quantity */
     eosio::asset quantity = tItr->quantity - tItr->quantity;
     getAsset(tItr->pid, &quantity);
+    #ifdef _DEBUG
+    eosio::print("\t[outredeem => asset: ", quantity, "]\t");
+    #endif
     eosio_assert(quantity >= tItr->quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
     /* pk asset should be more than (cross-quantity add all pendingAsset) */
     eosio::asset outPendQuantity = tItr->quantity - tItr->quantity;
     getOutPendAsset(tItr->pid, &outPendQuantity);
-    eosio_assert(quantity >= (outPendQuantity + tItr->quantity), hError::error::NOE_ENOUGH_QUANTITY.data());
+    #ifdef _DEBUG
+    eosio::print("\t[outredeem => pend asset: ", outPendQuantity, "]\t");
+    #endif
+    eosio_assert(quantity >= (outPendQuantity), hError::error::NOE_ENOUGH_QUANTITY.data());
 
     /*quota reduce*/
     subAsset(tItr->pid, tItr->quantity);
