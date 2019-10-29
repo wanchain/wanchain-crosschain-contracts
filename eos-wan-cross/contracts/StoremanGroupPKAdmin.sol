@@ -144,23 +144,11 @@ contract Halt is Owned {
     }
 }
 
-interface StoremanGroupStorageInterface {
-    function newStoremanGroup(bytes, bytes, uint, uint, uint, address) external returns (bool);
-    function mapStoremanGroup(bytes, bytes) external view returns (uint, uint, uint, uint, address, uint);
-    function isActiveStoremanGroup(bytes, bytes) external view returns (bool);
-    function isInWriteList(bytes, bytes) external view returns (bool);
-    function setSmgWriteList(bytes, bytes, bool) external returns (bool);
-    function updateStoremanGroupBounceBlock(bytes, bytes, uint) external returns (bool);
-    function updateStoremanGroupPunishPercent(bytes, bytes, uint) external returns (bool);
-    function setStoremanGroupUnregisterTime(bytes, bytes) external returns (bool);
-    function resetStoremanGroup(bytes, bytes) external returns (bool);
-}
-
 interface StoremanGroupRegistrarInterface {
     function mapStoremanGroup(bytes, bytes) external view returns(uint, uint, uint, uint, address, uint);
     function setSmgWhiteList(bytes, bytes) external;
-    function storemanGroupRegisterByDelegate(bytes, bytes, uint) external returns (uint);
-    function smgApplyUnregisterByDelegate(bytes, bytes) external returns (bool, address, uint);
+    function storemanGroupRegisterByDelegate(bytes, bytes, uint, uint) external returns (uint);
+    function smgApplyUnregisterByDelegate(bytes, bytes) external;
     function storemanGroupUpdatePK(bytes, bytes, bytes, bytes, bytes) external;
     function smgWithdrawDepositByDelegate(bytes, bytes) external returns (uint, uint);
 }
@@ -168,8 +156,8 @@ interface StoremanGroupRegistrarInterface {
 interface StoremanGroupDepositInterface {
     function storemanGroupClaimSystemBonus(bytes, bytes) external returns (bool, address, uint);
     function smgClaimSystemBonusByDelegate(bytes, bytes) external returns (bool, address, uint);
-    function depositSmgBonus(bytes) external;
-    function receiveFee(bytes, bytes, uint) external;
+    function depositSmgBonus(bytes, uint) external;
+    function feeReceiver(bytes, bytes) external returns (address);
 }
 
 contract StoremanGroupPKAdmin is Halt{
@@ -179,6 +167,8 @@ contract StoremanGroupPKAdmin is Halt{
     address public storemanRegistrar;
     /// storeman deposit instance address
     address public storemanDeposit;
+    /// storeman deposit receiver instance address
+    address public storemanTokenReceiver;
 
     /**
      *
@@ -188,6 +178,7 @@ contract StoremanGroupPKAdmin is Halt{
     modifier initialized() {
         require(storemanRegistrar != address(0));
         require(storemanDeposit != address(0));
+        require(storemanTokenReceiver != address(0));
         _;
     }
 
@@ -272,14 +263,16 @@ contract StoremanGroupPKAdmin is Halt{
     /// @notice              Set storeman group storage instance address
     /// @param regAddr       Storeman group registrar instance address
     /// @param depAddr       Storeman group deposit instance address
-    function setStoremanGroupInfo(address regAddr, address depAddr)
+    /// @param rcvAddr       Storeman group deposit receiver instance address
+    function setStoremanGroupInfo(address regAddr, address depAddr, address rcvAddr)
         public
         onlyOwner
         isHalted
     {
-        require(regAddr != address(0)&& depAddr != address(0));
+        require(regAddr != address(0)&& depAddr != address(0)&&rcvAddr != address(0));
         storemanRegistrar = regAddr;
         storemanDeposit = depAddr;
+        storemanTokenReceiver = rcvAddr;
     }
 
 
@@ -306,7 +299,9 @@ contract StoremanGroupPKAdmin is Halt{
         notHalted
         initialized
     {
-        var quota = StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupRegisterByDelegate(tokenOrigAccount, storemanGroupPK, txFeeRatio);
+        var quota = StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupRegisterByDelegate(tokenOrigAccount, storemanGroupPK, txFeeRatio, msg.value);
+        storemanTokenReceiver.transfer(msg.value);
+
         /// fire event
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroupPK, msg.value, quota,txFeeRatio);
     }  
@@ -320,11 +315,8 @@ contract StoremanGroupPKAdmin is Halt{
         notHalted
         initialized
     {
-        var (isClaim, rcvr, amount) = StoremanGroupRegistrarInterface(storemanRegistrar).smgApplyUnregisterByDelegate(tokenOrigAccount, storemanGroupPK);
+        StoremanGroupRegistrarInterface(storemanRegistrar).smgApplyUnregisterByDelegate(tokenOrigAccount, storemanGroupPK);
 
-        if (isClaim) {
-            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
-        }
         // fire event
         emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAccount, storemanGroupPK, now);
     }
@@ -397,7 +389,7 @@ contract StoremanGroupPKAdmin is Halt{
         onlyOwner
         initialized
     {
-        StoremanGroupDepositInterface(storemanDeposit).depositSmgBonus(tokenOrigAccount);
+        StoremanGroupDepositInterface(storemanDeposit).depositSmgBonus(tokenOrigAccount, msg.value);
 
         emit StoremanGroupDepositBonusLogger(tokenOrigAccount, msg.sender, msg.value);
     }
@@ -405,13 +397,13 @@ contract StoremanGroupPKAdmin is Halt{
     /// @notice                 receive fee for participant in outbound 
     /// @param tokenOrigAccount token account of original chain
     /// @param storemanGroupPK  PK of storeman group
-    /// @param fee              value of fee to receive
-    function receiveFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint fee)
+    function feeReceiver(bytes tokenOrigAccount, bytes storemanGroupPK)
         external 
         notHalted
         initialized
+        returns (address)
     {
-        StoremanGroupDepositInterface(storemanDeposit).receiveFee(tokenOrigAccount, storemanGroupPK, fee);
+        return StoremanGroupDepositInterface(storemanDeposit).feeReceiver(tokenOrigAccount, storemanGroupPK);
     }
 
     /// @notice function for destroy contract

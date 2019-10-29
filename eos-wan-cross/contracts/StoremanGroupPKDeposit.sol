@@ -173,6 +173,7 @@ interface StoremanGroupStorageInterface {
     function updateStoremanGroupPunishPercent(bytes, bytes, uint) external returns (bool);
     function setStoremanGroupUnregisterTime(bytes, bytes) external returns (bool);
     function resetStoremanGroup(bytes, bytes) external returns (bool);
+    function transferToAddr(address, uint) external;
 }
 
 contract StoremanGroupPKDeposit is Halt{
@@ -283,11 +284,13 @@ contract StoremanGroupPKDeposit is Halt{
         if (bonusTotal >= bonus && bonus > 0) {
             require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, bonus, false));
                 if (initiator != address(0)) {
-                    initiator.transfer(bonus);
+                    //initiator.transfer(bonus);
+                    StoremanGroupStorageInterface(storemanStorage).transferToAddr(initiator, bonus);
 
                     return (true, initiator, bonus);
                 } else {
-                    msg.sender.transfer(bonus);
+                    //msg.sender.transfer(bonus);
+                    StoremanGroupStorageInterface(storemanStorage).transferToAddr(msg.sender, bonus);
 
                     return (true, msg.sender, bonus);
                 }
@@ -371,31 +374,33 @@ contract StoremanGroupPKDeposit is Halt{
     /// @notice                           function for bonus deposit
     /// @dev                              function for bonus deposit
     /// @param tokenOrigAccount           token account of original chain
-    function depositSmgBonus(bytes tokenOrigAccount)
+    function depositSmgBonus(bytes tokenOrigAccount, uint value)
         external
         payable
         onlyStoremanGroupAdm
         initialized
         //onlyOwner
     {
-        require(msg.value > 0);
+        require(value > 0);
         
         var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         require(startBonusBlk > 0);
         
-        require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, msg.value, true));
+        require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, value, true));
     }
 
-    function receiveFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint fee)
+    function feeReceiver(bytes tokenOrigAccount, bytes storemanGroupPK)
         external 
         notHalted
         onlyStoremanGroupAdm
         initialized
+        returns (address)
     {
         var (,,,,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
-        if (initiator != address(0)) {
-            initiator.transfer(fee);
-        }
+        //if (initiator != address(0)) {
+        //    initiator.transfer(fee);
+        //}
+        return initiator;
         //smg.rcvFee = smg.rcvFee.add(fee);
     }
                     

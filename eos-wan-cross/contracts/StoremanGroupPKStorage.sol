@@ -147,8 +147,12 @@ contract Halt is Owned {
 contract StoremanGroupPKStorage is Halt{
     using SafeMath for uint;
    
-    ///
+    /// admin instance address
     address public storemanGroupAdmin;
+    /// storeman registrar instance address
+    address public storemanRegistrar;
+    /// storeman deposit instance address
+    address public storemanDeposit;
 
     /// a map from addresses to storeman group information (tokenOrigAddr->storemanGroupPK->StoremanGroup)
     mapping(bytes=>mapping(bytes => StoremanGroup)) private storemanGroupMap;     
@@ -165,8 +169,8 @@ contract StoremanGroupPKStorage is Halt{
         uint    rcvFee;                   /// received fees
     }
 
-    modifier onlyStoremanGroupAdm {
-        require(msg.sender == storemanGroupAdmin);
+    modifier onlyStoremanGroupSC {
+        require(msg.sender==storemanGroupAdmin || msg.sender==storemanRegistrar || msg.sender==storemanDeposit);
         _;
     }
 
@@ -176,23 +180,24 @@ contract StoremanGroupPKStorage is Halt{
      *
      */
 
-    /// @notice     Set storeman group admin address
-    /// @param adm  Address of storeman group admin
-    function setStoremanGroupAdmin(address adm) 
+    /// @notice               Set storeman group sc address
+    /// @param admAddr        Address of storeman group admin
+    /// @param depositAddr    Address of storeman group deposit 
+    /// @param registrarAddr  Address of storeman group registrar
+    function setStoremanGroupSCAddr(address admAddr, address depositAddr, address registrarAddr) 
         public
         isHalted
         onlyOwner
-        returns (bool)
     {
-        require(adm != address(0));
-        storemanGroupAdmin = adm;
-
-        return true;
+        require(admAddr!=address(0)&&depositAddr!=address(0)&&registrarAddr!=address(0));
+        storemanGroupAdmin = admAddr;
+        storemanDeposit = depositAddr;
+        storemanRegistrar = registrarAddr;
     }
 
     function newStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint dep, uint feeRatio, uint blkNo, address initor)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
@@ -207,7 +212,7 @@ contract StoremanGroupPKStorage is Halt{
 
     function resetStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
@@ -224,7 +229,7 @@ contract StoremanGroupPKStorage is Halt{
 
     function updateStoremanGroupBounceBlock(bytes tokenOrigAccount, bytes storemanGroupPK, uint blkNo)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
@@ -237,7 +242,7 @@ contract StoremanGroupPKStorage is Halt{
 
     function updateStoremanGroupPunishPercent(bytes tokenOrigAccount, bytes storemanGroupPK, uint percent)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
@@ -249,7 +254,7 @@ contract StoremanGroupPKStorage is Halt{
 
     function setStoremanGroupUnregisterTime(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
@@ -265,7 +270,7 @@ contract StoremanGroupPKStorage is Halt{
     function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         returns (uint, uint, uint, uint, address, uint)
     {
         StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
@@ -278,7 +283,7 @@ contract StoremanGroupPKStorage is Halt{
     function isActiveStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         returns (bool)
     {
         return storemanGroupMap[tokenOrigAccount][storemanGroupPK].deposit > uint(0);
@@ -291,7 +296,7 @@ contract StoremanGroupPKStorage is Halt{
     function isInWriteList(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         returns (bool)
     {
         return mapSmgWhiteList[tokenOrigAccount][storemanGroupPK];
@@ -302,10 +307,22 @@ contract StoremanGroupPKStorage is Halt{
     /// @param storemanGroupPK  PK of storeman group
     function setSmgWriteList(bytes tokenOrigAccount, bytes storemanGroupPK, bool isWriteListed)
         external
-        onlyStoremanGroupAdm
+        onlyStoremanGroupSC
         returns (bool)
     {
         mapSmgWhiteList[tokenOrigAccount][storemanGroupPK] = isWriteListed;
+    }
+
+    /// @notice       transfer WAN to address 
+    /// @param dest   destination
+    /// @param amount value to transfer
+    function transferToAddr(address dest, uint amount)
+        external
+        onlyStoremanGroupSC
+        notHalted
+        payable
+    {
+        dest.transfer(amount);
     }
 
     /// @notice function for destroy contract

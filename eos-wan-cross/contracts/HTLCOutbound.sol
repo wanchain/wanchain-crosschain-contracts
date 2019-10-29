@@ -152,7 +152,7 @@ interface TokenInterface {
 
 interface StoremanGroupInterface {
     function mapStoremanGroup(bytes, bytes) external returns(uint, uint, uint, uint, address, uint);
-    function receiveFee(bytes, bytes, uint) external;
+    function feeReceiver(bytes, bytes) external returns (address);
 }
 
 interface QuotaInterface {
@@ -176,6 +176,10 @@ interface WERCProtocol {
 
 interface SignatureVerifier {
     function verify(bytes32, bytes32, bytes32, bytes32, bytes32, bytes32) public returns(bool);
+}
+
+interface FeeHolder {
+    function transferTokenTo(address, uint) public;
 }
 
 contract HTLCBase is Halt {
@@ -404,7 +408,7 @@ contract HTLCBase is Halt {
         HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAccount][xHash];
         require(info.status == TxStatus.Locked);
         require(info.direction == direction);
-        if (info.direction != TxDirection.DebtTransfer) {
+        if (info.direction == TxDirection.Inbound) {
             require(info.destination == msg.sender);
         }
         require(now < info.beginLockedTime.add(info.lockedTime));
@@ -453,6 +457,9 @@ contract HTLCOutbound is HTLCBase {
     /// signature verifier instance address
     address public signVerifier;
 
+    /// HTLC instance address that hold fees
+    address public feeHolder;
+
     /// @notice transaction fee
     mapping(bytes => mapping(bytes32 => uint)) private mapXHashFee;
 
@@ -496,6 +503,7 @@ contract HTLCOutbound is HTLCBase {
         require(quotaLedger != address(0));
         require(storemanGroupAdmin != address(0));
         require(signVerifier != address(0));
+        require(feeHolder != address(0));
         _;
     }
 
@@ -511,22 +519,23 @@ contract HTLCOutbound is HTLCBase {
     /// @param storemanGroupPK  PK of storeman group
     /// @param userOrigAccount  account of original chain, used to receive token
     /// @param value            exchange value
-    function lock(bytes tokenOrigAccount, bytes32 xHash, address storemanGroup, bytes userOrigAccount, uint value, bytes storemanGroupPK) 
+    /// @param amount           amount of WAN send in tx 
+    function lock(bytes tokenOrigAccount, bytes32 xHash, bytes userOrigAccount, uint value, uint amount, bytes storemanGroupPK) 
         public 
         initialized
         notHalted
         payable
-        returns(bool) 
+        returns(uint) 
     {
         require(tx.origin == msg.sender);
         require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAccount));
 
         // check withdraw fee
         uint fee = getOutboundFee(tokenOrigAccount, storemanGroupPK, value);
-        require(msg.value >= fee);
+        require(amount >= fee);
 
         // TODO: outbound destination ??? storemanGroup???
-        addHTLCTx(tokenOrigAccount, TxDirection.Outbound, msg.sender, storemanGroup, xHash, value, true, userOrigAccount, storemanGroupPK, new bytes(0));
+        addHTLCTx(tokenOrigAccount, TxDirection.Outbound, msg.sender, address(0), xHash, value, true, userOrigAccount, storemanGroupPK, new bytes(0));
 
         require(QuotaInterface(quotaLedger).lockToken(tokenOrigAccount, storemanGroupPK, value));
 
@@ -536,16 +545,17 @@ contract HTLCOutbound is HTLCBase {
 
         mapXHashFee[tokenOrigAccount][xHash] = fee; // in wan coin
         
-        // restore the extra cost
-        uint left = (msg.value).sub(fee);
-        if (left != 0) {
-            (msg.sender).transfer(left);
-        }
+        return fee;
+        //  // restore the extra cost
+        //  uint left = (amount).sub(fee);
+        //  if (left != 0) {
+        //      (msg.sender).transfer(left);
+        //  }
 
-        // TODO: add fee lead to stack too deep
-        // emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
-        
-        return true;
+        //  // TODO: add fee lead to stack too deep
+        //  // emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
+        //  
+        //  return true;
     }
 
     /// @notice                 refund WERC20 token from the HTLC transaction of exchange original chain token with WERC20 token(must be called before HTLC timeout)
@@ -557,14 +567,14 @@ contract HTLCOutbound is HTLCBase {
         public 
         initialized 
         notHalted
-        returns(bool, address) 
+        returns(bool, bytes32) 
         //returns(bool) 
     {
         /// bytes memory mesg=abi.encode(tokenOrigAccount, x);
         /// bytes32 mhash = sha256(abi.encode(tokenOrigAccount, x));
         var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
         bytes32 xHash = computeXHash(x, ha);
-        var (,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
+        var (,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
 
         verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanPK, R, s);
 
@@ -575,10 +585,11 @@ contract HTLCOutbound is HTLCBase {
 
         // transfer to storemanGroup
         //destination.transfer(mapXHashFee[tokenOrigAccount][xHash]); 
-        StoremanGroupInterface(storemanGroupAdmin).receiveFee(tokenOrigAccount, storemanPK, mapXHashFee[tokenOrigAccount][xHash]);
+        address rcvr = StoremanGroupInterface(storemanGroupAdmin).feeReceiver(tokenOrigAccount, storemanPK);
+        FeeHolder(feeHolder).transferTokenTo(rcvr, mapXHashFee[tokenOrigAccount][xHash]);
 
         //emit OutboundRedeemLogger(destination, source, xHash, x, tokenOrigAccount);
-        return (true, destination );
+        return (true, xHash);
         //return true;
     }
 
@@ -593,7 +604,7 @@ contract HTLCOutbound is HTLCBase {
         returns(bool, address, bytes) 
     {
         revokeHTLCTx(tokenOrigAccount, xHash, TxDirection.Outbound, true);
-        var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
+        var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
 
         require(QuotaInterface(quotaLedger).unlockToken(tokenOrigAccount, storemanPK, value));
 
@@ -609,7 +620,8 @@ contract HTLCOutbound is HTLCBase {
 
         if (revokeFee > 0) {
             //destination.transfer(revokeFee);
-            StoremanGroupInterface(storemanGroupAdmin).receiveFee(tokenOrigAccount, storemanPK, revokeFee);
+            address rcvr = StoremanGroupInterface(storemanGroupAdmin).feeReceiver(tokenOrigAccount, storemanPK);
+            FeeHolder(feeHolder).transferTokenTo(rcvr, revokeFee);
         }
         
         if (left > 0) {
@@ -652,7 +664,8 @@ contract HTLCOutbound is HTLCBase {
 
         if (revokeFee > 0) {
             //destination.transfer(revokeFee);
-            StoremanGroupInterface(storemanGroupAdmin).receiveFee(tokenOrigAccount, storemanPK, revokeFee);
+            address rcv = StoremanGroupInterface(storemanGroupAdmin).feeReceiver(tokenOrigAccount, storemanPK);
+            FeeHolder(feeHolder).transferTokenTo(rcv, revokeFee);
         }
         
         if (left > 0) {
@@ -745,6 +758,20 @@ contract HTLCOutbound is HTLCBase {
     {
         require(addr != address(0));
         signVerifier = addr;
+
+        return true;
+    }
+
+    /// @notice            set fee holder
+    /// @param  addr       fee holder SC instance address    
+    function setFeeHolder(address addr)
+        public
+        onlyOwner
+        isHalted
+        returns (bool)
+    {
+        require(addr != address(0));
+        feeHolder = addr;
 
         return true;
     }

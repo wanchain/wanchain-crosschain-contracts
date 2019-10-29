@@ -150,8 +150,8 @@ interface InboundHTLCInterface {
 }
 
 interface OutboundHTLCInterface {
-    function lock(bytes, bytes32, address, bytes, uint, bytes) external returns (bool);
-    function redeem(bytes, bytes32, bytes, bytes) external returns (bool, address);
+    function lock(bytes, bytes32, bytes, uint, uint, bytes) external returns (uint);
+    function redeem(bytes, bytes32, bytes, bytes) external returns (bool, bytes32);
     function revoke(bytes, bytes32) external returns (bool, address, bytes);
 }
 
@@ -162,6 +162,7 @@ interface DebtTransferHTLCInterface {
 }
 
 contract HTLCWAN is Halt {
+    using SafeMath for uint;
 
     /// Inbound HTLC instance address
     address public inboundHTLC;
@@ -194,7 +195,7 @@ contract HTLCWAN is Halt {
     /// @param storemanGroupPK  PK of storemanGroup
     /// @param xHash            hash of HTLC random number
     /// @param tokenOrigAccount account of original chain token  
-    event InboundRevokeLogger(bytes indexed storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
+    event InboundRevokeLogger(bytes storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
 
     /// @notice                 event of exchange original chain token with WERC20 token request
     /// @param wanAddr          address of user, where the WERC20 token come from
@@ -204,12 +205,11 @@ contract HTLCWAN is Halt {
     /// @param userOrigAccount  account of original chain, used to receive token
     /// fee              exchange fee
     /// @param tokenOrigAccount account of original chain token  
-    event OutboundLockLogger(address indexed wanAddr, bytes indexed storemanGroupPK, bytes32 indexed xHash, uint value, bytes userOrigAccount, bytes tokenOrigAccount);
+    event OutboundLockLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, uint value, bytes userOrigAccount, bytes tokenOrigAccount);
     /// @notice                 event of refund WERC20 token from exchange original chain token with WERC20 token HTLC transaction
-    /// @param storemanGroup    address of storemanGroup, used to receive WERC20 token
     /// @param x                HTLC random number
     /// @param tokenOrigAccount account of original chain token  
-    event OutboundRedeemLogger(address indexed storemanGroup, bytes32 x, bytes tokenOrigAccount);
+    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
     /// @notice                 event of revoke exchange original chain token with WERC20 token HTLC transaction
     /// @param wanAddr          address of user
     /// @param xHash            hash of HTLC random number
@@ -222,13 +222,13 @@ contract HTLCWAN is Halt {
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
     /// @param tokenOrigAccount account of original chain token  
-    event DebtLockLogger(bytes indexed srcStoremanPK, bytes indexed dstStoremanPK, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
+    event DebtLockLogger(bytes srcStoremanPK, bytes dstStoremanPK, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
     /// @notice                 event of refund storeman debt
-    /// @param storemanGroup    address of storemanGroup, used to receive WERC20 token
+    /// @param storemanGroupPK  PK of storemanGroup, used to receive WERC20 token
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
     /// @param tokenOrigAccount account of original chain token  
-    event DebtRedeemLogger(bytes indexed storemanGroup, bytes32 indexed xHash, bytes32 x, bytes tokenOrigAccount);
+    event DebtRedeemLogger(bytes storemanGroupPK, bytes32 indexed xHash, bytes32 x, bytes tokenOrigAccount);
     /// @notice                 event of revoke storeman debt
     /// @param xHash            hash of HTLC random number
     /// @param tokenOrigAccount account of original chain token  
@@ -245,6 +245,11 @@ contract HTLCWAN is Halt {
         require(inboundHTLC != address(0));
         require(outboundHTLC != address(0));
         require(debtHTLC != address(0));
+        _;
+    }
+
+    modifier onlyHTLCSC() {
+        require(msg.sender == inboundHTLC || msg.sender == outboundHTLC || msg.sender == debtHTLC);
         _;
     }
 
@@ -310,14 +315,18 @@ contract HTLCWAN is Halt {
     /// @param storemanGroupPK  PK of storeman group
     /// @param userOrigAccount  account of original chain, used to receive token
     /// @param value            exchange value
-    function outboundLock(bytes tokenOrigAccount, bytes32 xHash, address storemanGroup, bytes userOrigAccount, uint value, bytes storemanGroupPK) 
+    function outboundLock(bytes tokenOrigAccount, bytes32 xHash, bytes userOrigAccount, uint value, bytes storemanGroupPK) 
         public 
         initialized
         notHalted
         payable
         returns(bool) 
     {
-        require(OutboundHTLCInterface(outboundHTLC).lock(tokenOrigAccount, xHash, storemanGroup, userOrigAccount, value, storemanGroupPK));
+        var fee = OutboundHTLCInterface(outboundHTLC).lock(tokenOrigAccount, xHash, userOrigAccount, value, msg.value, storemanGroupPK);
+        uint left = (msg.value).sub(fee);
+        if (left != 0) {
+            (msg.sender).transfer(left);
+        }
         emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
         return true;
     }
@@ -333,9 +342,9 @@ contract HTLCWAN is Halt {
         notHalted
         returns(bool) 
     {
-        var (res,dest)=OutboundHTLCInterface(outboundHTLC).redeem(tokenOrigAccount, x, R, s);
+        var (res,xhash)=OutboundHTLCInterface(outboundHTLC).redeem(tokenOrigAccount, x, R, s);
         require(res);
-        emit OutboundRedeemLogger(dest, x, tokenOrigAccount);
+        emit OutboundRedeemLogger(xhash, x, tokenOrigAccount);
         return res;
     }
 
@@ -405,6 +414,19 @@ contract HTLCWAN is Halt {
         require(res);
         emit DebtRevokeLogger(src, storemanPK, xHash, tokenOrigAccount);
         return res;
+    }
+
+    /// @notice        transfer token to address
+    /// @param dest    receiver
+    /// @param amount  amount of value to transfer
+    function transferTokenTo(address dest, uint amount) 
+        public 
+        initialized 
+        notHalted
+        onlyHTLCSC
+        payable
+    {
+        dest.transfer(amount);
     }
 
     /// @notice       set inbound HTLC address
