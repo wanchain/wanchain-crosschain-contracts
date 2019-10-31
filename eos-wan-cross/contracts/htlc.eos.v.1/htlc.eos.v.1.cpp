@@ -1822,12 +1822,13 @@ eosio::asset htlc::stringToAsset(std::string_view qStr) {
     /* parse quantity */
     std::vector<std::string_view> vQuantity;
     common::split(qStr, ' ', vQuantity);
+    eosio_assert(1 < vQuantity.size(), "invalid asset");
     std::string_view qSym = vQuantity[1];
     std::vector<std::string_view> vQAmount;
     common::split(vQuantity[0], '.', vQAmount);
     uint64_t qInteger = std::atoll(vQAmount[0].data());
-    uint64_t qDecimal = std::atoll(vQAmount[1].data());
-    uint64_t qPrecision = vQAmount[1].size();
+    uint64_t qDecimal = vQAmount.size() > 1 ? std::atoll(vQAmount[1].data()) : 0;
+    uint64_t qPrecision = vQAmount.size() > 1 ? vQAmount[1].size() : 0;
     uint64_t count = qPrecision;
     uint64_t p10 = 1;
 
