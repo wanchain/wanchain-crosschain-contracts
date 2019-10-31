@@ -154,10 +154,14 @@ contract StoremanGroupPKStorage is Halt{
     /// storeman deposit instance address
     address public storemanDeposit;
 
-    /// a map from addresses to storeman group information (tokenOrigAddr->storemanGroupPK->StoremanGroup)
+    /// a map from addresses to storeman group information (tokenOrigAddr->storemanGroup->StoremanGroup)
     mapping(bytes=>mapping(bytes => StoremanGroup)) private storemanGroupMap;     
     /// a map from addresses to storeman group white list information
     mapping(bytes=>mapping(bytes => bool)) private mapSmgWhiteList;                
+
+    // DEBUG
+    event DebugLogger(string name, uint deposit, uint feeRatio, uint blkNo, address snd);
+
 
     struct StoremanGroup {
         uint    deposit;                  /// the storeman group deposit in wan coins
@@ -195,28 +199,112 @@ contract StoremanGroupPKStorage is Halt{
         storemanRegistrar = registrarAddr;
     }
 
-    function newStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint dep, uint feeRatio, uint blkNo, address initor)
+    /// @notice               new storeman group 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    /// @param dep            deposit
+    /// @param feeRatio       fee ratio
+    /// @param blkNo          block number
+    /// @param initor         initior address
+    function newStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup, uint dep, uint feeRatio, uint blkNo, address initor)
         external
         onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
         require(dep>0 && feeRatio>0);
-        require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].deposit == uint(0));
-        require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].bonusBlockNumber == uint(0));
+        require(storemanGroupMap[tokenOrigAddr][storemanGroup].deposit == uint(0));
+        require(storemanGroupMap[tokenOrigAddr][storemanGroup].bonusBlockNumber == uint(0));
 
-        storemanGroupMap[tokenOrigAccount][storemanGroupPK] = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
+        storemanGroupMap[tokenOrigAddr][storemanGroup] = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
 
         return true;
     }
 
-    function resetStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /**********************************
+     *
+     * BEGIN DEBUG PURPOSE
+     *
+     **********************************/
+
+    /// @notice               new storeman group 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    /// @param dep            deposit
+    /// @param feeRatio       fee ratio
+    /// @param blkNo          block number
+    /// @param initor         initior address
+    function newTestStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup, uint dep, uint feeRatio, uint blkNo, address initor)
         external
         onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
-        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
+        emit DebugLogger("Entry Test return", dep, feeRatio, blkNo, initor);
+        if (dep == 1) {
+            emit DebugLogger("1. Early exit Test return", dep, feeRatio, blkNo, initor);
+            return true;
+        }
+        StoremanGroup memory sg = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
+        if (dep == 2) {
+            emit DebugLogger("2. Early exit Test return", dep, feeRatio, blkNo, initor);
+            return true;
+        }
+
+        if (dep == 3) {
+        storemanGroupMap[tokenOrigAddr][storemanGroup] = sg;
+        } else {
+        storemanGroupMap[tokenOrigAddr][storemanGroup] = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
+        }
+        emit DebugLogger("Exit Test return", dep, feeRatio, blkNo, initor);
+
+        return true;
+    }
+
+    /// @notice               new storeman group 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    /// @param dep            deposit
+    /// @param feeRatio       fee ratio
+    /// @param blkNo          block number
+    /// @param initor         initior address
+    function newTestStoremanGroup2(bytes tokenOrigAddr, bytes storemanGroup, uint dep, uint feeRatio, uint blkNo, address initor)
+        external
+        onlyStoremanGroupSC
+    {
+        emit DebugLogger("Entry Test NO HALT return", dep, feeRatio, blkNo, initor);
+
+        if (dep == 10) {
+            emit DebugLogger("1. Early exit Test NO return", dep, feeRatio, blkNo, initor);
+            return;
+        }
+        StoremanGroup memory sg = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
+
+        if (dep == 20) {
+            emit DebugLogger("2. Early exit Test NO return", dep, feeRatio, blkNo, initor);
+            return;
+        }
+        storemanGroupMap[tokenOrigAddr][storemanGroup] = StoremanGroup(dep, 0, feeRatio, blkNo, initor, 0, 0);
+        emit DebugLogger("Exit Test NO HALT return", dep, feeRatio, blkNo, initor);
+
+    }
+
+    /**********************************
+     *
+     * END DEBUG PURPOSE
+     *
+     **********************************/
+
+    /// @notice               reset storeman group 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    function resetStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
+        external
+        onlyStoremanGroupSC
+        notHalted
+        returns (bool)
+    {
+        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAddr][storemanGroup];
         smgInfo.deposit = 0;   
         smgInfo.unregisterApplyTime = 0;
         smgInfo.txFeeRatio = 0;           
@@ -227,90 +315,101 @@ contract StoremanGroupPKStorage is Halt{
         return true;
     }
 
-    function updateStoremanGroupBounceBlock(bytes tokenOrigAccount, bytes storemanGroupPK, uint blkNo)
+    /// @notice               update storeman group block
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    /// @param blkNo          block number
+    function updateStoremanGroupBounceBlock(bytes tokenOrigAddr, bytes storemanGroup, uint blkNo)
         external
         onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
-        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAddr][storemanGroup];
         require (blkNo>smgInfo.bonusBlockNumber);
         smgInfo.bonusBlockNumber = blkNo;
 
         return true;
     }
 
-    function updateStoremanGroupPunishPercent(bytes tokenOrigAccount, bytes storemanGroupPK, uint percent)
+    /// @notice               update storeman group percent 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    /// @param percent        percent value
+    function updateStoremanGroupPunishPercent(bytes tokenOrigAddr, bytes storemanGroup, uint percent)
         external
         onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
-        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAddr][storemanGroup];
         smgInfo.punishPercent = percent;
 
         return true;
     }
 
-    function setStoremanGroupUnregisterTime(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @notice               set storeman group time 
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup  PK of storemanGroup
+    function setStoremanGroupUnregisterTime(bytes tokenOrigAddr, bytes storemanGroup)
         external
         onlyStoremanGroupSC
         notHalted
         returns (bool)
     {
-        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroup storage smgInfo = storemanGroupMap[tokenOrigAddr][storemanGroup];
         smgInfo.unregisterApplyTime = now;
 
         return true;
     }
 
     /// @notice                    function for get storemanGroup info
-    /// @param tokenOrigAccount    token account of original chain
-    /// @param storemanGroupPK     the storeman group info on original chain
-    function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr    token account of original chain
+    /// @param storemanGroup     the storeman group info on original chain
+    function mapStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         onlyStoremanGroupSC
         returns (uint, uint, uint, uint, address, uint)
     {
-        StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroup memory sg = storemanGroupMap[tokenOrigAddr][storemanGroup];
         return (sg.deposit, sg.unregisterApplyTime, sg.txFeeRatio, sg.bonusBlockNumber, sg.initiator, sg.punishPercent);
     }
 
     /// @notice                 check if storeman group is active
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  PK of storeman group
-    function isActiveStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr token account of original chain
+    /// @param storemanGroup  PK of storeman group
+    function isActiveStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         onlyStoremanGroupSC
         returns (bool)
     {
-        return storemanGroupMap[tokenOrigAccount][storemanGroupPK].deposit > uint(0);
+        return storemanGroupMap[tokenOrigAddr][storemanGroup].deposit > uint(0);
     }
 
 
-    /// @notice                 check to see if storeman (tokenOrigAccount,storemanGroupPK) is in white list 
-    /// @param tokenOrigAccount token account of original chain 
-    /// @param storemanGroupPK  PK of storeman group
-    function isInWriteList(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @notice                 check to see if storeman (tokenOrigAddr,storemanGroup) is in white list 
+    /// @param tokenOrigAddr token account of original chain 
+    /// @param storemanGroup  PK of storeman group
+    function isInWriteList(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         onlyStoremanGroupSC
         returns (bool)
     {
-        return mapSmgWhiteList[tokenOrigAccount][storemanGroupPK];
+        return mapSmgWhiteList[tokenOrigAddr][storemanGroup];
     }
 
-    /// @notice                 set (tokenOrigAccount,storemanGroupPK) white list 
-    /// @param tokenOrigAccount token account of original chain 
-    /// @param storemanGroupPK  PK of storeman group
-    function setSmgWriteList(bytes tokenOrigAccount, bytes storemanGroupPK, bool isWriteListed)
+    /// @notice                 set (tokenOrigAddr,storemanGroup) white list 
+    /// @param tokenOrigAddr token account of original chain 
+    /// @param storemanGroup  PK of storeman group
+    function setSmgWriteList(bytes tokenOrigAddr, bytes storemanGroup, bool isWriteListed)
         external
         onlyStoremanGroupSC
         returns (bool)
     {
-        mapSmgWhiteList[tokenOrigAccount][storemanGroupPK] = isWriteListed;
+        mapSmgWhiteList[tokenOrigAddr][storemanGroup] = isWriteListed;
     }
 
     /// @notice       transfer WAN to address 

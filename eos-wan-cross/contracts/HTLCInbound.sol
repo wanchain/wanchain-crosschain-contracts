@@ -275,26 +275,26 @@ contract HTLCBase is Halt {
     }
 
     /// @notice                  function for get HTLC info
-    /// @param tokenOrigAccount  token account of original chain
+    /// @param tokenOrigAddr  token account of original chain
     /// @param xHash             xHash
-    function mapXHashHTLCTxs(bytes tokenOrigAccount, bytes32 xHash)
+    function mapXHashHTLCTxs(bytes tokenOrigAddr, bytes32 xHash)
         public
         view
         returns (address, address, bytes, uint)
     {
-        HTLCTx storage t = xHashHTLCTxsMap[tokenOrigAccount][xHash];
+        HTLCTx storage t = xHashHTLCTxsMap[tokenOrigAddr][xHash];
         return (t.source, t.destination, t.storemanPK, t.value);
     }
 
     /// @notice                  function for get HTLC info
-    /// @param tokenOrigAccount  token account of original chain
+    /// @param tokenOrigAddr  token account of original chain
     /// @param xHash             xHash
-    function getDebtTransferSrcPK(bytes tokenOrigAccount, bytes32 xHash)
+    function getDebtTransferSrcPK(bytes tokenOrigAddr, bytes32 xHash)
         public
         view
         returns (bytes)
     {
-        HTLCTx storage t = xHashHTLCTxsMap[tokenOrigAccount][xHash];
+        HTLCTx storage t = xHashHTLCTxsMap[tokenOrigAddr][xHash];
         require(t.direction != TxDirection.DebtTransfer);
         return (t.srcPK);
     }
@@ -312,15 +312,15 @@ contract HTLCBase is Halt {
     }
 
     /// @notice                 get left locked time of the HTLC transaction
-    /// @param  tokenOrigAccount  account of original chain token 
+    /// @param  tokenOrigAddr  account of original chain token 
     /// @param  xHash           hash of HTLC random number
     /// @return time            return left locked time, in seconds. return uint(0xffffffffffffffff) if xHash does not exist
-    function getHTLCLeftLockedTime(bytes tokenOrigAccount, bytes32 xHash) 
+    function getHTLCLeftLockedTime(bytes tokenOrigAddr, bytes32 xHash) 
         public 
         view 
         returns(uint time) 
     {
-        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAccount][xHash];
+        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAddr][xHash];
         if (info.status == TxStatus.None) {
             return DEF_MAX_TIME;
         }
@@ -341,15 +341,15 @@ contract HTLCBase is Halt {
     }
 
     /// @notice                 check HTLC transaction exist or not
-    /// @param  tokenOrigAccount  account of original chain token
+    /// @param  tokenOrigAddr  account of original chain token
     /// @param  xHash           hash of HTLC random number
     /// @return exist           return true if exist
-    function xHashExist(bytes tokenOrigAccount, bytes32 xHash) 
+    function xHashExist(bytes tokenOrigAddr, bytes32 xHash) 
         public 
         view 
         returns(bool exist) 
     {
-        return xHashHTLCTxsMap[tokenOrigAccount][xHash].status != TxStatus.None;
+        return xHashHTLCTxsMap[tokenOrigAddr][xHash].status != TxStatus.None;
     }
     
     /// @notice                 compute xhash
@@ -371,7 +371,7 @@ contract HTLCBase is Halt {
     }
 
     /// @notice                 add HTLC transaction info
-    /// @param  tokenOrigAccount  account of original chain token 
+    /// @param  tokenOrigAddr  account of original chain token 
     /// @param  direction       HTLC transaction direction
     /// @param  src             HTLC transaction source address
     /// @param  des             HTLC transaction destination address
@@ -379,29 +379,29 @@ contract HTLCBase is Halt {
     /// @param  value           HTLC transfer value of token
     /// @param  isFirstHand     is HTLC first hand trade?
     /// @param  shadow          shadow address. used for receipt coins on opposite block chain
-    function addHTLCTx(bytes tokenOrigAccount, TxDirection direction, address src, address des, bytes32 xHash, uint value, bool isFirstHand, bytes shadow, bytes storemanPK, bytes srcPK)
+    function addHTLCTx(bytes tokenOrigAddr, TxDirection direction, address src, address des, bytes32 xHash, uint value, bool isFirstHand, bytes shadow, bytes storemanPK, bytes srcPK)
         internal
     {
         require(value != 0);
-        require(!xHashExist(tokenOrigAccount, xHash));
+        require(!xHashExist(tokenOrigAddr, xHash));
         
-        xHashHTLCTxsMap[tokenOrigAccount][xHash] = HTLCTx(direction, src, des, storemanPK, value, TxStatus.Locked, isFirstHand ? lockedTime.mul(2) : lockedTime, now, srcPK);
-        if (isFirstHand) mapXHashShadow[tokenOrigAccount][xHash] = shadow;
+        xHashHTLCTxsMap[tokenOrigAddr][xHash] = HTLCTx(direction, src, des, storemanPK, value, TxStatus.Locked, isFirstHand ? lockedTime.mul(2) : lockedTime, now, srcPK);
+        if (isFirstHand) mapXHashShadow[tokenOrigAddr][xHash] = shadow;
     }
     
     /// @notice                 refund coins from HTLC transaction
-    /// @param  tokenOrigAccount  account of original chain token 
+    /// @param  tokenOrigAddr  account of original chain token 
     /// @param  x               random number of HTLC
     /// @param  hashAlgorithms  hash algorithms to calculate xHash
     /// @param  direction       HTLC transaction direction
     /// @return xHash           return hash of HTLC random number
-    function redeemHTLCTx(bytes tokenOrigAccount, bytes32 x, uint hashAlgorithms, TxDirection direction)
+    function redeemHTLCTx(bytes tokenOrigAddr, bytes32 x, uint hashAlgorithms, TxDirection direction)
         internal
         returns(bytes32 xHash)
     {
         xHash = computeXHash(x, hashAlgorithms);
         
-        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAccount][xHash];
+        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAddr][xHash];
         require(info.status == TxStatus.Locked);
         require(info.direction == direction);
         if (info.direction != TxDirection.DebtTransfer) {
@@ -414,14 +414,14 @@ contract HTLCBase is Halt {
     }
     
     /// @notice                 revoke HTLC transaction
-    /// @param  tokenOrigAccount  account of original chain token 
+    /// @param  tokenOrigAddr  account of original chain token 
     /// @param  xHash           hash of HTLC random number
     /// @param  direction       HTLC transaction direction
     /// @param  loose           whether give counterparty revoking right
-    function revokeHTLCTx(bytes tokenOrigAccount, bytes32 xHash, TxDirection direction, bool loose)
+    function revokeHTLCTx(bytes tokenOrigAddr, bytes32 xHash, TxDirection direction, bool loose)
         internal
     {
-        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAccount][xHash];
+        HTLCTx storage info = xHashHTLCTxsMap[tokenOrigAddr][xHash];
         require(info.status == TxStatus.Locked);
         require(info.direction == direction);
         require(now >= info.beginLockedTime.add(info.lockedTime));
@@ -463,24 +463,24 @@ contract HTLCInbound is HTLCBase {
      **/
 
     /// @notice                 event of exchange WERC20 token with original chain token request
-    /// @param storemanGroupPK  PK of storemanGroup
+    /// @param storemanGroup  PK of storemanGroup
     /// @param wanAddr          address of wanchain, used to receive WERC20 token
     /// @param xHash            hash of HTLC random number
     /// @param value            HTLC value
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundLockLogger(bytes storemanGroupPK, address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundLockLogger(bytes storemanGroup, address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAddr);
     /// @notice                 event of refund WERC20 token from exchange WERC20 token with original chain token HTLC transaction
     /// @param wanAddr          address of user on wanchain, used to receive WERC20 token
-    /// @param storemanGroupPK  PK of storeman, the WERC20 token minter
+    /// @param storemanGroup  PK of storeman, the WERC20 token minter
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroup, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAddr);
     /// @notice                 event of revoke exchange WERC20 token with original chain token HTLC transaction
-    /// @param storemanGroupPK  PK of storemanGroup
+    /// @param storemanGroup  PK of storemanGroup
     /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundRevokeLogger(bytes indexed storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundRevokeLogger(bytes indexed storemanGroup, bytes32 indexed xHash, bytes tokenOrigAddr);
 
     /**
      *
@@ -504,68 +504,68 @@ contract HTLCInbound is HTLCBase {
      */
 
     /// @notice                 request exchange WERC20 token with original chain token(to prevent collision, x must be a 256bit random bigint) 
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  xHash           hash of HTLC random number
     /// @param  wanAddr         address of user, used to receive WERC20 token
     /// @param  value           exchange value
     /// @param  storemanPK      PK of storeman
     /// @param  R               signature
     /// @param  s               signature
-     function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes32 s) 
+     function lock(bytes tokenOrigAddr, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes32 s) 
          public 
          initialized 
          notHalted
          returns(bool) 
      {
-         require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAccount));
-         ///bytes memory mesg=abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK);
-         bytes32 mhash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
+         require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAddr));
+         ///bytes memory mesg=abi.encode(tokenOrigAddr, xHash, wanAddr, value, storemanPK);
+         bytes32 mhash = sha256(abi.encode(tokenOrigAddr, xHash, wanAddr, value, storemanPK));
          require(verifySignature(mhash, storemanPK, R, s));
         
-         addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
-         require(QuotaInterface(quotaLedger).lockQuota(tokenOrigAccount, storemanPK, value));
+         addHTLCTx(tokenOrigAddr, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
+         require(QuotaInterface(quotaLedger).lockQuota(tokenOrigAddr, storemanPK, value));
 
          return true;
      }
 
     /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  x               HTLC random number
-    function redeem(bytes tokenOrigAccount, bytes32 x) 
+    function redeem(bytes tokenOrigAddr, bytes32 x) 
         public 
         initialized 
         notHalted
         returns(bool, address, bytes, bytes32) 
     {
-        var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-        bytes32 xHash= redeemHTLCTx(tokenOrigAccount, x, ha, TxDirection.Inbound);
-        var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
-        require(QuotaInterface(quotaLedger).mintToken(tokenOrigAccount, storemanPK, destination, value));
+        var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
+        bytes32 xHash= redeemHTLCTx(tokenOrigAddr, x, ha, TxDirection.Inbound);
+        var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAddr, xHash);
+        require(QuotaInterface(quotaLedger).mintToken(tokenOrigAddr, storemanPK, destination, value));
 
-        //emit InboundRedeemLogger(destination, storemanPK, xHash, x, tokenOrigAccount);
+        //emit InboundRedeemLogger(destination, storemanPK, xHash, x, tokenOrigAddr);
         return (true, destination, storemanPK, xHash);
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
-    /// @param tokenOrigAccount account of original chain token  
+    /// @param tokenOrigAddr account of original chain token  
     /// @param xHash            hash of HTLC random number
     /// @param  R               signature
     /// @param  s               signature
-    function revoke(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes32 s) 
+    function revoke(bytes tokenOrigAddr, bytes32 xHash, bytes R, bytes32 s) 
         public 
         initialized 
         notHalted
         returns(bool, bytes) 
     {
-        /// bytes memory mesg=abi.encode(tokenOrigAccount, xHash);
-        bytes32 mhash = sha256(abi.encode(tokenOrigAccount, xHash));
-        var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
+        /// bytes memory mesg=abi.encode(tokenOrigAddr, xHash);
+        bytes32 mhash = sha256(abi.encode(tokenOrigAddr, xHash));
+        var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAddr, xHash);
         verifySignature(mhash, storemanPK, R, s);
 
-        revokeHTLCTx(tokenOrigAccount, xHash, TxDirection.Inbound, false);
-        require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAccount, storemanPK, value));
+        revokeHTLCTx(tokenOrigAddr, xHash, TxDirection.Inbound, false);
+        require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAddr, storemanPK, value));
 
-        //emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
+        //emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAddr);
         return (true, storemanPK);
     }
 

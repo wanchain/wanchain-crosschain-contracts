@@ -213,16 +213,16 @@ contract StoremanGroupPKDeposit is Halt{
      */   
         
     /// @notice                           event for storeman group claiming system bonus
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param bonusRecipient             storemanGroup address
     /// @param bonus                      the bonus for storeman claim       
-    event StoremanGroupClaimSystemBonusLogger(bytes tokenOrigAccount, address indexed bonusRecipient, uint indexed bonus);
+    event StoremanGroupClaimSystemBonusLogger(bytes tokenOrigAddr, address indexed bonusRecipient, uint indexed bonus);
     
     /// @notice                           event for storeman group be punished
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param smgWanAddr                 storeman address
     /// @param punishPercent              punish percent of deposit
-    event StoremanGroupPunishedLogger(bytes tokenOrigAccount, address indexed smgWanAddr, uint indexed punishPercent);   
+    event StoremanGroupPunishedLogger(bytes tokenOrigAddr, address indexed smgWanAddr, uint indexed punishPercent);   
 
     /**
      *
@@ -231,12 +231,12 @@ contract StoremanGroupPKDeposit is Halt{
      */
 
     /// @notice
-    /// @param tokenOrigAccount  token account of original chain
-    function calculateSmgBonus(bytes tokenOrigAccount, bytes storemanGroupPK, uint smgBonusBlkNo, uint smgDeposit)
+    /// @param tokenOrigAddr  token account of original chain
+    function calculateSmgBonus(bytes tokenOrigAddr, bytes storemanGroup, uint smgBonusBlkNo, uint smgDeposit)
         private
         returns (uint, uint)
     {
-        var (,,,,,,startBonusBlk,bonusTotal,bonusPeriodBlks,bonusRatio,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,startBonusBlk,bonusTotal,bonusPeriodBlks,bonusRatio,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         if (startBonusBlk==0) {
             return (0, 0);
@@ -262,27 +262,27 @@ contract StoremanGroupPKDeposit is Halt{
     }
 
     /// @notice                           function for bonus claim
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storeman group pk 
-    function doClaimSystemBonus(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storeman group pk 
+    function doClaimSystemBonus(bytes tokenOrigAddr, bytes storemanGroup)
         private
         returns (bool, address, uint)
     {
-        var (deposit,,blkNo,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (deposit,,blkNo,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
 
-        var (,,,,,,,bonusTotal,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,,bonusTotal,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         if(punishPercent != 0){
           return (false, address(0), 0);
         }
 
-        var (bonus, newBlkNo) = calculateSmgBonus(tokenOrigAccount, storemanGroupPK, blkNo, deposit);
+        var (bonus, newBlkNo) = calculateSmgBonus(tokenOrigAddr, storemanGroup, blkNo, deposit);
         if (newBlkNo>0 && blkNo<newBlkNo) {
-            StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupBounceBlock(tokenOrigAccount, storemanGroupPK, newBlkNo);
+            StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupBounceBlock(tokenOrigAddr, storemanGroup, newBlkNo);
         }
 
         if (bonusTotal >= bonus && bonus > 0) {
-            require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, bonus, false));
+            require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAddr, bonus, false));
                 if (initiator != address(0)) {
                     //initiator.transfer(bonus);
                     StoremanGroupStorageInterface(storemanStorage).transferToAddr(initiator, bonus);
@@ -335,26 +335,26 @@ contract StoremanGroupPKDeposit is Halt{
 
     /// @notice                           function for storeman claiming system bonus
     /// @dev                              function for storeman claiming system bonus
-    /// @param tokenOrigAccount           token account of original chain
-    function storemanGroupClaimSystemBonus(bytes tokenOrigAccount, bytes storemanPK)
+    /// @param tokenOrigAddr           token account of original chain
+    function storemanGroupClaimSystemBonus(bytes tokenOrigAddr, bytes storemanPK)
         external 
         notHalted
         onlyStoremanGroupAdm
         initialized
         returns (bool, address, uint)
     {
-        var (,unregApplyTm,blkNo,,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanPK);
+        var (,unregApplyTm,blkNo,,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanPK);
         require(blkNo != 0 && unregApplyTm == 0);
        
        // TODO: pass smg PK, do we need this???
-        return doClaimSystemBonus(tokenOrigAccount, storemanPK);
+        return doClaimSystemBonus(tokenOrigAddr, storemanPK);
     }
 
     /// @notice                           function for storeman claiming system bonus through a proxy  
     /// @dev                              function for storeman claiming system bonus through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storemanGroup PK 
-    function smgClaimSystemBonusByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storemanGroup PK 
+    function smgClaimSystemBonusByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
         onlyStoremanGroupAdm
@@ -362,19 +362,19 @@ contract StoremanGroupPKDeposit is Halt{
         returns (bool, address, uint)
     {
         // make sure the address who registered this smg initiated this transaction
-        var (,unregApplyTm,blkNo,,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (,unregApplyTm,blkNo,,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
 
         require(initiator == msg.sender); 
         
         require(blkNo != 0 && unregApplyTm == 0); 
         
-        return doClaimSystemBonus(tokenOrigAccount, storemanGroupPK);
+        return doClaimSystemBonus(tokenOrigAddr, storemanGroup);
     }
 
     /// @notice                           function for bonus deposit
     /// @dev                              function for bonus deposit
-    /// @param tokenOrigAccount           token account of original chain
-    function depositSmgBonus(bytes tokenOrigAccount, uint value)
+    /// @param tokenOrigAddr           token account of original chain
+    function depositSmgBonus(bytes tokenOrigAddr, uint value)
         external
         payable
         onlyStoremanGroupAdm
@@ -383,20 +383,20 @@ contract StoremanGroupPKDeposit is Halt{
     {
         require(value > 0);
         
-        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
         require(startBonusBlk > 0);
         
-        require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, value, true));
+        require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAddr, value, true));
     }
 
-    function feeReceiver(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function feeReceiver(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
         onlyStoremanGroupAdm
         initialized
         returns (address)
     {
-        var (,,,,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (,,,,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
         //if (initiator != address(0)) {
         //    initiator.transfer(fee);
         //}

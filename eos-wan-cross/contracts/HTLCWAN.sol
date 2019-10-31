@@ -178,61 +178,61 @@ contract HTLCWAN is Halt {
      **/
 
     /// @notice                 event of exchange WERC20 token with original chain token request
-    /// @param storemanGroupPK  PK of storemanGroup
+    /// @param storemanGroup  PK of storemanGroup
     /// @param wanAddr          address of wanchain, used to receive WERC20 token
     /// @param xHash            hash of HTLC random number
     /// @param value            HTLC value
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundLockLogger(bytes storemanGroupPK, address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundLockLogger(bytes storemanGroup, address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAddr);
     /// @notice                 event of refund WERC20 token from exchange WERC20 token with original chain token HTLC transaction
     /// @param wanAddr          address of user on wanchain, used to receive WERC20 token
-    /// @param storemanGroupPK  PK of storeman, the WERC20 token minter
+    /// @param storemanGroup  PK of storeman, the WERC20 token minter
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroup, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAddr);
     /// @notice                 event of revoke exchange WERC20 token with original chain token HTLC transaction
-    /// @param storemanGroupPK  PK of storemanGroup
+    /// @param storemanGroup  PK of storemanGroup
     /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event InboundRevokeLogger(bytes storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event InboundRevokeLogger(bytes storemanGroup, bytes32 indexed xHash, bytes tokenOrigAddr);
 
     /// @notice                 event of exchange original chain token with WERC20 token request
     /// @param wanAddr          address of user, where the WERC20 token come from
-    /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
+    /// @param storemanGroup  PK of storemanGroup, where the original chain token come from
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
     /// @param userOrigAccount  account of original chain, used to receive token
     /// fee              exchange fee
-    /// @param tokenOrigAccount account of original chain token  
-    event OutboundLockLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, uint value, bytes userOrigAccount, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event OutboundLockLogger(address indexed wanAddr, bytes storemanGroup, bytes32 indexed xHash, uint value, bytes userOrigAccount, bytes tokenOrigAddr);
     /// @notice                 event of refund WERC20 token from exchange original chain token with WERC20 token HTLC transaction
     /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAddr);
     /// @notice                 event of revoke exchange original chain token with WERC20 token HTLC transaction
     /// @param wanAddr          address of user
     /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAddr);
 
     /// @notice                 event of store debt lock
     /// @param srcStoremanPK    PK of src storeman
     /// @param dstStoremanPK    PK of dst storeman
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
-    /// @param tokenOrigAccount account of original chain token  
-    event DebtLockLogger(bytes srcStoremanPK, bytes dstStoremanPK, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event DebtLockLogger(bytes srcStoremanPK, bytes dstStoremanPK, bytes32 indexed xHash, uint value, bytes tokenOrigAddr);
     /// @notice                 event of refund storeman debt
-    /// @param storemanGroupPK  PK of storemanGroup, used to receive WERC20 token
+    /// @param storemanGroup  PK of storemanGroup, used to receive WERC20 token
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event DebtRedeemLogger(bytes storemanGroupPK, bytes32 indexed xHash, bytes32 x, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event DebtRedeemLogger(bytes storemanGroup, bytes32 indexed xHash, bytes32 x, bytes tokenOrigAddr);
     /// @notice                 event of revoke storeman debt
     /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token  
-    event DebtRevokeLogger(address indexed wanAddr, bytes storemanPK, bytes32 indexed xHash, bytes tokenOrigAccount);
+    /// @param tokenOrigAddr account of original chain token  
+    event DebtRevokeLogger(address indexed wanAddr, bytes storemanPK, bytes32 indexed xHash, bytes tokenOrigAddr);
 
     /**
      *
@@ -260,159 +260,159 @@ contract HTLCWAN is Halt {
      */
 
     /// @notice                 request exchange WERC20 token with original chain token(to prevent collision, x must be a 256bit random bigint) 
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  xHash           hash of HTLC random number
     /// @param  wanAddr         address of user, used to receive WERC20 token
     /// @param  value           exchange value
     /// @param  storemanPK      PK of storeman
     /// @param  R               signature
     /// @param  s               signature
-     function inboundLock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes s) 
+     function inboundLock(bytes tokenOrigAddr, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes R, bytes s) 
          public 
          initialized 
          notHalted
          returns(bool) 
      {
-         require(InboundHTLCInterface(inboundHTLC).lock(tokenOrigAccount, xHash, wanAddr, value, storemanPK, R, s));
-         emit InboundLockLogger(storemanPK, wanAddr, xHash, value, tokenOrigAccount);
+         require(InboundHTLCInterface(inboundHTLC).lock(tokenOrigAddr, xHash, wanAddr, value, storemanPK, R, s));
+         emit InboundLockLogger(storemanPK, wanAddr, xHash, value, tokenOrigAddr);
      }
 
     /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  x               HTLC random number
-    function inboundRedeem(bytes tokenOrigAccount, bytes32 x) 
+    function inboundRedeem(bytes tokenOrigAddr, bytes32 x) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,dest,storemanPK,xhash)=InboundHTLCInterface(inboundHTLC).redeem(tokenOrigAccount, x);
+        var (res,dest,storemanPK,xhash)=InboundHTLCInterface(inboundHTLC).redeem(tokenOrigAddr, x);
         require(res);
-        emit InboundRedeemLogger(dest, storemanPK, xhash, x, tokenOrigAccount);
+        emit InboundRedeemLogger(dest, storemanPK, xhash, x, tokenOrigAddr);
         return true;
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
-    /// @param tokenOrigAccount account of original chain token  
+    /// @param tokenOrigAddr account of original chain token  
     /// @param xHash            hash of HTLC random number
     /// @param  R               signature
     /// @param  s               signature
-    function inboundRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes s) 
+    function inboundRevoke(bytes tokenOrigAddr, bytes32 xHash, bytes R, bytes s) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,storemanPK)=InboundHTLCInterface(inboundHTLC).revoke(tokenOrigAccount, xHash, R, s);
-        emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
+        var (res,storemanPK)=InboundHTLCInterface(inboundHTLC).revoke(tokenOrigAddr, xHash, R, s);
+        emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAddr);
 
         return true;
     }
 
     /// @notice                 request exchange original chain token with WERC20 token(to prevent collision, x must be a 256bit random bigint)
-    /// @param tokenOrigAccount account of original chain token  
+    /// @param tokenOrigAddr account of original chain token  
     /// @param xHash            hash of HTLC random number
-    /// @param storemanGroupPK  PK of storeman group
+    /// @param storemanGroup  PK of storeman group
     /// @param userOrigAccount  account of original chain, used to receive token
     /// @param value            exchange value
-    function outboundLock(bytes tokenOrigAccount, bytes32 xHash, bytes userOrigAccount, uint value, bytes storemanGroupPK) 
+    function outboundLock(bytes tokenOrigAddr, bytes32 xHash, bytes userOrigAccount, uint value, bytes storemanGroup) 
         public 
         initialized
         notHalted
         payable
         returns(bool) 
     {
-        var fee = OutboundHTLCInterface(outboundHTLC).lock(tokenOrigAccount, xHash, userOrigAccount, value, msg.value, storemanGroupPK);
+        var fee = OutboundHTLCInterface(outboundHTLC).lock(tokenOrigAddr, xHash, userOrigAccount, value, msg.value, storemanGroup);
         uint left = (msg.value).sub(fee);
         if (left != 0) {
             (msg.sender).transfer(left);
         }
-        emit OutboundLockLogger(msg.sender, storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
+        emit OutboundLockLogger(msg.sender, storemanGroup, xHash, value, userOrigAccount, tokenOrigAddr);
         return true;
     }
 
     /// @notice                 refund WERC20 token from the HTLC transaction of exchange original chain token with WERC20 token(must be called before HTLC timeout)
-    /// @param tokenOrigAccount account of original chain token  
+    /// @param tokenOrigAddr account of original chain token  
     /// @param x                HTLC random number
     /// @param R                signature
     /// @param s                signature
-    function outboundRedeem(bytes tokenOrigAccount, bytes32 x, bytes R, bytes s) 
+    function outboundRedeem(bytes tokenOrigAddr, bytes32 x, bytes R, bytes s) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,xhash)=OutboundHTLCInterface(outboundHTLC).redeem(tokenOrigAccount, x, R, s);
+        var (res,xhash)=OutboundHTLCInterface(outboundHTLC).redeem(tokenOrigAddr, x, R, s);
         require(res);
-        emit OutboundRedeemLogger(xhash, x, tokenOrigAccount);
+        emit OutboundRedeemLogger(xhash, x, tokenOrigAddr);
         return res;
     }
 
     /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @notice                 the revoking fee will be sent to storeman
     /// @param  xHash           hash of HTLC random number
-    function outboundRevoke(bytes tokenOrigAccount, bytes32 xHash) 
+    function outboundRevoke(bytes tokenOrigAddr, bytes32 xHash) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,src, storemanPK)=OutboundHTLCInterface(outboundHTLC).revoke(tokenOrigAccount, xHash);
+        var (res,src, storemanPK)=OutboundHTLCInterface(outboundHTLC).revoke(tokenOrigAddr, xHash);
         require(res);
-        emit OutboundRevokeLogger(src, xHash, tokenOrigAccount);
+        emit OutboundRevokeLogger(src, xHash, tokenOrigAddr);
         return res;
     }
     
     /// @notice                 lock storeman debt 
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  xHash           hash of HTLC random number
     /// @param  srcStoremanPK   PK of src storeman
     /// @param  dstStoremanPK   PK of dst storeman
     /// @param  R               signature
     /// @param  s               signature
-     function lockStoremanDebt(bytes tokenOrigAccount, bytes32 xHash, bytes srcStoremanPK, bytes dstStoremanPK, uint value, bytes R, bytes s) 
+     function lockStoremanDebt(bytes tokenOrigAddr, bytes32 xHash, bytes srcStoremanPK, bytes dstStoremanPK, uint value, bytes R, bytes s) 
          public 
          initialized 
          notHalted
          returns(bool) 
      {
-         require(DebtTransferHTLCInterface(debtHTLC).lock(tokenOrigAccount, xHash, srcStoremanPK, dstStoremanPK, R, s));
-         emit DebtLockLogger(srcStoremanPK, dstStoremanPK, xHash, value, tokenOrigAccount);
+         require(DebtTransferHTLCInterface(debtHTLC).lock(tokenOrigAddr, xHash, srcStoremanPK, dstStoremanPK, R, s));
+         emit DebtLockLogger(srcStoremanPK, dstStoremanPK, xHash, value, tokenOrigAddr);
 
          return true;
      }
 
     /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token  
+    /// @param  tokenOrigAddr  account of original chain token  
     /// @param  x               HTLC random number
-    function redeemStoremanDebt(bytes tokenOrigAccount, bytes32 x, bytes R, bytes s) 
+    function redeemStoremanDebt(bytes tokenOrigAddr, bytes32 x, bytes R, bytes s) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,storemanPK,xHash)=DebtTransferHTLCInterface(debtHTLC).redeem(tokenOrigAccount, x, R, s);
+        var (res,storemanPK,xHash)=DebtTransferHTLCInterface(debtHTLC).redeem(tokenOrigAddr, x, R, s);
         require(res);
-        emit DebtRedeemLogger(storemanPK, xHash, x, tokenOrigAccount);
+        emit DebtRedeemLogger(storemanPK, xHash, x, tokenOrigAddr);
         return res;
 
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
-    /// @param tokenOrigAccount account of original chain token  
+    /// @param tokenOrigAddr account of original chain token  
     /// @param xHash            hash of HTLC random number
     /// @param  R               signature
     /// @param  s               signature
-    function revokeStoremanDebt(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes s) 
+    function revokeStoremanDebt(bytes tokenOrigAddr, bytes32 xHash, bytes R, bytes s) 
         public 
         initialized 
         notHalted
         returns(bool) 
     {
-        var (res,src,storemanPK)=DebtTransferHTLCInterface(debtHTLC).revoke(tokenOrigAccount, xHash, R, s);
+        var (res,src,storemanPK)=DebtTransferHTLCInterface(debtHTLC).revoke(tokenOrigAddr, xHash, R, s);
         require(res);
-        emit DebtRevokeLogger(src, storemanPK, xHash, tokenOrigAccount);
+        emit DebtRevokeLogger(src, storemanPK, xHash, tokenOrigAddr);
         return res;
     }
 

@@ -132,8 +132,20 @@ contract QuotaLedger is Halt {
 
     /// @notice HTLCWAN instance address
     address public HTLCWAN;
+    /// @notice HTLCIN instance address
+    address public HTLCIN;
+    /// @notice HTLCOUT instance address
+    address public HTLCOUT;
+    /// @notice HTLCTRANS instance address
+    address public HTLCTRAN;
+
     /// @notice storeman group instance address
     address public storemanGroupAdmin;
+    /// storeman registrar instance address
+    address public storemanRegistrar;
+    /// storeman deposit instance address
+    address public storemanDeposit;
+
     /// @notice token manager instance address
     address public tokenManager;
     /// @notice a map from storemanGroup PK to its quota information
@@ -160,65 +172,75 @@ contract QuotaLedger is Halt {
         _;
     }
 
-    modifier onlyStoremanGroupAdmin {
-        require(msg.sender == storemanGroupAdmin);
+    modifier onlyStoremanGroupSC {
+        require(msg.sender == storemanGroupAdmin || msg.sender == storemanRegistrar || msg.sender == storemanDeposit);
         _;
     }
 
-    modifier onlyHTLCWAN {
-        require(msg.sender == HTLCWAN);
+    modifier onlyHTLCSC {
+        require(msg.sender == HTLCWAN||msg.sender==HTLCIN||msg.sender==HTLCOUT||msg.sender==HTLCTRAN);
         _;
     }
 
     /// @notice                 function for get quota
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup PK 
-    function mapQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr token account of original chain
+    /// @param storemanGroup  storemanGroup PK 
+    function mapQuota(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         returns (uint, uint, uint, uint)
     {
-        StoremanGroupQuota storage quota = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quota = quotaMap[tokenOrigAddr][storemanGroup];
         return (quota._quota, quota._receivable, quota._payable, quota._debt);
     }
 
     /// @notice                 function for get unregistration status
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup pk 
-    function mapUnregistration(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr token account of original chain
+    /// @param storemanGroup  storemanGroup pk 
+    function mapUnregistration(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         returns (bool)
     {
-        return unregistrationMap[tokenOrigAccount][storemanGroupPK];
+        return unregistrationMap[tokenOrigAddr][storemanGroup];
     }    
 
     /// @notice                 set htlc instance address
     /// @dev                    set htlc instance address
-    /// @param htlc             htlc instance address of wanchain
-    function setHTLCWAN(address htlc)
+    /// @param htlcAddr         htlc instance address of wanchain
+    /// @param htlcInAddr       htlc instance address of wanchain
+    /// @param htlcOutAddr      htlc instance address of wanchain
+    /// @param htlcTransAddr    htlc instance address of wanchain
+    function setHTLCSC(address htlcAddr, address htlcInAddr, address htlcOutAddr, address htlcTransAddr)
         public 
         isHalted
         onlyOwner
         returns (bool)
     {
-        require(htlc != address(0));
-        HTLCWAN = htlc;
+        require(htlcAddr != address(0)&&htlcInAddr!=address(0)&& htlcOutAddr!=address(0)&&htlcTransAddr!=address(0));
+        HTLCWAN = htlcAddr;
+        HTLCIN = htlcInAddr;
+        HTLCOUT = htlcOutAddr;
+        HTLCTRAN = htlcTransAddr;
 
         return true;
     }
 
     /// @notice                 set storemanGroup instance address
     /// @dev                    set storemanGroup instance address
-    /// @param admin            storemanGroup instance address
-    function setStoremanGroupAdmin(address admin)
+    /// @param adminAddr        storemanGroup instance address
+    /// @param registerAddr     storemanGroup instance address
+    /// @param depositAddr      storemanGroup instance address
+    function setStoremanGroupSCAddr(address adminAddr, address registerAddr, address depositAddr)
         public 
         isHalted
         onlyOwner
         returns (bool) 
     {
-        require(admin != address(0));
-        storemanGroupAdmin = admin;
+        require(adminAddr != address(0)&&registerAddr!=address(0) && depositAddr!=address(0));
+        storemanGroupAdmin = adminAddr;
+        storemanDeposit = depositAddr;
+        storemanRegistrar = registerAddr;
 
         return true;
     }
@@ -239,49 +261,49 @@ contract QuotaLedger is Halt {
     }
 
     /// @notice                 set storeman group's quota
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup PK
+    /// @param tokenOrigAddr token account of original chain
+    /// @param storemanGroup  storemanGroup PK
     /// @param quota            a storemanGroup's quota    
-    function setStoremanGroupQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) 
+    function setStoremanGroupQuota(bytes tokenOrigAddr, bytes storemanGroup, uint quota) 
         external
-        onlyStoremanGroupAdmin
+        onlyStoremanGroupSC
         onlyMeaningfulValue(quota)
         returns (bool)
     {
-        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0);
-        require(!isStoremanGroup(tokenOrigAccount, storemanGroupPK));
-        quotaMap[tokenOrigAccount][storemanGroupPK] = StoremanGroupQuota(quota, 0, 0, 0);
+        require(tokenOrigAddr.length != 0 && storemanGroup.length != 0);
+        require(!isStoremanGroup(tokenOrigAddr, storemanGroup));
+        quotaMap[tokenOrigAddr][storemanGroup] = StoremanGroupQuota(quota, 0, 0, 0);
 
         return true;
     }
 
-    function applyUnregistration(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function applyUnregistration(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
-        onlyStoremanGroupAdmin
+        onlyStoremanGroupSC
         returns (bool)
     {
-        require(isActiveStoremanGroup(tokenOrigAccount, storemanGroupPK));
+        require(isActiveStoremanGroup(tokenOrigAddr, storemanGroup));
 
-        unregistrationMap[tokenOrigAccount][storemanGroupPK] = true;
+        unregistrationMap[tokenOrigAddr][storemanGroup] = true;
 
         return true;
     }
 
-    function unregisterStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, bool isNormal)
+    function unregisterStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup, bool isNormal)
         external
         notHalted
-        onlyStoremanGroupAdmin
+        onlyStoremanGroupSC
         returns (bool)
     {
         if (isNormal) {
-            require(unregistrationMap[tokenOrigAccount][storemanGroupPK]);
-            require(isDebtPaidOff(tokenOrigAccount, storemanGroupPK));    
+            require(unregistrationMap[tokenOrigAddr][storemanGroup]);
+            require(isDebtPaidOff(tokenOrigAddr, storemanGroup));    
         }
         
-        StoremanGroupQuota storage smgInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage smgInfo = quotaMap[tokenOrigAddr][storemanGroup];
 
-        unregistrationMap[tokenOrigAccount][storemanGroupPK] = false;
+        unregistrationMap[tokenOrigAddr][storemanGroup] = false;
 
         smgInfo._quota = uint(0);
 
@@ -290,29 +312,29 @@ contract QuotaLedger is Halt {
 
     /// @notice                 frozen WERC token quota
     /// @dev                    frozen WERC token quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  handler PK
     /// @param value            amout of WERC20 quota to be frozen
     /// @return                 true if successful
-    function lockQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
+    function lockQuota(bytes tokenOrigAddr, bytes storemanGroup, uint value)
         external
         notHalted 
-        onlyHTLCWAN 
+        onlyHTLCSC 
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure an active storemanGroup is provided to handle transactions
-        require(isActiveStoremanGroup(tokenOrigAccount, storemanGroupPK));
+        require(isActiveStoremanGroup(tokenOrigAddr, storemanGroup));
         /// Make sure a valid recipient provided
-        ///require(!isActiveStoremanGroup(tokenOrigAccount, recipientPK));
+        ///require(!isActiveStoremanGroup(tokenOrigAddr, recipientPK));
 
         /// Make sure enough inbound quota available
-        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAddr][storemanGroup];
         require(quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt)) >= value);
 
         /// Only can be called by an unregistration applied storemanGroup who has reset its receivable and payable
-        /// if (unregistrationMap[tokenOrigAccount][recipientPK]) {
-        ///     StoremanGroupQuota storage _r = quotaMap[tokenOrigAccount][recipientPK];
+        /// if (unregistrationMap[tokenOrigAddr][recipientPK]) {
+        ///     StoremanGroupQuota storage _r = quotaMap[tokenOrigAddr][recipientPK];
         ///     require(_r._receivable == 0 && _r._payable == 0 && _r._debt != 0);
         /// }
         
@@ -324,21 +346,21 @@ contract QuotaLedger is Halt {
 
     /// @notice                 defrozen WERC20 quota
     /// @dev                    defrozen WERC20 quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  handler PK
     /// @param value            amount of WERC20 quota to be locked
     /// @return                 true if successful
-    function unlockQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function unlockQuota(bytes tokenOrigAddr, bytes storemanGroup, uint value) 
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure a valid storeman provided
-        require(isStoremanGroup(tokenOrigAccount, storemanGroupPK));
+        require(isStoremanGroup(tokenOrigAddr, storemanGroup));
 
-        StoremanGroupQuota storage quota = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quota = quotaMap[tokenOrigAddr][storemanGroup];
 
         /// Make sure this specified storemanGroup has enough inbound receivable to be unlocked
         require(quota._receivable >= value);
@@ -351,24 +373,24 @@ contract QuotaLedger is Halt {
 
     /// @notice                 mint WERC token or payoff storemanGroup debt
     /// @dev                    mint WERC20 token or payoff storemanGroup debt
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  handler PK
     /// @param recipient        address that will receive WERC20 token
     /// @param value            amount of WERC20 token to be minted
     /// @return                 success of token mint
-    function mintToken(bytes tokenOrigAccount, bytes storemanGroupPK, address recipient, uint value)
+    function mintToken(bytes tokenOrigAddr, bytes storemanGroup, address recipient, uint value)
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure a legit storemanGroup provided
-        require(isStoremanGroup(tokenOrigAccount, storemanGroupPK));
+        require(isStoremanGroup(tokenOrigAddr, storemanGroup));
         /// Make sure a legit recipient provided
-        ///require(!isActiveStoremanGroup(tokenOrigAccount, recipientPK));
+        ///require(!isActiveStoremanGroup(tokenOrigAddr, recipientPK));
 
-        StoremanGroupQuota storage _q = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage _q = quotaMap[tokenOrigAddr][storemanGroup];
 
         /// Adjust quota record
         _q._receivable = _q._receivable.sub(value);
@@ -378,11 +400,11 @@ contract QuotaLedger is Halt {
         // Change to use storeman group PK, can't get destination PK
         // ********************************************************* 
         /// Branch - mint token to an ordinary account
-        // if (!isStoremanGroup(tokenOrigAccount, recipientPK)) {
+        // if (!isStoremanGroup(tokenOrigAddr, recipientPK)) {
             /// Mint token to the recipient
           
             bytes32 key;
-            key = TokenInterface(tokenManager).mapKey(tokenOrigAccount);
+            key = TokenInterface(tokenManager).mapKey(tokenOrigAddr);
             address instance;
             (,instance,,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(key);
 
@@ -395,9 +417,9 @@ contract QuotaLedger is Halt {
         // Change to use storeman group PK, can't get destination PK
         // ********************************************************* 
 
-        // } else if (unregistrationMap[tokenOrigAccount][recipientPK]) {
+        // } else if (unregistrationMap[tokenOrigAddr][recipientPK]) {
         //   /// Branch - storemanGroup unregistration
-        //   StoremanGroupQuota storage _r = quotaMap[tokenOrigAccount][recipientPK];
+        //   StoremanGroupQuota storage _r = quotaMap[tokenOrigAddr][recipientPK];
         //   /// Adjust the unregistering smg debt
         //   if (value >= _r._debt) {
         //     _r._debt = 0;
@@ -413,22 +435,22 @@ contract QuotaLedger is Halt {
 
     /// @notice                 lock WERC20 token and initiate an outbound transaction
     /// @dev                    lock WERC20 token and initiate an outbound transaction
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  qutbound storemanGroup handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  qutbound storemanGroup handler PK
     /// @param value            amount of WERC20 token to be locked
     /// @return                 success of token locking
-    function lockToken(bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
+    function lockToken(bytes tokenOrigAddr, bytes storemanGroup, uint value)
         external
         notHalted
-        onlyHTLCWAN 
+        onlyHTLCSC 
         onlyMeaningfulValue(value)
         returns (bool)
     { 
         /// Make sure a valid storemanGroup and a legit initiator provided
-        require(isActiveStoremanGroup(tokenOrigAccount, storemanGroupPK));
-        //require(!isStoremanGroup(tokenOrigAccount, initiatorPK));
+        require(isActiveStoremanGroup(tokenOrigAddr, storemanGroup));
+        //require(!isStoremanGroup(tokenOrigAddr, initiatorPK));
 
-        StoremanGroupQuota storage quota = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quota = quotaMap[tokenOrigAddr][storemanGroup];
         /// Make sure it has enough outboundQuota 
         require(quota._debt.sub(quota._payable) >= value);
 
@@ -440,20 +462,20 @@ contract QuotaLedger is Halt {
 
     /// @notice                 unlock WERC20 token
     /// @dev                    unlock WERC20 token
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  storemanGroup handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  storemanGroup handler PK
     /// @param value            amount of token to be unlocked
     /// @return                 success of token unlocking
-    function unlockToken(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function unlockToken(bytes tokenOrigAddr, bytes storemanGroup, uint value) 
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     {
-        require(isStoremanGroup(tokenOrigAccount, storemanGroupPK));
+        require(isStoremanGroup(tokenOrigAddr, storemanGroup));
         /// Make sure it has enough quota for a token unlocking
-        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAddr][storemanGroup];
         require(quotaInfo._payable >= value);
 
         /// Adjust quota record
@@ -464,19 +486,19 @@ contract QuotaLedger is Halt {
 
     /// @notice                 burn WERC20 token
     /// @dev                    burn WERC20 token
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  crosschain transaction handler PK
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  crosschain transaction handler PK
     /// @param value            amount of WERC20 token to be burnt
     /// @return                 success of burn token
-    function burnToken(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function burnToken(bytes tokenOrigAddr, bytes storemanGroup, uint value) 
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     { 
-        require(isStoremanGroup(tokenOrigAccount, storemanGroupPK));
-        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        require(isStoremanGroup(tokenOrigAddr, storemanGroup));
+        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAddr][storemanGroup];
 
         /// Adjust quota record
         quotaInfo._debt = quotaInfo._debt.sub(value);
@@ -484,7 +506,7 @@ contract QuotaLedger is Halt {
 
         /// Process the transaction
         bytes32 key;
-        key = TokenInterface(tokenManager).mapKey(tokenOrigAccount);
+        key = TokenInterface(tokenManager).mapKey(tokenOrigAddr);
         address instance;
         (,instance,,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(key);
         require(WERCProtocol(instance).burn(HTLCWAN, value));
@@ -493,29 +515,29 @@ contract QuotaLedger is Halt {
 
     /// @notice                 transfer debt from src to dst
     /// @dev                    frozen WERC token quota
-    /// @param tokenOrigAccount account of token supported
+    /// @param tokenOrigAddr account of token supported
     /// @param srcStoremanGroupPK  src handler PK
     /// @param dstStoremanGroupPK  dst handler PK
     /// @param value            amout of debt to be frozen
     /// @return                 true if successful
-    function lockDebt(bytes tokenOrigAccount, bytes dstStoremanGroupPK, bytes srcStoremanGroupPK, uint value)
+    function lockDebt(bytes tokenOrigAddr, bytes dstStoremanGroupPK, bytes srcStoremanGroupPK, uint value)
         external
         notHalted 
-        onlyHTLCWAN 
+        onlyHTLCSC 
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure an active storemanGroup is provided to handle transactions
-        require(isActiveStoremanGroup(tokenOrigAccount, dstStoremanGroupPK));
+        require(isActiveStoremanGroup(tokenOrigAddr, dstStoremanGroupPK));
         /// TODO: what to check srcStoreman group???
-        require(!isActiveStoremanGroup(tokenOrigAccount, srcStoremanGroupPK));
+        require(!isActiveStoremanGroup(tokenOrigAddr, srcStoremanGroupPK));
 
         /// src: there's no processing tx, and have enough debt!
-        StoremanGroupQuota storage src = quotaMap[tokenOrigAccount][srcStoremanGroupPK];
+        StoremanGroupQuota storage src = quotaMap[tokenOrigAddr][srcStoremanGroupPK];
         require(src._receivable == uint(0) && src._payable == uint(0) && src._debt >= value);
 
         /// dst: has enough quota 
-        StoremanGroupQuota storage dst = quotaMap[tokenOrigAccount][dstStoremanGroupPK];
+        StoremanGroupQuota storage dst = quotaMap[tokenOrigAddr][dstStoremanGroupPK];
         require(dst._quota.sub(dst._receivable.add(dst._debt)) >= value);
 
         dst._receivable = dst._receivable.add(value);
@@ -525,28 +547,28 @@ contract QuotaLedger is Halt {
 
     /// @notice                 defrozen WERC20 quota
     /// @dev                    defrozen WERC20 quota
-    /// @param tokenOrigAccount account of token supported
+    /// @param tokenOrigAddr account of token supported
     /// @param dstStoremanPK    dst PK
     /// @param srcStoremanPK    src PK
     /// @param value            amount of WERC20 quota to be locked
     /// @return                 true if successful
-    function unlockDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value) 
+    function unlockDebt(bytes tokenOrigAddr, bytes dstStoremanPK, bytes srcStoremanPK, uint value) 
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure a valid storeman provided
-        require(isStoremanGroup(tokenOrigAccount, dstStoremanPK));
+        require(isStoremanGroup(tokenOrigAddr, dstStoremanPK));
         /// TODO: what to check srcStoreman group???
-        require(!isActiveStoremanGroup(tokenOrigAccount, srcStoremanPK));
+        require(!isActiveStoremanGroup(tokenOrigAddr, srcStoremanPK));
 
-        StoremanGroupQuota storage dst = quotaMap[tokenOrigAccount][dstStoremanPK];
+        StoremanGroupQuota storage dst = quotaMap[tokenOrigAddr][dstStoremanPK];
         /// Make sure this specified storemanGroup has enough inbound receivable to be unlocked
         require(dst._receivable >= value);
 
-        StoremanGroupQuota storage src = quotaMap[tokenOrigAccount][srcStoremanPK];
+        StoremanGroupQuota storage src = quotaMap[tokenOrigAddr][srcStoremanPK];
         require(src._payable >= value);
 
         /// Credit receivable, double-check receivable is no less than value to be unlocked
@@ -556,25 +578,25 @@ contract QuotaLedger is Halt {
 
     /// @notice                 mint WERC token or payoff storemanGroup debt
     /// @dev                    mint WERC20 token or payoff storemanGroup debt
-    /// @param tokenOrigAccount account of token supported
+    /// @param tokenOrigAddr account of token supported
     /// @param dstStoremanPK    dst PK
     /// @param srcStoremanPK    src PK
     /// @param value            amount of WERC20 token to be minted
     /// @return                 success of token mint
-    function redeemDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value)
+    function redeemDebt(bytes tokenOrigAddr, bytes dstStoremanPK, bytes srcStoremanPK, uint value)
         external
         notHalted
-        onlyHTLCWAN
+        onlyHTLCSC
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure a legit storemanGroup provided
-        require(isStoremanGroup(tokenOrigAccount, dstStoremanPK));
+        require(isStoremanGroup(tokenOrigAddr, dstStoremanPK));
         /// TODO: what to check srcStoreman group???
-        require(!isActiveStoremanGroup(tokenOrigAccount, srcStoremanPK));
+        require(!isActiveStoremanGroup(tokenOrigAddr, srcStoremanPK));
 
-        StoremanGroupQuota storage dst = quotaMap[tokenOrigAccount][dstStoremanPK];
-        StoremanGroupQuota storage src = quotaMap[tokenOrigAccount][srcStoremanPK];
+        StoremanGroupQuota storage dst = quotaMap[tokenOrigAddr][dstStoremanPK];
+        StoremanGroupQuota storage src = quotaMap[tokenOrigAddr][srcStoremanPK];
 
         /// Adjust quota record
         dst._receivable = dst._receivable.sub(value);
@@ -588,71 +610,71 @@ contract QuotaLedger is Halt {
 
     /// @notice                 update storeman group PK
     /// @dev                    frozen WERC token quota
-    /// @param tokenOrigAccount account of token supported
+    /// @param tokenOrigAddr account of token supported
     /// @param oldStoremanGroupPK  src handler PK
     /// @param newStoremanGroupPK  dst handler PK
     /// @return                 true if successful
-    function updateStoremanGroupPK(bytes tokenOrigAccount, bytes oldStoremanGroupPK, bytes newStoremanGroupPK)
+    function updateStoremanGroupPK(bytes tokenOrigAddr, bytes oldStoremanGroupPK, bytes newStoremanGroupPK)
         external
         notHalted 
-        onlyStoremanGroupAdmin
+        onlyStoremanGroupSC
         returns (bool)
     {
         /// Make sure an active storemanGroup is provided to handle transactions
-        require(!isStoremanGroup(tokenOrigAccount, newStoremanGroupPK));
-        require(!isActiveStoremanGroup(tokenOrigAccount, oldStoremanGroupPK));
+        require(!isStoremanGroup(tokenOrigAddr, newStoremanGroupPK));
+        require(!isActiveStoremanGroup(tokenOrigAddr, oldStoremanGroupPK));
 
         /// src: there's no processing tx, and have enough debt!
-        StoremanGroupQuota storage q = quotaMap[tokenOrigAccount][oldStoremanGroupPK];
+        StoremanGroupQuota storage q = quotaMap[tokenOrigAddr][oldStoremanGroupPK];
         require(q._receivable == uint(0) && q._payable == uint(0) && q._quota > uint(0));
 
-        quotaMap[tokenOrigAccount][newStoremanGroupPK] = StoremanGroupQuota(q._quota, 0, 0, q._debt);
+        quotaMap[tokenOrigAddr][newStoremanGroupPK] = StoremanGroupQuota(q._quota, 0, 0, q._debt);
         q._quota = uint(0);
         q._debt = uint(0);
 
         return true;
     }
 
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  crosschain transaction handler PK 
-    function isStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  crosschain transaction handler PK 
+    function isStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
         public
         view
         returns (bool)
     {
-        return quotaMap[tokenOrigAccount][storemanGroupPK]._quota != uint(0);
+        return quotaMap[tokenOrigAddr][storemanGroup]._quota != uint(0);
     }
 
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  crosschain transaction handler PK 
-    function isActiveStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK) 
+    /// @param tokenOrigAddr account of token supported
+    /// @param storemanGroup  crosschain transaction handler PK 
+    function isActiveStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup) 
         public
         view 
         returns (bool)
     {
-        return isStoremanGroup(tokenOrigAccount, storemanGroupPK) && !unregistrationMap[tokenOrigAccount][storemanGroupPK];
+        return isStoremanGroup(tokenOrigAddr, storemanGroup) && !unregistrationMap[tokenOrigAddr][storemanGroup];
     }
 
     /// @notice                 query storemanGroup quota detail
     /// @dev                    query storemanGroup detail
-    /// @param  tokenOrigAccount  account of token supported
-    /// @param  storemanGroupPK Pk of storemanGroup to be queried
+    /// @param  tokenOrigAddr  account of token supported
+    /// @param  storemanGroup Pk of storemanGroup to be queried
     /// @return quota           total quota of this storemanGroup in ETH/WERC20
     /// @return inboundQuota    inbound crosschain transaction quota of this storemanGroup in ETH/WERC20
     /// @return outboundQuota   qutbound crosschain transaction quota of this storemanGroup in ETH/WERC20
     /// @return receivable      amount of WERC20 to be minted through this storemanGroup
     /// @return payable         amount of WERC20 to be burnt through this storemanGroup
     /// @return debt            amount of WERC20 been minted through this storemanGroup
-    function queryStoremanGroupQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function queryStoremanGroupQuota(bytes tokenOrigAddr, bytes storemanGroup)
         public 
         view
         returns (uint, uint, uint, uint, uint, uint)
     {
-        if (!isStoremanGroup(tokenOrigAccount, storemanGroupPK)) {
+        if (!isStoremanGroup(tokenOrigAddr, storemanGroup)) {
             return (0, 0, 0, 0, 0, 0);
         }
 
-        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAddr][storemanGroup];
 
         uint inboundQuota = quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt));
         uint outboundQuota = quotaInfo._debt.sub(quotaInfo._payable);
@@ -662,15 +684,15 @@ contract QuotaLedger is Halt {
 
     /// @notice                 check if a specified storemanGroup has paid off its debt
     /// @dev                    check if a specified storemanGroup has paid off its debt
-    /// @param  tokenOrigAccount  account of token supported
-    /// @param  storemanGroupPK   the PK of storemanGroup to be checked 
+    /// @param  tokenOrigAddr  account of token supported
+    /// @param  storemanGroup   the PK of storemanGroup to be checked 
     /// @return                 result of debt status check
-    function isDebtPaidOff(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function isDebtPaidOff(bytes tokenOrigAddr, bytes storemanGroup)
         private
         view
         returns (bool)
     {
-        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAccount][storemanGroupPK];
+        StoremanGroupQuota storage quotaInfo = quotaMap[tokenOrigAddr][storemanGroup];
         return quotaInfo._receivable == uint(0) && quotaInfo._payable == uint(0) && quotaInfo._debt == uint(0);
     }
 

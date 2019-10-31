@@ -151,6 +151,8 @@ interface StoremanGroupRegistrarInterface {
     function smgApplyUnregisterByDelegate(bytes, bytes) external;
     function storemanGroupUpdatePK(bytes, bytes, bytes, bytes, bytes) external;
     function smgWithdrawDepositByDelegate(bytes, bytes) external returns (uint, uint);
+
+    function testRegister(bytes, bytes, uint, uint) external;
 }
 
 interface StoremanGroupDepositInterface {
@@ -190,56 +192,56 @@ contract StoremanGroupPKAdmin is Halt{
         
     /// @notice                           event for storeman register  
     /// @dev                              event for storeman register  
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param smgWanPK                   smgWanPK 
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     /// @param txFeeRatio                 storeman fee ratio
-    event StoremanGroupRegistrationLogger(bytes tokenOrigAccount, bytes indexed smgWanPK, uint wanDeposit, uint quota, uint txFeeRatio);
+    event StoremanGroupRegistrationLogger(bytes tokenOrigAddr, bytes indexed smgWanPK, uint wanDeposit, uint quota, uint txFeeRatio);
     
     /// @notice                           event for bonus deposit
     /// @dev                              event for bonus deposit 
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param sender                     sender for bonus
     /// @param wancoin                    deposit wancoin number
-    event StoremanGroupDepositBonusLogger(bytes tokenOrigAccount, address indexed sender, uint indexed wancoin);
+    event StoremanGroupDepositBonusLogger(bytes tokenOrigAddr, address indexed sender, uint indexed wancoin);
     
     /// @notice                           event for storeman register  
     /// @dev                              event for storeman register  
     /// @param smgWanPK                 storeman PK
-    /// @param tokenOrigAccount           token account of original chain
-    event SmgEnableWhiteListLogger(bytes indexed smgWanPK, bytes tokenOrigAccount);   
+    /// @param tokenOrigAddr           token account of original chain
+    event SmgEnableWhiteListLogger(bytes indexed smgWanPK, bytes tokenOrigAddr);   
         
     /// @notice                           event for applying storeman group unregister 
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param smgWanPK                 storemanGroup address
     /// @param applyTime                  the time for storeman applying unregister    
-    event StoremanGroupApplyUnRegistrationLogger(bytes tokenOrigAccount, bytes indexed smgWanPK, uint indexed applyTime);
+    event StoremanGroupApplyUnRegistrationLogger(bytes tokenOrigAddr, bytes indexed smgWanPK, uint indexed applyTime);
     
     /// @notice                           event for storeman group withdraw deposit
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param smgWanPK                   storemanGroup PK 
     /// @param actualReturn               the time for storeman applying unregister       
     /// @param deposit                    deposit in the first place
-    event StoremanGroupWithdrawLogger(bytes tokenOrigAccount, bytes indexed smgWanPK, uint indexed actualReturn, uint deposit);
+    event StoremanGroupWithdrawLogger(bytes tokenOrigAddr, bytes indexed smgWanPK, uint indexed actualReturn, uint deposit);
     
     /// @notice                           event for storeman group claiming system bonus
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param bonusRecipient             storemanGroup address
     /// @param bonus                      the bonus for storeman claim       
-    event StoremanGroupClaimSystemBonusLogger(bytes tokenOrigAccount, address indexed bonusRecipient, uint indexed bonus);
+    event StoremanGroupClaimSystemBonusLogger(bytes tokenOrigAddr, address indexed bonusRecipient, uint indexed bonus);
     
     /// @notice                           event for storeman group be punished
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param smgWanAddr                 storeman address
     /// @param punishPercent              punish percent of deposit
-    event StoremanGroupPunishedLogger(bytes tokenOrigAccount, address indexed smgWanAddr, uint indexed punishPercent);   
+    event StoremanGroupPunishedLogger(bytes tokenOrigAddr, address indexed smgWanAddr, uint indexed punishPercent);   
 
     /// @notice event for transfer deposit to specified address
     /// @param smgAddress   storeman address
-    /// @param tokenOrigAccount  token account of original chain
+    /// @param tokenOrigAddr  token account of original chain
     /// @param destAddress the destination address of deposit
-    event SmgTranferDepositLogger(bytes tokenOrigAccount, address indexed smgAddress,address destAddress,uint deposit);
+    event SmgTranferDepositLogger(bytes tokenOrigAddr, address indexed smgAddress,address destAddress,uint deposit);
 
 
     /**
@@ -249,15 +251,15 @@ contract StoremanGroupPKAdmin is Halt{
      */
 
     /// @notice                           function for get storemanGroup info
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            the storeman group info on original chain
-    function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            the storeman group info on original chain
+    function mapStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         initialized
         returns (uint, uint, uint, uint, address, uint)
     {
-        return StoremanGroupRegistrarInterface(storemanRegistrar).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        return StoremanGroupRegistrarInterface(storemanRegistrar).mapStoremanGroup(tokenOrigAddr, storemanGroup);
     }
 
     /// @notice              Set storeman group storage instance address
@@ -277,133 +279,158 @@ contract StoremanGroupPKAdmin is Halt{
 
 
     /// @notice                  function for setting smg white list by owner
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroupPK   storemanGroup PK for whitelist    
-    function setSmgWhiteList(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   storemanGroup PK for whitelist    
+    function setSmgWhiteList(bytes tokenOrigAddr, bytes storemanGroup)
         public
         onlyOwner
         initialized
     {
-        StoremanGroupRegistrarInterface(storemanRegistrar).setSmgWhiteList(tokenOrigAccount, storemanGroupPK);
-        emit SmgEnableWhiteListLogger(storemanGroupPK, tokenOrigAccount);
+        StoremanGroupRegistrarInterface(storemanRegistrar).setSmgWhiteList(tokenOrigAddr, storemanGroup);
+        emit SmgEnableWhiteListLogger(storemanGroup, tokenOrigAddr);
     }    
                 
     /// @notice                  function for storeman register by sender this method should be
     ///                          invoked by a storemanGroup registration proxy or wanchain foundation
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroupPK   the storeman group PK address  
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   the storeman group PK address  
     /// @param txFeeRatio        the transaction fee required by storeman group  
-    function storemanGroupRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK, uint txFeeRatio)
+    function storemanGroupRegisterByDelegate(bytes tokenOrigAddr, bytes storemanGroup, uint txFeeRatio)
         public
         payable
         notHalted
         initialized
     {
-        var quota = StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupRegisterByDelegate(tokenOrigAccount, storemanGroupPK, txFeeRatio, msg.value);
+        var quota = StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupRegisterByDelegate(tokenOrigAddr, storemanGroup, txFeeRatio, msg.value);
         storemanTokenReceiver.transfer(msg.value);
 
         /// fire event
-        emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroupPK, msg.value, quota,txFeeRatio);
+        emit StoremanGroupRegistrationLogger(tokenOrigAddr, storemanGroup, msg.value, quota,txFeeRatio);
     }  
 
+     /**********************************
+      *
+      * BEGIN DEBUG PURPOSE
+      *
+      **********************************/
+
+     /// @notice                  function for storeman register by sender this method should be
+     ///                          invoked by a storemanGroup registration proxy or wanchain foundation
+     /// @param tokenOrigAddr  token account of original chain
+     /// @param storemanGroup   the storeman group PK address
+     /// @param txFeeRatio        the transaction fee required by storeman group
+     function runTest(bytes tokenOrigAddr, bytes storemanGroup, uint txFeeRatio, uint func)
+         public
+         payable
+         notHalted
+         initialized
+     {
+         StoremanGroupRegistrarInterface(storemanRegistrar).testRegister(tokenOrigAddr, storemanGroup, txFeeRatio, msg.value);
+     }
+
+     /**********************************
+      *
+      * END DEBUG PURPOSE
+      *
+      **********************************/
     /// @notice                           apply unregistration through a proxy
     /// @dev                              apply unregistration through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            PK of storemanGroup 
-    function smgApplyUnregisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            PK of storemanGroup 
+    function smgApplyUnregisterByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         public
         notHalted
         initialized
     {
-        StoremanGroupRegistrarInterface(storemanRegistrar).smgApplyUnregisterByDelegate(tokenOrigAccount, storemanGroupPK);
+        StoremanGroupRegistrarInterface(storemanRegistrar).smgApplyUnregisterByDelegate(tokenOrigAddr, storemanGroup);
 
         // fire event
-        emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAccount, storemanGroupPK, now);
+        emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAddr, storemanGroup, now);
     }
 
                 
     /// @notice                       Update storeman group PK
-    /// @param tokenOrigAccount       token account of original chain
+    /// @param tokenOrigAddr       token account of original chain
     /// @param oldStoremanGroupPK     the old storeman group PK to be updated
     /// @param newStoremanGroupPK     the new storeman group PK 
-    function storemanGroupUpdatePK(bytes tokenOrigAccount, bytes oldStoremanGroupPK, bytes newStoremanGroupPK, bytes R, bytes s)
+    function storemanGroupUpdatePK(bytes tokenOrigAddr, bytes oldStoremanGroupPK, bytes newStoremanGroupPK, bytes R, bytes s)
         public
         notHalted
         initialized
     {
-        StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupUpdatePK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK, R, s);
+        StoremanGroupRegistrarInterface(storemanRegistrar).storemanGroupUpdatePK(tokenOrigAddr, oldStoremanGroupPK, newStoremanGroupPK, R, s);
 
         // TODO: emit event
     }
 
     /// @notice                           withdraw deposit through a proxy
     /// @dev                              withdraw deposit through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storemanGroup PK 
-    function smgWithdrawDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storemanGroup PK 
+    function smgWithdrawDepositByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         public
         notHalted
         initialized
     {
-        var (restBalance, deposit) = StoremanGroupRegistrarInterface(storemanRegistrar).smgWithdrawDepositByDelegate(tokenOrigAccount, storemanGroupPK);
+        var (restBalance, deposit) = StoremanGroupRegistrarInterface(storemanRegistrar).smgWithdrawDepositByDelegate(tokenOrigAddr, storemanGroup);
 
-        emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroupPK, restBalance, deposit);
+        emit StoremanGroupWithdrawLogger(tokenOrigAddr, storemanGroup, restBalance, deposit);
     }
 
     /// @notice                           function for storeman claiming system bonus
     /// @dev                              function for storeman claiming system bonus
-    /// @param tokenOrigAccount           token account of original chain
+    /// @param tokenOrigAddr           token account of original chain
     /// @param storemanPK            storemanGroup PK 
-    function storemanGroupClaimSystemBonus(bytes tokenOrigAccount, bytes storemanPK)
+    function storemanGroupClaimSystemBonus(bytes tokenOrigAddr, bytes storemanPK)
         public
         notHalted
         initialized
     {
-        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).storemanGroupClaimSystemBonus(tokenOrigAccount, storemanPK);
+        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).storemanGroupClaimSystemBonus(tokenOrigAddr, storemanPK);
         if (isClaim) {
-            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
+            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAddr, rcvr, amount);
         }
     }
 
     /// @notice                           function for storeman claiming system bonus through a proxy  
     /// @dev                              function for storeman claiming system bonus through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storemanGroup PK 
-    function smgClaimSystemBonusByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storemanGroup PK 
+    function smgClaimSystemBonusByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         public
         notHalted
         initialized
     {
-        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).smgClaimSystemBonusByDelegate(tokenOrigAccount, storemanGroupPK);
+        var (isClaim, rcvr, amount) = StoremanGroupDepositInterface(storemanDeposit).smgClaimSystemBonusByDelegate(tokenOrigAddr, storemanGroup);
         if (isClaim) {
-            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAccount, rcvr, amount);
+            emit StoremanGroupClaimSystemBonusLogger(tokenOrigAddr, rcvr, amount);
         }
     }
 
     /// @notice                           function for bonus deposit
     /// @dev                              function for bonus deposit
-    /// @param tokenOrigAccount           token account of original chain
-    function depositSmgBonus(bytes tokenOrigAccount)
+    /// @param tokenOrigAddr           token account of original chain
+    function depositSmgBonus(bytes tokenOrigAddr)
         public
         payable
         onlyOwner
         initialized
     {
-        StoremanGroupDepositInterface(storemanDeposit).depositSmgBonus(tokenOrigAccount, msg.value);
+        StoremanGroupDepositInterface(storemanDeposit).depositSmgBonus(tokenOrigAddr, msg.value);
 
-        emit StoremanGroupDepositBonusLogger(tokenOrigAccount, msg.sender, msg.value);
+        emit StoremanGroupDepositBonusLogger(tokenOrigAddr, msg.sender, msg.value);
     }
 
     /// @notice                 receive fee for participant in outbound 
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  PK of storeman group
-    function feeReceiver(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr token account of original chain
+    /// @param storemanGroup  PK of storeman group
+    function feeReceiver(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
         initialized
         returns (address)
     {
-        return StoremanGroupDepositInterface(storemanDeposit).feeReceiver(tokenOrigAccount, storemanGroupPK);
+        return StoremanGroupDepositInterface(storemanDeposit).feeReceiver(tokenOrigAddr, storemanGroup);
     }
 
     /// @notice function for destroy contract

@@ -182,6 +182,9 @@ interface StoremanGroupStorageInterface {
     function setStoremanGroupUnregisterTime(bytes, bytes) external returns (bool);
     function resetStoremanGroup(bytes, bytes) external returns (bool);
     function transferToAddr(address, uint) external;
+
+    function newTestStoremanGroup(bytes, bytes, uint, uint, uint, address) external returns (bool);
+    function newTestStoremanGroup2(bytes, bytes, uint, uint, uint, address) external;
 }
 
 contract StoremanGroupPKRegistrar is Halt{
@@ -197,6 +200,9 @@ contract StoremanGroupPKRegistrar is Halt{
     address public storemanStorage;
     /// storeman adm instance address
     address public storemanAdm;
+
+    /// @notice logger for debug
+    event DebugLogger(string name, uint value);
 
     /**
      *
@@ -224,12 +230,12 @@ contract StoremanGroupPKRegistrar is Halt{
     /**
 
     /// @notice
-    /// @param tokenOrigAccount  token account of original chain
-    function calculateSmgBonus(bytes tokenOrigAccount, bytes storemanGroupPK, uint smgBonusBlkNo, uint smgDeposit)
+    /// @param tokenOrigAddr  token account of original chain
+    function calculateSmgBonus(bytes tokenOrigAddr, bytes storemanGroup, uint smgBonusBlkNo, uint smgDeposit)
         private
         returns (uint, uint)
     {
-        var (,,,,,,startBonusBlk,bonusTotal,bonusPeriodBlks,bonusRatio,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,startBonusBlk,bonusTotal,bonusPeriodBlks,bonusRatio,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         if (startBonusBlk==0) {
             return (0, 0);
@@ -255,27 +261,27 @@ contract StoremanGroupPKRegistrar is Halt{
     }
 
     /// @notice                           function for bonus claim
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storeman group pk 
-    function doClaimSystemBonus(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storeman group pk 
+    function doClaimSystemBonus(bytes tokenOrigAddr, bytes storemanGroup)
         private
         returns (bool, address, uint)
     {
-        var (deposit,,blkNo,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (deposit,,blkNo,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
 
-        var (,,,,,,,bonusTotal,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,,bonusTotal,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         if(punishPercent != 0){
           return (false, address(0), 0);
         }
 
-        var (bonus, newBlkNo) = calculateSmgBonus(tokenOrigAccount, storemanGroupPK, blkNo, deposit);
+        var (bonus, newBlkNo) = calculateSmgBonus(tokenOrigAddr, storemanGroup, blkNo, deposit);
         if (newBlkNo>0 && blkNo<newBlkNo) {
-            StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupBounceBlock(tokenOrigAccount, storemanGroupPK, newBlkNo);
+            StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupBounceBlock(tokenOrigAddr, storemanGroup, newBlkNo);
         }
 
         if (bonusTotal >= bonus && bonus > 0) {
-            require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAccount, bonus, false));
+            require(TokenInterface(tokenManager).updateTotalBonus(tokenOrigAddr, bonus, false));
                 if (initiator != address(0)) {
                     //initiator.transfer(bonus);
                     StoremanGroupStorageInterface(storemanStorage).transferToAddr(initiator, bonus);
@@ -327,19 +333,19 @@ contract StoremanGroupPKRegistrar is Halt{
     }
 
     /// @notice                  check if able to unregister storeman group
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroupPK   the storeman group info on original chain
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   the storeman group info on original chain
     /// @return                  true/false 
-    function isAbleToUnregister(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function isAbleToUnregister(bytes tokenOrigAddr, bytes storemanGroup)
         private
         returns (bool)
     {
 
         // TODO: always check initiator as msg.sender, that who register can deregister it.
         //if (msg.sender != storemanGroup) {
-        //    require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].initiator == msg.sender);
+        //    require(storemanGroupMap[tokenOrigAddr][storemanGroup].initiator == msg.sender);
         //}
-        var (,unregApplyTm,,blkNo,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (,unregApplyTm,,blkNo,initiator,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
 
         // 
         require(initiator==msg.sender);
@@ -352,39 +358,39 @@ contract StoremanGroupPKRegistrar is Halt{
     }
 
     /// @notice                       Update storeman group PK
-    /// @param tokenOrigAccount       token account of original chain
+    /// @param tokenOrigAddr       token account of original chain
     /// @param oldStoremanGroupPK     the old storeman group PK to be updated
     /// @param newStoremanGroupPK     the new storeman group PK 
-    function changeStoremanGroupPK(bytes tokenOrigAccount, bytes oldStoremanGroupPK, bytes newStoremanGroupPK)
+    function changeStoremanGroupPK(bytes tokenOrigAddr, bytes oldStoremanGroupPK, bytes newStoremanGroupPK)
         private 
         returns (bool) 
     {
-        var (oDeposit,unregApplyTm,oTxFeeR,oBlkNo,oInit,oPunish) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, oldStoremanGroupPK);
+        var (oDeposit,unregApplyTm,oTxFeeR,oBlkNo,oInit,oPunish) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, oldStoremanGroupPK);
         require(unregApplyTm == 0);
 
         // regsiter this storeman group with calculated quota
-        require(QuotaInterface(quotaLedger).updateStoremanGroupPK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
+        require(QuotaInterface(quotaLedger).updateStoremanGroupPK(tokenOrigAddr, oldStoremanGroupPK, newStoremanGroupPK));
 
         // TODO: should we claim bounce for old PK??
-        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAccount, newStoremanGroupPK, oDeposit, oTxFeeR, oBlkNo, oInit);
-        StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupPunishPercent(tokenOrigAccount, newStoremanGroupPK, oPunish);
+        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAddr, newStoremanGroupPK, oDeposit, oTxFeeR, oBlkNo, oInit);
+        StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupPunishPercent(tokenOrigAddr, newStoremanGroupPK, oPunish);
            
-        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAccount, oldStoremanGroupPK));
+        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAddr, oldStoremanGroupPK));
 
         // withdraw oldPK
-        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAccount, newStoremanGroupPK);
+        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAddr, newStoremanGroupPK);
 
         return true;
     }
 
     /// @notice                 Calculate quota
-    /// @param tokenOrigAccount token account of original chain
+    /// @param tokenOrigAddr token account of original chain
     /// @param value            the value registered
-    function calculateTokenQuota(bytes tokenOrigAccount, uint value)
+    function calculateTokenQuota(bytes tokenOrigAddr, uint value)
         private
         returns (uint)
     {
-        var (,tokenWanAddr,token2WanRatio,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,tokenWanAddr,token2WanRatio,,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
         uint quota = value.mul(TokenInterface(tokenManager).DEFAULT_PRECISE()).div(token2WanRatio).mul(10**uint(WERCProtocol(tokenWanAddr).decimals())).div(1 ether);
 
         return quota;
@@ -414,45 +420,45 @@ contract StoremanGroupPKRegistrar is Halt{
     }
 
     /// @notice                           function for get storemanGroup info
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            the storeman group info on original chain
-    function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            the storeman group info on original chain
+    function mapStoremanGroup(bytes tokenOrigAddr, bytes storemanGroup)
         external
         view
         initialized
         returns (uint, uint, uint, uint, address, uint)
     {
-        return StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        return StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
     }
 
     /// @notice                  function for setting smg white list by owner
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroupPK   storemanGroup PK for whitelist    
-    function setSmgWhiteList(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   storemanGroup PK for whitelist    
+    function setSmgWhiteList(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         onlyStoremanGroupAdm 
         initialized
     {
-        require(storemanGroupPK.length!=0);
+        require(storemanGroup.length!=0);
 
         // make sure white list mechanism is enabled
-        var (,,,,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
         require(useWhiteList);        
 
-        var (,,,blkNo,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (,,,blkNo,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
         require(blkNo == 0);
 
-        require(!StoremanGroupStorageInterface(storemanStorage).isInWriteList(tokenOrigAccount, storemanGroupPK));
+        require(!StoremanGroupStorageInterface(storemanStorage).isInWriteList(tokenOrigAddr, storemanGroup));
 
-        require(StoremanGroupStorageInterface(storemanStorage).setSmgWriteList(tokenOrigAccount, storemanGroupPK, true));
+        require(StoremanGroupStorageInterface(storemanStorage).setSmgWriteList(tokenOrigAddr, storemanGroup, true));
     }    
                 
     /// @notice                  function for storeman register by sender this method should be
     ///                          invoked by a storemanGroup registration proxy or wanchain foundation
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroupPK   the storeman group PK address  
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   the storeman group PK address  
     /// @param txFeeRatio        the transaction fee required by storeman group  
-    function storemanGroupRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK, uint txFeeRatio, uint value)
+    function storemanGroupRegisterByDelegate(bytes tokenOrigAddr, bytes storemanGroup, uint txFeeRatio, uint value)
         external 
         payable
         notHalted
@@ -460,107 +466,225 @@ contract StoremanGroupPKRegistrar is Halt{
         initialized
         returns (uint)
     {
-        require(storemanGroupPK.length != 0 && txFeeRatio > 0);
-        require(!StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAccount, storemanGroupPK));
-        
-        var (,,,minDeposit,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        emit DebugLogger("RegisterEnter", 0);
 
-        var (,,,blkNo,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        require(storemanGroup.length != 0 && txFeeRatio > 0);
+        require(!StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAddr, storemanGroup));
+        
+        emit DebugLogger("EntryCheckPassed", txFeeRatio);
+
+        var (,,,minDeposit,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
+
+        var (,,,blkNo,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
        
+        emit DebugLogger("CheckValue", value);
+
         require(value >= minDeposit && blkNo == 0);
+
+        emit DebugLogger("CheckWhiteList", 0);
 
         // white list filter
         if (useWhiteList) {
-            require(StoremanGroupStorageInterface(storemanStorage).isInWriteList(tokenOrigAccount, storemanGroupPK));
-            StoremanGroupStorageInterface(storemanStorage).setSmgWriteList(tokenOrigAccount, storemanGroupPK, false);
+            emit DebugLogger("CheckWhiteList", 1);
+            require(StoremanGroupStorageInterface(storemanStorage).isInWriteList(tokenOrigAddr, storemanGroup));
+            StoremanGroupStorageInterface(storemanStorage).setSmgWriteList(tokenOrigAddr, storemanGroup, false);
         }
 
-        uint quota = calculateTokenQuota(tokenOrigAccount, value);
+        uint quota = calculateTokenQuota(tokenOrigAddr, value);
+        emit DebugLogger("CheckQuota", quota);
 
         // regsiter this storeman group with calculated quota
-        require(QuotaInterface(quotaLedger).setStoremanGroupQuota(tokenOrigAccount, storemanGroupPK, quota));
+        require(QuotaInterface(quotaLedger).setStoremanGroupQuota(tokenOrigAddr, storemanGroup, quota));
+
+        emit DebugLogger("SetQuota", quota);
 
         // TODO:  1. how to set initiator address??
         //           As current flow, only support delegator to register, so set msg.sender as initiator
-        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAccount, storemanGroupPK, value, txFeeRatio, block.number, msg.sender);
+        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAddr, storemanGroup, value, txFeeRatio, block.number, msg.sender);
            
+        emit DebugLogger("Completed", quota);
+
         return quota;
-    }  
+    }
+
+    /**********************************
+     *
+     * BEGIN DEBUG PURPOSE
+     *
+     **********************************/
+    /// @notice                  function for storeman register by sender this method should be
+    ///                          invoked by a storemanGroup registration proxy or wanchain foundation
+    /// @param tokenOrigAddr  token account of original chain
+    /// @param storemanGroup   the storeman group PK address  
+    /// @param txFeeRatio        the transaction fee required by storeman group  
+    function testRegister(bytes tokenOrigAddr, bytes storemanGroup, uint txFeeRatio, uint value)
+        external 
+        payable
+        notHalted
+        onlyStoremanGroupAdm
+        initialized
+    {
+        emit DebugLogger("TestRegisterEnter", 0);
+
+        /*
+
+        if (!(storemanGroup.length != 0 && txFeeRatio > 0)) {
+            emit DebugLogger("InputFeeRatio", txFeeRatio);
+            emit DebugLogger("InputLength", storemanGroup.length);
+            return;
+        }
+        
+        if (StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAddr, storemanGroup)){
+            emit DebugLogger("AlreadyRegistered", 0);
+            return;
+        }
+        
+        var (,,,minDeposit,,useWhiteList,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
+
+        var (,,,blkNo,,) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
+       
+        emit DebugLogger("CheckValue", value);
+
+        if (!(value >= minDeposit && blkNo == 0)) {
+            emit DebugLogger("ValueFailed: value", value);
+            emit DebugLogger("ValueFailed: minDeposit", minDeposit);
+            emit DebugLogger("ValueFailed: blkNo", blkNo);
+            return;
+        }
+
+        emit DebugLogger("CheckWhiteList", 0);
+
+        // white list filter
+        if (useWhiteList) {
+            emit DebugLogger("CheckWhiteList", 1);
+            if (value == 51000000000000000000) {
+                emit DebugLogger("in white list return: 51", 1);
+                return;
+            }
+            require(StoremanGroupStorageInterface(storemanStorage).isInWriteList(tokenOrigAddr, storemanGroup));
+            StoremanGroupStorageInterface(storemanStorage).setSmgWriteList(tokenOrigAddr, storemanGroup, false);
+        }
+
+        if (value == 52000000000000000000) {
+            emit DebugLogger("After white list return: 52", value);
+            return;
+        } 
+        */
+        uint quota = calculateTokenQuota(tokenOrigAddr, value);
+        emit DebugLogger("CheckQuota", quota);
+
+        if (value == 53000000000000000000) {
+            emit DebugLogger("CheckQuota return: 53", quota);
+            return;
+        } 
+
+        // regsiter this storeman group with calculated quota
+        if (!QuotaInterface(quotaLedger).setStoremanGroupQuota(tokenOrigAddr, storemanGroup, quota)) {
+            emit DebugLogger("SetQuota failed", quota);
+            return;
+        }
+
+        emit DebugLogger("SetQuota", quota);
+
+        if (value==54000000000000000000) {
+            emit DebugLogger("SetQuota return: 54", quota);
+            return;
+        }
+
+        // TODO:  1. how to set initiator address??
+        //           As current flow, only support delegator to register, so set msg.sender as initiator
+        if (value%10==0) {
+            StoremanGroupStorageInterface(storemanStorage).newTestStoremanGroup2(tokenOrigAddr, storemanGroup, value, txFeeRatio, block.number, msg.sender);
+
+        } else {
+            StoremanGroupStorageInterface(storemanStorage).newTestStoremanGroup(tokenOrigAddr, storemanGroup, value, txFeeRatio, block.number, msg.sender);
+
+        }
+           
+        emit DebugLogger("Completed", quota);
+
+    }
+
+    /**********************************
+     *
+     * END DEBUG PURPOSE
+     *
+     **********************************/
 
     /// @notice                           apply unregistration through a proxy
     /// @dev                              apply unregistration through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            PK of storemanGroup 
-    function smgApplyUnregisterByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            PK of storemanGroup 
+    function smgApplyUnregisterByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
         onlyStoremanGroupAdm
         initialized
     {
-        require(isAbleToUnregister(tokenOrigAccount, storemanGroupPK));
+        require(isAbleToUnregister(tokenOrigAddr, storemanGroup));
 
-        var (,,,,,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (,,,,,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
 
-        StoremanGroupStorageInterface(storemanStorage).setStoremanGroupUnregisterTime(tokenOrigAccount, storemanGroupPK);
+        StoremanGroupStorageInterface(storemanStorage).setStoremanGroupUnregisterTime(tokenOrigAddr, storemanGroup);
 
-        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,,,startBonusBlk,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         bool isClaimBonus = false;
         address rcvr = address(0);
         uint val = 0;
         if (startBonusBlk > 0 && punishPercent==0) {
             // TODO: claim bonus function is at deposit contract
-            //(isClaimBonus, rcvr, val) = doClaimSystemBonus(tokenOrigAccount, storemanGroupPK);
-            StoremanAdmInterface(storemanAdm).storemanGroupClaimSystemBonus(tokenOrigAccount, storemanGroupPK);
+            //(isClaimBonus, rcvr, val) = doClaimSystemBonus(tokenOrigAddr, storemanGroup);
+            StoremanAdmInterface(storemanAdm).storemanGroupClaimSystemBonus(tokenOrigAddr, storemanGroup);
         }
 
-        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAccount, storemanGroupPK));
+        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAddr, storemanGroup));
 
     }
 
     /// @notice                       Update storeman group PK
-    /// @param tokenOrigAccount       token account of original chain
+    /// @param tokenOrigAddr       token account of original chain
     /// @param oldStoremanGroupPK     the old storeman group PK to be updated
     /// @param newStoremanGroupPK     the new storeman group PK 
-    function storemanGroupUpdatePK(bytes tokenOrigAccount, bytes oldStoremanGroupPK, bytes newStoremanGroupPK, bytes R, bytes32 s)
+    function storemanGroupUpdatePK(bytes tokenOrigAddr, bytes oldStoremanGroupPK, bytes newStoremanGroupPK, bytes R, bytes32 s)
         external 
         notHalted
         onlyStoremanGroupAdm
         initialized
     {
-        bytes32 mhash = sha256(abi.encode(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
+        bytes32 mhash = sha256(abi.encode(tokenOrigAddr, oldStoremanGroupPK, newStoremanGroupPK));
         require(verifySignature(mhash, oldStoremanGroupPK, R, s));
 
         require(oldStoremanGroupPK.length > 0 && newStoremanGroupPK.length > 0);
 
-        require(StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAccount, oldStoremanGroupPK));
-        require(!StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAccount, newStoremanGroupPK));
+        require(StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAddr, oldStoremanGroupPK));
+        require(!StoremanGroupStorageInterface(storemanStorage).isActiveStoremanGroup(tokenOrigAddr, newStoremanGroupPK));
      
-        require(changeStoremanGroupPK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
+        require(changeStoremanGroupPK(tokenOrigAddr, oldStoremanGroupPK, newStoremanGroupPK));
 
         /**
-        var (oDeposit,unregApplyTm,oTxFeeR,oBlkNo,oInit,oPunish) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, oldStoremanGroupPK);
+        var (oDeposit,unregApplyTm,oTxFeeR,oBlkNo,oInit,oPunish) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, oldStoremanGroupPK);
         require(unregApplyTm == 0);
 
         // regsiter this storeman group with calculated quota
-        require(QuotaInterface(quotaLedger).updateStoremanGroupPK(tokenOrigAccount, oldStoremanGroupPK, newStoremanGroupPK));
+        require(QuotaInterface(quotaLedger).updateStoremanGroupPK(tokenOrigAddr, oldStoremanGroupPK, newStoremanGroupPK));
 
         // TODO: should we claim bounce for old PK??
-        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAccount, newStoremanGroupPK, oDeposit, oTxFeeR, oBlkNo, oInit);
-        StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupPunishPercent(tokenOrigAccount, newStoremanGroupPK, oPunish);
+        StoremanGroupStorageInterface(storemanStorage).newStoremanGroup(tokenOrigAddr, newStoremanGroupPK, oDeposit, oTxFeeR, oBlkNo, oInit);
+        StoremanGroupStorageInterface(storemanStorage).updateStoremanGroupPunishPercent(tokenOrigAddr, newStoremanGroupPK, oPunish);
            
-        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAccount, oldStoremanGroupPK));
+        require(QuotaInterface(quotaLedger).applyUnregistration(tokenOrigAddr, oldStoremanGroupPK));
 
         // withdraw oldPK
-        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAccount, newStoremanGroupPK);
+        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAddr, newStoremanGroupPK);
         */
     }
 
     /// @notice                           withdraw deposit through a proxy
     /// @dev                              withdraw deposit through a proxy
-    /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroupPK            storemanGroup PK 
-    function smgWithdrawDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroupPK)
+    /// @param tokenOrigAddr           token account of original chain
+    /// @param storemanGroup            storemanGroup PK 
+    function smgWithdrawDepositByDelegate(bytes tokenOrigAddr, bytes storemanGroup)
         external 
         notHalted
         onlyStoremanGroupAdm
@@ -568,29 +692,29 @@ contract StoremanGroupPKRegistrar is Halt{
     {
         // TODO: 3 need check initiator ??? who register storeman can deregister it???
         //if (msg.sender != storemanGroup) {
-        //    require(storemanGroupMap[tokenOrigAccount][storemanGroupPK].initiator == msg.sender);     
+        //    require(storemanGroupMap[tokenOrigAddr][storemanGroup].initiator == msg.sender);     
         //}
-        var (deposit,unregApplyTm,,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        var (deposit,unregApplyTm,,,initiator,punishPercent) = StoremanGroupStorageInterface(storemanStorage).mapStoremanGroup(tokenOrigAddr, storemanGroup);
         require(initiator == msg.sender);
           
-        var (,,,,withdrawDelayTime,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
+        var (,,,,withdrawDelayTime,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
 
         require(now > unregApplyTm.add(withdrawDelayTime) && deposit > 0);
 
-        require(QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAccount, storemanGroupPK, true));
+        require(QuotaInterface(quotaLedger).unregisterStoremanGroup(tokenOrigAddr, storemanGroup, true));
         
         uint restBalance = deposit;
 
         if (punishPercent > 0) {
             // transfer penalty to the penaltyReceiver of corresponding ERC20 token
             restBalance = restBalance.sub(restBalance.mul(punishPercent).div(100));
-            address penaltyReceiver = TokenInterface(tokenManager).mapPenaltyReceiver(tokenOrigAccount);
+            address penaltyReceiver = TokenInterface(tokenManager).mapPenaltyReceiver(tokenOrigAddr);
             require(penaltyReceiver != address(0));
             //penaltyReceiver.transfer(deposit.sub(restBalance));
             StoremanGroupStorageInterface(storemanStorage).transferToAddr( penaltyReceiver, deposit.sub(restBalance));
         }
         
-        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        StoremanGroupStorageInterface(storemanStorage).resetStoremanGroup(tokenOrigAddr, storemanGroup);
         // TODO: always transfer it to initiator???
         if (initiator != address(0)) {
             //initiator.transfer(restBalance);

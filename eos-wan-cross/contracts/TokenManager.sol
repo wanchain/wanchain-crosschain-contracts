@@ -411,7 +411,7 @@ contract TokenManager is Halt {
     mapping(bytes => address) private penaltyReceiverMap;
 
     struct TokenInfo {
-        bytes              tokenOrigAccount;    /// token account on original chain
+        bytes              tokenOrigAddr;    /// token account on original chain
         address            tokenWanAddr;        /// a wanchain address of supported ERC20 token
         uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
         uint               minDeposit;          /// the minimum deposit for a valid storeman group
@@ -444,7 +444,7 @@ contract TokenManager is Halt {
 
     /// @notice                      event for token registration
     /// @dev                         event for token registration
-    /// @param tokenOrigAccount      token address of original chain
+    /// @param tokenOrigAddr      token address of original chain
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param minDeposit            the default min deposit
@@ -453,19 +453,19 @@ contract TokenManager is Halt {
     /// @param withdrawDelayTime     storeman unregister delay time
     /// @param hashAlgorithms        hash algorithms to calculate xHash
     /// @param tokenHash             keccak256 hash of token's name, symbol and decimals
-    event TokenAddedLogger(bytes tokenOrigAccount, address indexed tokenWanAddr, uint indexed ratio, uint minDeposit, bytes origHtlc, address wanHtlc, uint withdrawDelayTime, uint hashAlgorithms, bytes32 tokenHash);
+    event TokenAddedLogger(bytes tokenOrigAddr, address indexed tokenWanAddr, uint indexed ratio, uint minDeposit, bytes origHtlc, address wanHtlc, uint withdrawDelayTime, uint hashAlgorithms, bytes32 tokenHash);
 
 
     /// @notice                      event for update a specific token's status in tokenRegWhiteList
     /// @dev                         event for update a specific token's status in tokenRegWhiteList
-    /// @param tokenOrigAccount      token address of original chain
+    /// @param tokenOrigAddr      token address of original chain
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param minDeposit            the default minimum deposit
-    /// @param name                  tokenOrigAccount name to be used in wanchain
-    /// @param symbol                tokenOrigAccount symbol to beused in wanchain
-    /// @param decimals              tokenOrigAccount decimals
+    /// @param name                  tokenOrigAddr name to be used in wanchain
+    /// @param symbol                tokenOrigAddr symbol to beused in wanchain
+    /// @param decimals              tokenOrigAddr decimals
     /// @param hashAlgorithms        hash algorithms to calculate xHash
-    event CandidateAddedLogger(bytes tokenOrigAccount, uint indexed ratio, uint indexed minDeposit, uint withdrawDelayTime, bytes name, bytes symbol, uint8 decimals, uint hashAlgorithms);
+    event CandidateAddedLogger(bytes tokenOrigAddr, uint indexed ratio, uint indexed minDeposit, uint withdrawDelayTime, bytes name, bytes symbol, uint8 decimals, uint hashAlgorithms);
   
     /****************************************************************************
      **
@@ -474,45 +474,45 @@ contract TokenManager is Halt {
      ****************************************************************************/
 
     /// @notice                           function for get keccak256 hash key of origin chain token
-    /// @param tokenOrigAccount           token account of original chain
-    function mapKey(bytes tokenOrigAccount)
+    /// @param tokenOrigAddr           token account of original chain
+    function mapKey(bytes tokenOrigAddr)
         external
         view
         returns (bytes32)
     {
-        return tokenInfoKeyMap[tokenOrigAccount];
+        return tokenInfoKeyMap[tokenOrigAddr];
     }
 
     /// @notice                           function for get storemanGroup info
-    /// @param tokenOrigAccount           token account of original chain
-    function mapCandidateInfo(bytes tokenOrigAccount)
+    /// @param tokenOrigAddr           token account of original chain
+    function mapCandidateInfo(bytes tokenOrigAddr)
         external
         view
         returns (bool, bytes, bytes, uint8, uint, uint, uint, uint)
     {
-        CandidateInfo storage c = candidateInfoMap[tokenOrigAccount];
+        CandidateInfo storage c = candidateInfoMap[tokenOrigAddr];
         return (c.isApproved, c.name, c.symbol, c.decimals, c.token2WanRatio, c.minDeposit, c.withdrawDelayTime, c.hashAlgorithms);
     }
 
     /// @notice                           function for get storemanGroup info
-    /// @param tokenOrigAccount           token account of original chain
-    function mapPenaltyReceiver(bytes tokenOrigAccount)
+    /// @param tokenOrigAddr           token account of original chain
+    function mapPenaltyReceiver(bytes tokenOrigAddr)
         external
         view
         returns (address)
     {
-        return penaltyReceiverMap[tokenOrigAccount];
+        return penaltyReceiverMap[tokenOrigAddr];
     }
 
-    /// @notice                      check if a tokenOrigAccount has been supported
-    /// @dev                         check if a tokenOrigAccount has been supported
-    /// @param tokenOrigAccount      tokenOrigAccount to be added
-    function isTokenRegistered(bytes tokenOrigAccount)
+    /// @notice                      check if a tokenOrigAddr has been supported
+    /// @dev                         check if a tokenOrigAddr has been supported
+    /// @param tokenOrigAddr      tokenOrigAddr to be added
+    function isTokenRegistered(bytes tokenOrigAddr)
         public
         view
         returns (bool)
     {
-        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAccount]];
+        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAddr]];
         
         return tokenInfo.tokenWanAddr != address(0) && tokenInfo.token2WanRatio != 0;
     }
@@ -536,18 +536,18 @@ contract TokenManager is Halt {
 
     /// @notice                      post an ERC20 token as a candidate for normal support 
     /// @dev                         post an ERC20 token as a candidate for normal support 
-    /// @param tokenOrigAccount      token account of original chain
+    /// @param tokenOrigAddr      token account of original chain
     /// @param ratio                 trading ratio to wan coins
     /// @param minDeposit            the default minimum deposit
     /// @param withdrawDelayTime     storeman unregister delay time
-    /// @param name                  tokenOrigAccount name to be used in WanChain
-    /// @param symbol                tokenOrigAccount symbol to beused in WanChain
-    /// @param decimals              tokenOrigAccount decimals
-    function addCandidate(bytes tokenOrigAccount, uint ratio, uint minDeposit, uint withdrawDelayTime, bytes name, bytes symbol, uint8 decimals, uint hashAlgorithms)
+    /// @param name                  tokenOrigAddr name to be used in WanChain
+    /// @param symbol                tokenOrigAddr symbol to beused in WanChain
+    /// @param decimals              tokenOrigAddr decimals
+    function addCandidate(bytes tokenOrigAddr, uint ratio, uint minDeposit, uint withdrawDelayTime, bytes name, bytes symbol, uint8 decimals, uint hashAlgorithms)
         public
         onlyOwner
     {
-        require(!candidateInfoMap[tokenOrigAccount].isApproved);
+        require(!candidateInfoMap[tokenOrigAddr].isApproved);
         require(ratio > 0);
         require(minDeposit >= MIN_DEPOSIT);
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW);
@@ -555,19 +555,19 @@ contract TokenManager is Halt {
         require(symbol.length != 0);
         require(decimals != uint(0));
 
-        candidateInfoMap[tokenOrigAccount] = CandidateInfo(true, name, symbol, decimals, ratio, minDeposit, withdrawDelayTime, hashAlgorithms);     
+        candidateInfoMap[tokenOrigAddr] = CandidateInfo(true, name, symbol, decimals, ratio, minDeposit, withdrawDelayTime, hashAlgorithms);     
             
-        emit CandidateAddedLogger(tokenOrigAccount, ratio, minDeposit, withdrawDelayTime, name, symbol, decimals, hashAlgorithms);
+        emit CandidateAddedLogger(tokenOrigAddr, ratio, minDeposit, withdrawDelayTime, name, symbol, decimals, hashAlgorithms);
     }
 
     /// @notice                      remove an ERC20 token candidate
     /// @dev                         remove an ERC20 token candidate
-    /// @param tokenOrigAccount      token account of original chain
-    function removeCandidate(bytes tokenOrigAccount)
+    /// @param tokenOrigAddr      token account of original chain
+    function removeCandidate(bytes tokenOrigAddr)
         public
         onlyOwner
     {
-        CandidateInfo storage candidateInfo = candidateInfoMap[tokenOrigAccount];
+        CandidateInfo storage candidateInfo = candidateInfoMap[tokenOrigAddr];
 
         require(candidateInfo.isApproved);
 
@@ -583,98 +583,98 @@ contract TokenManager is Halt {
 
     /// @notice                      add a supported token
     /// @dev                         add a supported token
-    /// @param tokenOrigAccount      token account of original chain
+    /// @param tokenOrigAddr      token account of original chain
     /// @param htlcOrigAccount       htlc account of original chain
-    function addToken(bytes tokenOrigAccount, bytes htlcOrigAccount)
+    function addToken(bytes tokenOrigAddr, bytes htlcOrigAccount)
         public
     {
         // make sure initialization done
-        require(wanHtlc != address(0) && tokenOrigAccount.length != 0 && htlcOrigAccount.length != 0);
+        require(wanHtlc != address(0) && tokenOrigAddr.length != 0 && htlcOrigAccount.length != 0);
 
         // first round validation
-        CandidateInfo storage candidateInfo = candidateInfoMap[tokenOrigAccount];
+        CandidateInfo storage candidateInfo = candidateInfoMap[tokenOrigAddr];
         require(candidateInfo.isApproved);
         
         // second round validation
-        bytes32 key = keccak256(tokenOrigAccount, candidateInfo.name, candidateInfo.symbol, candidateInfo.decimals);
-        require(mapTokenInfo[key].tokenOrigAccount.length == 0 && mapTokenInfo[key].tokenWanAddr == address(0)); 
+        bytes32 key = keccak256(tokenOrigAddr, candidateInfo.name, candidateInfo.symbol, candidateInfo.decimals);
+        require(mapTokenInfo[key].tokenOrigAddr.length == 0 && mapTokenInfo[key].tokenWanAddr == address(0)); 
 
         // generate a wtoken contract instance
         address tokenInst = new WanToken(quotaLedger, string(candidateInfo.name), string(candidateInfo.symbol), candidateInfo.decimals);
 
         // create a new record
-        mapTokenInfo[key] = TokenInfo(tokenOrigAccount, tokenInst, candidateInfo.token2WanRatio, candidateInfo.minDeposit, candidateInfo.withdrawDelayTime, true, 0, 0, DEFAULT_BONUS_PERIOD_BLOCKS, DEFAULT_BONUS_RATIO_FOR_DEPOSIT, candidateInfo.hashAlgorithms, htlcOrigAccount);
+        mapTokenInfo[key] = TokenInfo(tokenOrigAddr, tokenInst, candidateInfo.token2WanRatio, candidateInfo.minDeposit, candidateInfo.withdrawDelayTime, true, 0, 0, DEFAULT_BONUS_PERIOD_BLOCKS, DEFAULT_BONUS_RATIO_FOR_DEPOSIT, candidateInfo.hashAlgorithms, htlcOrigAccount);
         // update token hash key
-        tokenInfoKeyMap[tokenOrigAccount] = key;
+        tokenInfoKeyMap[tokenOrigAddr] = key;
         
         // fire event
-        emit TokenAddedLogger(tokenOrigAccount, tokenInst, candidateInfo.token2WanRatio, candidateInfo.minDeposit, htlcOrigAccount, wanHtlc, candidateInfo.withdrawDelayTime, candidateInfo.hashAlgorithms, key);
+        emit TokenAddedLogger(tokenOrigAddr, tokenInst, candidateInfo.token2WanRatio, candidateInfo.minDeposit, htlcOrigAccount, wanHtlc, candidateInfo.withdrawDelayTime, candidateInfo.hashAlgorithms, key);
     }
 
     /// @notice                      set prams for a supported ERC20 token
     /// @dev                         set prams for a supported ERC20 token
-    /// @param tokenOrigAccount      token account of original chain
+    /// @param tokenOrigAddr      token account of original chain
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param delayTime             storeman unregister delay time
     /// @param bonusRatio            the bonus ratio deposit*ratio/precise
     /// @param penaltyReceiver       an address who will receive penalty
-    function setTokenEconomics(bytes tokenOrigAccount, uint ratio, uint delayTime, uint bonusRatio, address penaltyReceiver)    
+    function setTokenEconomics(bytes tokenOrigAddr, uint ratio, uint delayTime, uint bonusRatio, address penaltyReceiver)    
         public
         onlyOwner
     {
-        require(isTokenRegistered(tokenOrigAccount));
+        require(isTokenRegistered(tokenOrigAddr));
         require(ratio > 0);
         require(delayTime > 0);
         require(bonusRatio > 0 && bonusRatio <= DEFAULT_PRECISE);
         require(penaltyReceiver != address(0));
 
-        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAccount]];
+        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAddr]];
         tokenInfo.token2WanRatio = ratio;
         tokenInfo.withdrawDelayTime = delayTime;
         tokenInfo.bonusRatio = bonusRatio;
-        penaltyReceiverMap[tokenOrigAccount] = penaltyReceiver;
+        penaltyReceiverMap[tokenOrigAddr] = penaltyReceiver;
     }
 
     /// @notice                      function for setting smg registering mode,control by foundation or registering freely
     /// @dev                         function for setting smg registering mode,control by foundation or registering freely
-    /// @param tokenOrigAccount      token account of original chain
+    /// @param tokenOrigAddr      token account of original chain
     /// @param enableUserWhiteList   smg register mode,true controlled by foundation with white list,false register freely
-    function setSmgEnableUserWhiteList(bytes tokenOrigAccount, bool enableUserWhiteList)
+    function setSmgEnableUserWhiteList(bytes tokenOrigAddr, bool enableUserWhiteList)
         public
         onlyOwner
     {
-        require(isTokenRegistered(tokenOrigAccount));
-        mapTokenInfo[tokenInfoKeyMap[tokenOrigAccount]].useWhiteList = enableUserWhiteList;
+        require(isTokenRegistered(tokenOrigAddr));
+        mapTokenInfo[tokenInfoKeyMap[tokenOrigAddr]].useWhiteList = enableUserWhiteList;
     }
 
     /// @notice                      function for setting current system BonusPeriod
     /// @dev                         function for setting current system BonusPeriod
-    /// @param tokenOrigAccount      token account of original chain
+    /// @param tokenOrigAddr      token account of original chain
     /// @param isSystemBonusPeriod   smg isSystemBonusPeriod, true controlled by foundation, false register freely
     /// @param systemBonusPeriod     bonus Period in blocks
-    function setSystemEnableBonus(bytes tokenOrigAccount, bool isSystemBonusPeriod, uint systemBonusPeriod)
+    function setSystemEnableBonus(bytes tokenOrigAddr, bool isSystemBonusPeriod, uint systemBonusPeriod)
         public
         onlyOwner
     {
-        require(isTokenRegistered(tokenOrigAccount));
-        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAccount]];
+        require(isTokenRegistered(tokenOrigAddr));
+        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAddr]];
         tokenInfo.startBonusBlk = isSystemBonusPeriod ? block.number : 0;
         tokenInfo.bonusPeriodBlks = isSystemBonusPeriod ? (systemBonusPeriod > 0 ? systemBonusPeriod : DEFAULT_BONUS_PERIOD_BLOCKS) : DEFAULT_BONUS_PERIOD_BLOCKS;
     }
     
     /// @notice                      function updating total bonus of a specific ERC20 token     
     /// @dev                         function updating total bonus of a specific ERC20 token     
-    /// @param tokenOrigAccount      token account of original chain 
+    /// @param tokenOrigAddr      token account of original chain 
     /// @param bonus                 bonus 
     /// @param isAdded               plus if true, else do a minus operation
-    function updateTotalBonus(bytes tokenOrigAccount, uint bonus, bool isAdded)
+    function updateTotalBonus(bytes tokenOrigAddr, uint bonus, bool isAdded)
         external
         returns (bool)
     {
         require(msg.sender == storemanGroupAdmin);
-        require(isTokenRegistered(tokenOrigAccount));
+        require(isTokenRegistered(tokenOrigAddr));
 
-        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAccount]];
+        TokenInfo storage tokenInfo = mapTokenInfo[tokenInfoKeyMap[tokenOrigAddr]];
         tokenInfo.bonusTotal = isAdded ? tokenInfo.bonusTotal.add(bonus) : tokenInfo.bonusTotal.sub(bonus);
 
         return true;
