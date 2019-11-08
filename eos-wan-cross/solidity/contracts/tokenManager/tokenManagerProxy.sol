@@ -33,12 +33,12 @@ pragma solidity ^0.4.24;
 import "../components/Owned.sol";
 import "./StorageState.sol";
 
-contract tokenManagerProxy is StorageState, Owned {
+contract TokenManagerProxy is StorageState, Owned {
 
-    constructor(KeyValueStorage storage_, address _owner) public {
-        _storage = storage_;
-        _storage.setAddress("owner", _owner);
-    }
+    // constructor(KeyValueStorage storage_, address _owner) public {
+    //     _storage = storage_;
+    //     _storage.setAddress("owner", _owner);
+    // }
 
     event Upgraded(address indexed implementation);
 

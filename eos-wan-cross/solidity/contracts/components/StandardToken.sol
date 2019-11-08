@@ -30,7 +30,7 @@ pragma solidity ^0.4.24;
 import "./WRC20Protocol.sol";
 import "../lib/SafeMath.sol";
 
-contract StandardToken is RC20Protocol {
+contract StandardToken is WRC20Protocol {
     using SafeMath for uint;
 
     mapping (address => uint) balances;

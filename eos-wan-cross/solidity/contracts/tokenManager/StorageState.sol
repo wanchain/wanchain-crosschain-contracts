@@ -48,33 +48,23 @@ contract StorageState {
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
 
-    bool isControlled;        /// if the token register is controlled
-
-    /// a map from origin chain token account to keccak256 hash key
-    mapping(bytes => bytes32) private tokenInfoKeyMap;
+    bool public isControlled;        /// if the token register is controlled
 
     /// a map from origin chain token account to registered-token information
-    mapping(bytes32 => TokenInfo) public mapTokenInfo;
-
-    /// a map from origin chain token account to candidate token information
-    mapping(bytes => CandidateInfo) private candidateInfoMap;
+    mapping(bytes => TokenInfo) internal mapTokenInfo;
 
     struct TokenInfo {
-        address            tokenOrigAddr;       /// WRC20 token address on Ethereum mainnet
+        bytes              tokenOrigAddr;       /// token account on original chain
+        bytes              name;                /// WRC20 token name on wanchain mainnet
+        bytes              symbol;              /// WRC20 token symbol on wanchain mainnet
+        uint8              decimals;            /// WRC20 token decimals on wanchain mainnet
         address            tokenWanAddr;        /// a wanchain address of supported ERC20 token
         uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
         uint               minDeposit;          /// the minimum deposit for a valid storeman group
         uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied un-registration
     }
 
-    struct CandidateInfo {
-        bool               isApproved;          /// indicate whether this ERC20 token been approved
-        bytes              name;                /// WRC20 token name on wanchain mainnet
-        bytes              symbol;              /// WRC20 token symbol on wanchain mainnet
-        uint8              decimals;            /// WRC20 token decimals on wanchain mainnet
-        uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
-        uint               minDeposit;          /// the minimum deposit for a valid storeman group
-        uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied un-registration
-    }
-
+    // function mapTokenInfo(bytes tokenOrigAddr) public {
+    //   return mapTokenInfo[tokenOrigAddr];
+    // }
 }

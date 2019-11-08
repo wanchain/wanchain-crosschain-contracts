@@ -26,7 +26,7 @@
 
 pragma solidity ^0.4.24;
 
-import '../lib/StandardToken.sol';
+import '../components/StandardToken.sol';
 import '../components/Owned.sol';
 
 contract WanToken is StandardToken, Owned {
@@ -82,7 +82,6 @@ contract WanToken is StandardToken, Owned {
 
   ///@notice Initialize the TokenManager address
   ///@dev Initialize the TokenManager address
-  ///@param qlAddr The QuotaLedger instance address
   ///@param tokenName The token name to be used
   ///@param tokenSymbol The token symbol to be used
   ///@param tokenDecimal The token decimals to be used
@@ -117,13 +116,12 @@ contract WanToken is StandardToken, Owned {
     onlyMeaningfulValue(value)
     returns (bool)
   {
-    require(account != address(0));
+    require(account != address(0), "Account is null");
 
     balances[account] = balances[account].add(value);
     totalSupply = totalSupply.add(value);
-    
+
     emit TokenMintedLogger(account, value, totalSupply);
-    
     return true;
   }
 
@@ -142,7 +140,6 @@ contract WanToken is StandardToken, Owned {
     totalSupply = totalSupply.sub(value);
 
     emit TokenBurntLogger(account, value, totalSupply);
-    
     return true;
   }
 
