@@ -40,9 +40,6 @@ contract WanToken is StandardToken, Owned {
   string public symbol;
   uint8 public decimals;
 
-  /// Token manager address
-  address public quotaLedger;
-
   /****************************************************************************
    **
    ** MODIFIERS

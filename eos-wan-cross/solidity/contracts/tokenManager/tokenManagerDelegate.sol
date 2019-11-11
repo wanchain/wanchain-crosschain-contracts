@@ -34,6 +34,7 @@ import "../components/Owned.sol";
 import "./StorageState.sol";
 import "../lib/SafeMath.sol";
 import "./WanToken.sol";
+import "./IWanToken.sol";
 
 contract TokenManagerDelegate is Owned, StorageState {
     using SafeMath for uint;
@@ -51,13 +52,27 @@ contract TokenManagerDelegate is Owned, StorageState {
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param minDeposit            the default min deposit
     /// @param withdrawDelayTime     storeman un-register delay time
-    event TokenAddedLogger(address indexed tokenWanAddr, uint8 indexed decimal, bytes name, bytes symbol,
-                           bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime);
+    event TokenAddedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
+                           bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
 
+    event TokenUpdatedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
+                             bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
+
+    event TokenRemovedLogger(bytes tokenOrigAccount);
+
+    modifier onlyValidAccount(bytes account) {
+        require(account.length != 0, "Account is null");
+        _;
+    }
+
+    modifier onlyHTLC {
+        require(msg.sender == htlcAddr, "Sender is not allowed");
+        _;
+    }
 
     /// @notice If WAN coin is sent to this address, send it back.
     /// @dev If WAN coin is sent to this address, send it back.
-    function() public payable {
+    function() external payable {
         revert("Not support");
     }
 
@@ -65,7 +80,7 @@ contract TokenManagerDelegate is Owned, StorageState {
     /// @dev                         check if a tokenOrigAccount has been supported
     /// @param tokenOrigAccount      tokenOrigAccount to be added
     function isTokenRegistered(bytes tokenOrigAccount)
-        public
+        external
         view
         returns (bool)
     {
@@ -86,12 +101,10 @@ contract TokenManagerDelegate is Owned, StorageState {
         bytes symbol,
         uint8 decimals
     )
-        public
+        external
+        onlyOwner
+        onlyValidAccount(tokenOrigAccount)
     {
-        // Security check
-        require(!isControlled || msg.sender == owner, "Not owner");    //Not controlled or the sender is owner
-
-        require(tokenOrigAccount.length != 0, "Original token account is null");
         require(token2WanRatio > 0, "Ratio is null");
         require(minDeposit >= MIN_DEPOSIT, "Deposit amount is not enough");
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
@@ -103,12 +116,103 @@ contract TokenManagerDelegate is Owned, StorageState {
         address tokenInst = new WanToken(string(name), string(symbol), decimals);
 
         // create a new record
-        mapTokenInfo[tokenOrigAccount] = TokenInfo(tokenOrigAccount, name, symbol, decimals,
+        mapTokenInfo[tokenOrigAccount] = TokenInfo(name, symbol, decimals,
                                                    tokenInst, token2WanRatio, minDeposit, withdrawDelayTime);
 
         // fire event
-        emit TokenAddedLogger(tokenInst, decimals, name, symbol,
-                              tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime);
+        emit TokenAddedLogger(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, name, symbol, decimals, tokenInst);
     }
 
+    function removeToken(bytes tokenOrigAccount)
+        external
+        onlyOwner
+        onlyValidAccount(tokenOrigAccount)
+    {
+        TokenInfo storage tokenInfo = mapTokenInfo[tokenOrigAccount];
+
+        tokenInfo.name.length = 0;
+        tokenInfo.symbol.length = 0;
+        tokenInfo.decimals = 0;
+        tokenInfo.tokenWanAddr = address(0);
+        tokenInfo.token2WanRatio = 0;
+        tokenInfo.minDeposit = 0;
+        tokenInfo.withdrawDelayTime = 0;
+
+        emit TokenRemovedLogger(tokenOrigAccount);
+    }
+
+    function updateToken(
+        bytes tokenOrigAccount,
+        uint  token2WanRatio,
+        uint  minDeposit,
+        uint  withdrawDelayTime,
+        bytes name,
+        bytes symbol,
+        uint8 decimals,
+        address tokenWanAddr
+    )
+        external
+        onlyOwner
+        onlyValidAccount(tokenOrigAccount)
+    {
+        require(token2WanRatio > 0, "Ratio is null");
+        require(minDeposit >= MIN_DEPOSIT, "Deposit amount is not enough");
+        require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
+        require(name.length != 0, "Name is null");
+        require(symbol.length != 0, "Symbol is null");
+        require(decimals != uint(0), "Decimal is null");
+        require(tokenWanAddr != address(0), "Token address on Wanchain is null");
+
+        // create a new record
+        mapTokenInfo[tokenOrigAccount] = TokenInfo(name, symbol, decimals,
+                                                   tokenWanAddr, token2WanRatio, minDeposit, withdrawDelayTime);
+
+        // fire event
+        emit TokenUpdatedLogger(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, name, symbol, decimals, tokenWanAddr);
+    }
+
+    function getTokenInfo(bytes tokenOrigAccount)
+        external
+        view
+        onlyValidAccount(tokenOrigAccount)
+        returns(bytes, bytes, uint8, address, uint, uint, uint)
+    {
+        TokenInfo storage token = mapTokenInfo[tokenOrigAccount];
+        return (token.name, token.symbol, token.decimals, token.tokenWanAddr, token.token2WanRatio, token.minDeposit, token.withdrawDelayTime);
+    }
+
+    function mintToken(bytes tokenOrigAccount, address recipient, uint value)
+        external
+        onlyHTLC
+        onlyValidAccount(tokenOrigAccount)
+        // onlyMeaningfulValue(value)
+        returns(bool)
+    {
+        address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
+
+        // needs to pass recipient address
+        require(IWanToken(instance).mint(recipient, value), "Mint token failed");
+        return true;
+    }
+
+    function burnToken(bytes tokenOrigAccount, uint value)
+        external
+        onlyHTLC
+        onlyValidAccount(tokenOrigAccount)
+        // onlyMeaningfulValue(value)
+        returns(bool)
+    {
+        address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
+
+        require(IWanToken(instance).burn(htlcAddr, value), "Burn token failed");
+        return true;
+    }
+
+    function setHtlcAddr(address addr)
+        external
+        onlyOwner
+    {
+        require(addr != address(0), "HTLC address is null");
+        htlcAddr = addr;
+    }
 }

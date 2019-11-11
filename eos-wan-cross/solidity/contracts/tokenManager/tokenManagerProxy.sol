@@ -33,7 +33,7 @@ pragma solidity ^0.4.24;
 import "../components/Owned.sol";
 import "./StorageState.sol";
 
-contract TokenManagerProxy is StorageState, Owned {
+contract TokenManagerProxy is Owned, StorageState {
 
     // constructor(KeyValueStorage storage_, address _owner) public {
     //     _storage = storage_;

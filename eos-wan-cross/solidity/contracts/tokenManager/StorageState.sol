@@ -48,13 +48,14 @@ contract StorageState {
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
 
-    bool public isControlled;        /// if the token register is controlled
-
     /// a map from origin chain token account to registered-token information
     mapping(bytes => TokenInfo) internal mapTokenInfo;
 
+    /// only HTLC contract address can mint and burn token
+    address public htlcAddr;
+
     struct TokenInfo {
-        bytes              tokenOrigAddr;       /// token account on original chain
+        // bytes              tokenOrigAddr;       /// token account on original chain
         bytes              name;                /// WRC20 token name on wanchain mainnet
         bytes              symbol;              /// WRC20 token symbol on wanchain mainnet
         uint8              decimals;            /// WRC20 token decimals on wanchain mainnet
@@ -64,7 +65,4 @@ contract StorageState {
         uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied un-registration
     }
 
-    // function mapTokenInfo(bytes tokenOrigAddr) public {
-    //   return mapTokenInfo[tokenOrigAddr];
-    // }
 }
