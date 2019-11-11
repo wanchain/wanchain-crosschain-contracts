@@ -26,11 +26,8 @@
 
 pragma solidity ^0.4.24;
 
-import "../lib/SafeMath.sol";
 
 contract StorageState {
-    using SafeMath for uint;
-
     /************************************************************
      **
      ** VARIABLES

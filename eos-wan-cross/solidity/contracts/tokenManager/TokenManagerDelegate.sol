@@ -32,13 +32,10 @@ pragma solidity ^0.4.24;
 
 import "../components/Owned.sol";
 import "./StorageState.sol";
-import "../lib/SafeMath.sol";
 import "./WanToken.sol";
 import "./IWanToken.sol";
 
 contract TokenManagerDelegate is Owned, StorageState {
-    using SafeMath for uint;
-
     /************************************************************
      **
      ** EVENTS
@@ -82,7 +79,7 @@ contract TokenManagerDelegate is Owned, StorageState {
     function isTokenRegistered(bytes tokenOrigAccount)
         external
         view
-        returns (bool)
+        returns(bool)
     {
         TokenInfo storage tokenInfo = mapTokenInfo[tokenOrigAccount];
 
