@@ -29,8 +29,9 @@ pragma solidity ^0.4.24;
 import "../lib/QuotaLib.sol";
 import "../components/Halt.sol";
 import "../interfaces/ITokenManager.sol";
+import "./HTLCStorage.sol";
 
-contract HTLCDelegate is Halt {
+contract HTLCDelegate is HTLCStorage, Halt {
     using QuotaLib for QuotaLib.Data;
     /**
      *
@@ -115,22 +116,22 @@ contract HTLCDelegate is Halt {
     // /// @param  storemanPK      PK of storeman
     // /// @param  r               signature
     // /// @param  s               signature
-    function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes r, bytes32 s)
-        public
-        initialized
-        notHalted
-        returns(bool)
-    {
-         require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
+    // function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes r, bytes32 s)
+    //     public
+    //     initialized
+    //     notHalted
+    //     returns(bool)
+    // {
+    //      require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
-         bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
-         require(verifySignature(mHash, storemanPK, r, s));
+    //      bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
+    //      require(verifySignature(mHash, storemanPK, r, s));
         
-        //  addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
-        require(quotaLedger.inLock(tokenOrigAccount, storemanPK, value), "Quota lock failed");
+    //     //  addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
+    //     require(quotaLedger.inLock(tokenOrigAccount, storemanPK, value), "Quota lock failed");
 
-        return true;
-    }
+    //     return true;
+    // }
 
     // /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
     // /// @param  tokenOrigAccount  account of original chain token  

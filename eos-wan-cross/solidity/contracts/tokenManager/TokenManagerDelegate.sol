@@ -31,11 +31,11 @@ pragma solidity ^0.4.24;
  */
 
 import "../components/Owned.sol";
-import "./StorageState.sol";
+import "./TokenManagerStorage.sol";
 import "./WanToken.sol";
 import "./IWanToken.sol";
 
-contract TokenManagerDelegate is Owned, StorageState {
+contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /************************************************************
      **
      ** EVENTS

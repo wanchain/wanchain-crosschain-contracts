@@ -30,16 +30,8 @@ pragma solidity ^0.4.24;
  * Math operations with safety checks
  */
 
-import "../components/Owned.sol";
-import "./TokenManagerStorage.sol";
-import "../components/Proxy.sol";
 
-contract TokenManagerProxy is TokenManagerStorage, Owned, Proxy {
-
-    // constructor(KeyValueStorage storage_, address _owner) public {
-    //     _storage = storage_;
-    //     _storage.setAddress("owner", _owner);
-    // }
+contract Proxy {
 
     event Upgraded(address indexed implementation);
 
@@ -47,15 +39,6 @@ contract TokenManagerProxy is TokenManagerStorage, Owned, Proxy {
 
     function implementation() public view returns (address) {
         return _implementation;
-    }
-
-    function upgradeTo(address impl) public onlyOwner {
-        require(
-            _implementation != impl,
-            "Cannot upgrade to the same implementation."
-        );
-        _implementation = impl;
-        emit Upgraded(impl);
     }
 
     function () public payable {
