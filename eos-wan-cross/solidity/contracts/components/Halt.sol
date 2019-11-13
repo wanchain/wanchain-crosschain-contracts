@@ -29,7 +29,7 @@ import './Owned.sol';
 
 contract Halt is Owned {
 
-    bool public halted = true;
+    bool public halted = false;
 
     modifier notHalted() {
         require(!halted, "Smart contract is halted");

@@ -108,6 +108,7 @@ contract TokenManagerDelegate is Owned, StorageState {
         require(name.length != 0, "Name is null");
         require(symbol.length != 0, "Symbol is null");
         require(decimals != uint(0), "Decimal is null");
+        require(mapTokenInfo[tokenOrigAccount].tokenWanAddr == address(0), "Token is exist");
 
         // generate a w-token contract instance
         address tokenInst = new WanToken(string(name), string(symbol), decimals);

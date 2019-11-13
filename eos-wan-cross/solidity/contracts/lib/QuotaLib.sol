@@ -32,12 +32,12 @@ library QuotaLib {
     using SafeMath for uint;
 
     struct Quota {
-        /// storemanGroup's total quota 
-        uint _quota;             
+        /// storemanGroup's total quota
+        uint _quota;
         /// amount of original token to be received, equals to amount of WAN token to be minted
-        uint _receivable;       
+        uint _receivable;
         /// amount of WAN token to be burnt
-        uint _payable;           
+        uint _payable;
         /// amount of original token received, equals to amount of WAN token been minted
         uint _debt;
         /// is active
@@ -53,17 +53,17 @@ library QuotaLib {
     /// @dev                    test if a value provided is meaningless
     /// @param value            given value to be handled
     modifier onlyMeaningfulValue(uint value) {
-        require(value > 0);
+        require(value > 0, "Value is null");
         _;
     }
 
     /// @notice                 function for get quota
     /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup PK 
+    /// @param storemanGroupPK  storemanGroup PK
     function getQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        returns (uint, uint, uint, uint)
+        returns (uint, uint, uint, uint, bool)
     {
         Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
         return (quota._quota, quota._receivable, quota._payable, quota._debt, quota._active);
@@ -73,24 +73,24 @@ library QuotaLib {
     /// @notice                 set storeman group's quota
     /// @param tokenOrigAccount token account of original chain
     /// @param storemanGroupPK  storemanGroup PK
-    /// @param quota            a storemanGroup's quota    
-    function newQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) 
+    /// @param quota            a storemanGroup's quota
+    function newQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyMeaningfulValue(quota)
         returns (bool)
     {
-        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0);
-        require(!isExist(self, tokenOrigAccount, storemanGroupPK));
+        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
+        require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
         self.quotaMap[tokenOrigAccount][storemanGroupPK] = Quota(quota, 0, 0, 0, true);
 
         return true;
     }
 
-    function deactivateQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK) 
+    function deactivateQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         returns (bool)
     {
-        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0);
+        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         self.quotaMap[tokenOrigAccount][storemanGroupPK]._active = false;
 
         return true;
@@ -100,7 +100,7 @@ library QuotaLib {
     /// @dev                    frozen WRC token quota
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  handler PK
-    /// @param value            amout of WERC20 quota to be frozen
+    /// @param value            amount of WRC20 quota to be frozen
     /// @return                 true if successful
     function inLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
@@ -108,11 +108,11 @@ library QuotaLib {
         returns (bool)
     {
         /// Make sure an active storemanGroup is provided to handle transactions
-        require(isActive(self, tokenOrigAccount, storemanGroupPK));
+        require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
 
         /// Make sure enough inbound quota available
         Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
-        require(quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt)) >= value);
+        require(quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt)) >= value, "Quota is not enough");
 
         /// Increase receivable
         quotaInfo._receivable = quotaInfo._receivable.add(value);
@@ -120,19 +120,19 @@ library QuotaLib {
         return true;
     }
 
-    /// @notice                 defrozen WERC20 quota
-    /// @dev                    defrozen WERC20 quota
+    /// @notice                 revoke WRC20 quota
+    /// @dev                    revoke WRC20 quota
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  handler PK
-    /// @param value            amount of WERC20 quota to be locked
+    /// @param value            amount of WRC20 quota to be locked
     /// @return                 true if successful
-    function inRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function inRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
         returns (bool)
     {
         /// Make sure a valid storeman provided
-        require(isExist(tokenOrigAccount, storemanGroupPK));
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
         Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
 
@@ -143,19 +143,18 @@ library QuotaLib {
     }
 
     /// @notice                 mint WRC token or payoff storemanGroup debt
-    /// @dev                    mint WERC20 token or payoff storemanGroup debt
+    /// @dev                    mint WRC20 token or payoff storemanGroup debt
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  handler PK
-    /// @param recipient        address that will receive WERC20 token
-    /// @param value            amount of WERC20 token to be minted
+    /// @param value            amount of WRC20 token to be minted
     /// @return                 success of token mint
-    function inRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, address recipient, uint value)
+    function inRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
         returns(bool)
     {
         /// Make sure a legit storemanGroup provided
-        require(isExist(self, tokenOrigAccount, storemanGroupPK));
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
         Quota storage _q = self.quotaMap[tokenOrigAccount][storemanGroupPK];
 
@@ -166,24 +165,24 @@ library QuotaLib {
         return true;
     }
 
-    /// @notice                 lock WERC20 token and initiate an outbound transaction
-    /// @dev                    lock WERC20 token and initiate an outbound transaction
+    /// @notice                 lock WRC20 token and initiate an outbound transaction
+    /// @dev                    lock WRC20 token and initiate an outbound transaction
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  outbound storemanGroup handler PK
-    /// @param value            amount of WERC20 token to be locked
+    /// @param value            amount of WRC20 token to be locked
     /// @return                 success of token locking
     function outLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
         returns (bool)
-    { 
+    {
         /// Make sure a valid storemanGroup and a legit initiator provided
-        require(isActive(self, tokenOrigAccount, storemanGroupPK));
+        require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
 
         Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
 
-        /// Make sure it has enough outboundQuota 
-        require(quota._debt.sub(quota._payable) >= value);
+        /// Make sure it has enough outboundQuota
+        require(quota._debt.sub(quota._payable) >= value, "Value is invalid");
 
         /// Adjust quota record
         quota._payable = quota._payable.add(value);
@@ -191,18 +190,18 @@ library QuotaLib {
         return true;
     }
 
-    /// @notice                 unlock WERC20 token
-    /// @dev                    unlock WERC20 token
+    /// @notice                 unlock WRC20 token
+    /// @dev                    unlock WRC20 token
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  storemanGroup handler PK
     /// @param value            amount of token to be unlocked
     /// @return                 success of token unlocking
-    function outRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function outRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
         returns (bool)
     {
-        require(isExist(self, tokenOrigAccount, storemanGroupPK));
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
         /// Make sure it has enough quota for a token unlocking
         Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
@@ -213,18 +212,18 @@ library QuotaLib {
         return true;
     }
 
-    /// @notice                 burn WERC20 token
-    /// @dev                    burn WERC20 token
+    /// @notice                 burn WRC20 token
+    /// @dev                    burn WRC20 token
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  cross-chain transaction handler PK
-    /// @param value            amount of WERC20 token to be burnt
+    /// @param value            amount of WRC20 token to be burnt
     /// @return                 success of burn token
-    function outRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value) 
+    function outRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
         returns (bool)
-    { 
-        require(isExist(self, tokenOrigAccount, storemanGroupPK));
+    {
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
         Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
 
         /// Adjust quota record
@@ -266,12 +265,12 @@ library QuotaLib {
     //     return true;
     // }
 
-    // /// @notice                 defrozen WERC20 quota
-    // /// @dev                    defrozen WERC20 quota
+    // /// @notice                 revoke WRC20 quota
+    // /// @dev                    revoke WRC20 quota
     // /// @param tokenOrigAccount account of token supported
     // /// @param dstStoremanPK    dst PK
     // /// @param srcStoremanPK    src PK
-    // /// @param value            amount of WERC20 quota to be locked
+    // /// @param value            amount of WRC20 quota to be locked
     // /// @return                 true if successful
     // function unlockDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value) 
     //     external
@@ -298,11 +297,11 @@ library QuotaLib {
     // }
 
     // /// @notice                 mint WRC token or payoff storemanGroup debt
-    // /// @dev                    mint WERC20 token or payoff storemanGroup debt
+    // /// @dev                    mint WRC20 token or payoff storemanGroup debt
     // /// @param tokenOrigAccount account of token supported
     // /// @param dstStoremanPK    dst PK
     // /// @param srcStoremanPK    src PK
-    // /// @param value            amount of WERC20 token to be minted
+    // /// @param value            amount of WRC20 token to be minted
     // /// @return                 success of token mint
     // function redeemDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value)
     //     external
@@ -331,7 +330,7 @@ library QuotaLib {
 
 
     /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK 
+    /// @param storemanGroupPK  cross-chain transaction handler PK
     function isExist(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
         view
@@ -341,10 +340,10 @@ library QuotaLib {
     }
 
     /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK 
-    function isActive(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK) 
+    /// @param storemanGroupPK  cross-chain transaction handler PK
+    function isActive(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
-        view 
+        view
         returns (bool)
     {
         Quota storage q = self.quotaMap[tokenOrigAccount][storemanGroupPK];
@@ -355,14 +354,14 @@ library QuotaLib {
     /// @dev                    query storemanGroup detail
     /// @param  tokenOrigAccount  account of token supported
     /// @param  storemanGroupPK Pk of storemanGroup to be queried
-    /// @return quota           total quota of this storemanGroup in ETH/WERC20
-    /// @return inboundQuota    inbound cross-chain transaction quota of this storemanGroup in ETH/WERC20
-    /// @return outboundQuota   outbound cross-chain transaction quota of this storemanGroup in ETH/WERC20
-    /// @return receivable      amount of WERC20 to be minted through this storemanGroup
-    /// @return payable         amount of WERC20 to be burnt through this storemanGroup
-    /// @return debt            amount of WERC20 been minted through this storemanGroup
+    /// @return quota           total quota of this storemanGroup in ETH/WRC20
+    /// @return inboundQuota    inbound cross-chain transaction quota of this storemanGroup in ETH/WRC20
+    /// @return outboundQuota   outbound cross-chain transaction quota of this storemanGroup in ETH/WRC20
+    /// @return receivable      amount of WRC20 to be minted through this storemanGroup
+    /// @return payable         amount of WRC20 to be burnt through this storemanGroup
+    /// @return debt            amount of WRC20 been minted through this storemanGroup
     function queryQuotaInfo(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
-        external 
+        external
         view
         returns (uint, uint, uint, uint, uint, uint)
     {
@@ -381,7 +380,7 @@ library QuotaLib {
     /// @notice                 check if a specified storemanGroup has paid off its debt
     /// @dev                    check if a specified storemanGroup has paid off its debt
     /// @param  tokenOrigAccount  account of token supported
-    /// @param  storemanGroupPK   the PK of storemanGroup to be checked 
+    /// @param  storemanGroupPK   the PK of storemanGroup to be checked
     /// @return                 result of debt status check
     function isDebtPaidOff(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
