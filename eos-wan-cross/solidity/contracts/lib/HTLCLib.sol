@@ -75,13 +75,13 @@ library HTLCLib {
 
     struct Data {
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes => mapping(bytes32 => UserTx)) xHashUserTxsMap;
+        mapping(bytes32 => UserTx) xHashUserTxsMap;
 
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes => mapping(bytes32 => SmgTx)) xHashSmgTxsMap;
+        mapping(bytes32 => SmgTx) xHashSmgTxsMap;
 
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes => mapping(bytes32 => DebtTx)) xHashDebtTxsMap;
+        mapping(bytes32 => DebtTx) xHashDebtTxsMap;
 
         /// @notice atomic tx needed locked time(in seconds)
         uint lockedTime;
@@ -111,38 +111,35 @@ library HTLCLib {
     }
 
     /// @notice                  function for get user info
-    /// @param tokenOrigAccount  token account of original chain
     /// @param xHash             xHash
-    function getUserTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash)
+    function getUserTx(Data storage self, bytes32 xHash)
         external
         view
         returns (address, bytes, bytes, uint)
     {
-        UserTx storage t = self.xHashUserTxsMap[tokenOrigAccount][xHash];
+        UserTx storage t = self.xHashUserTxsMap[xHash];
         return (t.sender, t.storemanPK, t.shadow, t.baseTx.value);
     }
 
     /// @notice                  function for get user info
-    /// @param tokenOrigAccount  token account of original chain
     /// @param xHash             xHash
-    function getSmgTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash)
+    function getSmgTx(Data storage self, bytes32 xHash)
         external
         view
         returns (address, uint)
     {
-        SmgTx storage t = self.xHashSmgTxsMap[tokenOrigAccount][xHash];
+        SmgTx storage t = self.xHashSmgTxsMap[xHash];
         return (t.userAddr, t.baseTx.value);
     }
 
     // /// @notice                  function for get HTLC info
-    // /// @param tokenOrigAccount  token account of original chain
     // /// @param xHash             xHash
-    // function getDebtTransferSrcPK(Data storage self, bytes tokenOrigAccount, bytes32 xHash)
+    // function getDebtTransferSrcPK(Data storage self, bytes32 xHash)
     //     external
     //     view
     //     returns (bytes)
     // {
-    //     HTLCTx storage t = self.xHashHTLCTxsMap[tokenOrigAccount][xHash];
+    //     HTLCTx storage t = self.xHashHTLCTxsMap[xHash];
     //     return (t.srcPK);
     // }
 
@@ -157,14 +154,13 @@ library HTLCLib {
     }
 
     /// @notice                 add user transaction info
-    /// @param  tokenOrigAccount  account of original chain token
     /// @param  xHash           hash of HTLC random number
     /// @param  value           HTLC transfer value of token
     /// @param  shadow          shadow address. used for receipt coins on opposite block chain
-    function addUserTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash, uint value, bytes shadow, bytes storemanPK)
+    function addUserTx(Data storage self, bytes32 xHash, uint value, bytes shadow, bytes storemanPK)
         external
     {
-        UserTx storage userTx = self.xHashUserTxsMap[tokenOrigAccount][xHash];
+        UserTx storage userTx = self.xHashUserTxsMap[xHash];
         require(value != 0, "Value is invalid");
         require(userTx.baseTx.status == TxStatus.None, "User tx is exist");
 
@@ -177,10 +173,10 @@ library HTLCLib {
         userTx.shadow = shadow;
     }
 
-    function addSmgTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash, uint value, address userAddr)
+    function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr)
         external
     {
-        SmgTx storage smgTx = self.xHashSmgTxsMap[tokenOrigAccount][xHash];
+        SmgTx storage smgTx = self.xHashSmgTxsMap[xHash];
         require(value != 0, "Value is invalid");
         require(smgTx.baseTx.status == TxStatus.None, "Smg tx is exist");
 
@@ -192,16 +188,15 @@ library HTLCLib {
     }
 
     /// @notice                 refund coins from HTLC transaction
-    /// @param  tokenOrigAccount  account of original chain token
     /// @param  x               random number of HTLC
     /// @return xHash           return hash of HTLC random number
-    function redeemUserTx(Data storage self, bytes tokenOrigAccount, bytes x)
+    function redeemUserTx(Data storage self, bytes x)
         external
         returns(bytes32 xHash)
     {
         xHash = sha256(x);
 
-        UserTx storage info = self.xHashUserTxsMap[tokenOrigAccount][xHash];
+        UserTx storage info = self.xHashUserTxsMap[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
 
@@ -210,16 +205,15 @@ library HTLCLib {
     }
 
     /// @notice                 refund coins from HTLC transaction
-    /// @param  tokenOrigAccount  account of original chain token
     /// @param  x               random number of HTLC
     /// @return xHash           return hash of HTLC random number
-    function redeemSmgTx(Data storage self, bytes tokenOrigAccount, bytes x)
+    function redeemSmgTx(Data storage self, bytes x)
         external
         returns(bytes32 xHash)
     {
         xHash = sha256(x);
 
-        SmgTx storage info = self.xHashSmgTxsMap[tokenOrigAccount][xHash];
+        SmgTx storage info = self.xHashSmgTxsMap[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
         require(info.userAddr == msg.sender, "Msg sender is incorrect");
@@ -229,12 +223,11 @@ library HTLCLib {
     }
 
     /// @notice                 revoke user transaction
-    /// @param  tokenOrigAccount  account of original chain token
     /// @param  xHash           hash of HTLC random number
-    function revokeUserTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash)
+    function revokeUserTx(Data storage self, bytes32 xHash)
         external
     {
-        UserTx storage info = self.xHashUserTxsMap[tokenOrigAccount][xHash];
+        UserTx storage info = self.xHashUserTxsMap[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
         require(info.sender == msg.sender, "Msg sender is incorrect");
@@ -243,12 +236,11 @@ library HTLCLib {
     }
 
     /// @notice                 revoke user transaction
-    /// @param  tokenOrigAccount  account of original chain token
     /// @param  xHash           hash of HTLC random number
-    function revokeSmgTx(Data storage self, bytes tokenOrigAccount, bytes32 xHash)
+    function revokeSmgTx(Data storage self, bytes32 xHash)
         external
     {
-        SmgTx storage info = self.xHashSmgTxsMap[tokenOrigAccount][xHash];
+        SmgTx storage info = self.xHashSmgTxsMap[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
 
