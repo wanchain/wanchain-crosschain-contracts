@@ -121,7 +121,7 @@ contract HTLCDelegate is Halt {
         notHalted
         returns(bool)
     {
-         require(tokenManager.isTokenRegistered(tokenOrigAccount)), "Token is not registered");
+         require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
          bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
          require(verifySignature(mHash, storemanPK, r, s));
