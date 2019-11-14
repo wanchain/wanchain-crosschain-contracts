@@ -46,7 +46,7 @@ library QuotaLib {
 
     struct Data {
         /// @notice a map from storemanGroup PK to its quota information
-        mapping(bytes => mapping(bytes => Quota)) quotaMap;
+        mapping(bytes => mapping(bytes => Quota)) mapQuota;
     }
 
     /// @notice                 test if a value provided is meaningless
@@ -65,7 +65,7 @@ library QuotaLib {
         view
         returns (uint, uint, uint, uint, bool)
     {
-        Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quota = self.mapQuota[tokenOrigAccount][storemanGroupPK];
         return (quota._quota, quota._receivable, quota._payable, quota._debt, quota._active);
     }
 
@@ -81,7 +81,7 @@ library QuotaLib {
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
-        self.quotaMap[tokenOrigAccount][storemanGroupPK] = Quota(quota, 0, 0, 0, true);
+        self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, 0, 0, 0, true);
 
         return true;
     }
@@ -91,7 +91,7 @@ library QuotaLib {
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-        self.quotaMap[tokenOrigAccount][storemanGroupPK]._active = false;
+        self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
 
         return true;
     }
@@ -111,7 +111,7 @@ library QuotaLib {
         require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
 
         /// Make sure enough inbound quota available
-        Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
         require(quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt)) >= value, "Quota is not enough");
 
         /// Increase receivable
@@ -134,7 +134,7 @@ library QuotaLib {
         /// Make sure a valid storeman provided
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
-        Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quota = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Credit receivable, double-check receivable is no less than value to be unlocked
         quota._receivable = quota._receivable.sub(value);
@@ -156,7 +156,7 @@ library QuotaLib {
         /// Make sure a legit storemanGroup provided
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
-        Quota storage _q = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage _q = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Adjust quota record
         _q._receivable = _q._receivable.sub(value);
@@ -179,7 +179,7 @@ library QuotaLib {
         /// Make sure a valid storemanGroup and a legit initiator provided
         require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
 
-        Quota storage quota = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quota = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Make sure it has enough outboundQuota
         require(quota._debt.sub(quota._payable) >= value, "Value is invalid");
@@ -204,7 +204,7 @@ library QuotaLib {
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
         /// Make sure it has enough quota for a token unlocking
-        Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Adjust quota record
         quotaInfo._payable = quotaInfo._payable.sub(value);
@@ -224,7 +224,7 @@ library QuotaLib {
         returns (bool)
     {
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
-        Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Adjust quota record
         quotaInfo._debt = quotaInfo._debt.sub(value);
@@ -253,11 +253,11 @@ library QuotaLib {
     //     require(!isActive(self, tokenOrigAccount, srcStoremanGroupPK));
 
     //     /// src: there's no processing tx, and have enough debt!
-    //     Quota storage src = self.quotaMap[tokenOrigAccount][srcStoremanGroupPK];
+    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanGroupPK];
     //     require(src._receivable == uint(0) && src._payable == uint(0) && src._debt >= value);
 
     //     /// dst: has enough quota 
-    //     Quota storage dst = self.quotaMap[tokenOrigAccount][dstStoremanGroupPK];
+    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanGroupPK];
     //     require(dst._quota.sub(dst._receivable.add(dst._debt)) >= value);
 
     //     dst._receivable = dst._receivable.add(value);
@@ -284,11 +284,11 @@ library QuotaLib {
     //     /// TODO: what to check srcStoreman group???
     //     require(!isActive(self, tokenOrigAccount, srcStoremanPK));
 
-    //     Quota storage dst = self.quotaMap[tokenOrigAccount][dstStoremanPK];
+    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
     //     /// Make sure this specified storemanGroup has enough inbound receivable to be unlocked
     //     require(dst._receivable >= value);
 
-    //     Quota storage src = self.quotaMap[tokenOrigAccount][srcStoremanPK];
+    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
     //     require(src._payable >= value);
 
     //     /// Credit receivable, double-check receivable is no less than value to be unlocked
@@ -315,8 +315,8 @@ library QuotaLib {
     //     /// TODO: what to check srcStoreman group???
     //     require(!isActive(self, tokenOrigAccount, srcStoremanPK));
 
-    //     Quota storage dst = self.quotaMap[tokenOrigAccount][dstStoremanPK];
-    //     Quota storage src = self.quotaMap[tokenOrigAccount][srcStoremanPK];
+    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
+    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
 
     //     /// Adjust quota record
     //     dst._receivable = dst._receivable.sub(value);
@@ -336,7 +336,7 @@ library QuotaLib {
         view
         returns (bool)
     {
-        return self.quotaMap[tokenOrigAccount][storemanGroupPK]._quota != uint(0);
+        return self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota != uint(0);
     }
 
     /// @param tokenOrigAccount account of token supported
@@ -346,7 +346,7 @@ library QuotaLib {
         view
         returns (bool)
     {
-        Quota storage q = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage q = self.mapQuota[tokenOrigAccount][storemanGroupPK];
         return q._quota != uint(0) && q._active;
     }
 
@@ -369,7 +369,7 @@ library QuotaLib {
             return (0, 0, 0, 0, 0, 0);
         }
 
-        Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         uint inboundQuota = quotaInfo._quota.sub(quotaInfo._receivable.add(quotaInfo._debt));
         uint outboundQuota = quotaInfo._debt.sub(quotaInfo._payable);
@@ -387,7 +387,7 @@ library QuotaLib {
         view
         returns(bool)
     {
-        Quota storage quotaInfo = self.quotaMap[tokenOrigAccount][storemanGroupPK];
+        Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
         return quotaInfo._receivable == uint(0) && quotaInfo._payable == uint(0) && quotaInfo._debt == uint(0);
     }
 

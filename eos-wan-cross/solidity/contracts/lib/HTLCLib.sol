@@ -51,6 +51,7 @@ library HTLCLib {
     struct BaseTx {
         // TxDirection direction;  // HTLC transfer direction
         uint value;             // HTLC transfer value of token
+        bytes storemanPK;       // HTLC transaction storeman PK
         TxStatus status;        // HTLC transaction status
         uint lockedTime;        // HTLC transaction locked time
         uint beginLockedTime;   // HTLC transaction begin locked time
@@ -59,7 +60,6 @@ library HTLCLib {
     struct UserTx {
         BaseTx baseTx;
         address sender;        // HTLC transaction sender address for the security check while user's revoke
-        bytes storemanPK;       // HTLC transaction storeman PK
         bytes shadow;           // Shadow address or account on mirror chain
     }
 
@@ -75,13 +75,13 @@ library HTLCLib {
 
     struct Data {
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes32 => UserTx) xHashUserTxsMap;
+        mapping(bytes32 => UserTx) mapHashXUserTxs;
 
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes32 => SmgTx) xHashSmgTxsMap;
+        mapping(bytes32 => SmgTx) mapHashXSmgTxs;
 
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
-        mapping(bytes32 => DebtTx) xHashDebtTxsMap;
+        mapping(bytes32 => DebtTx) mapHashXDebtTxs;
 
         /// @notice atomic tx needed locked time(in seconds)
         uint lockedTime;
@@ -110,15 +110,19 @@ library HTLCLib {
         return true;
     }
 
+    function getGlobalInfo(Data storage self) external returns(uint, uint) {
+        return (self.revokeFeeRatio, self.ratioPrecise);
+    }
+
     /// @notice                  function for get user info
     /// @param xHash             xHash
     function getUserTx(Data storage self, bytes32 xHash)
         external
         view
-        returns (address, bytes, bytes, uint)
+        returns (address, bytes, uint, bytes)
     {
-        UserTx storage t = self.xHashUserTxsMap[xHash];
-        return (t.sender, t.storemanPK, t.shadow, t.baseTx.value);
+        UserTx storage t = self.mapHashXUserTxs[xHash];
+        return (t.sender, t.shadow, t.baseTx.value, t.baseTx.storemanPK);
     }
 
     /// @notice                  function for get user info
@@ -126,10 +130,10 @@ library HTLCLib {
     function getSmgTx(Data storage self, bytes32 xHash)
         external
         view
-        returns (address, uint)
+        returns (address, uint, bytes)
     {
-        SmgTx storage t = self.xHashSmgTxsMap[xHash];
-        return (t.userAddr, t.baseTx.value);
+        SmgTx storage t = self.mapHashXSmgTxs[xHash];
+        return (t.userAddr, t.baseTx.value, t.baseTx.storemanPK);
     }
 
     // /// @notice                  function for get HTLC info
@@ -160,7 +164,7 @@ library HTLCLib {
     function addUserTx(Data storage self, bytes32 xHash, uint value, bytes shadow, bytes storemanPK)
         external
     {
-        UserTx storage userTx = self.xHashUserTxsMap[xHash];
+        UserTx storage userTx = self.mapHashXUserTxs[xHash];
         require(value != 0, "Value is invalid");
         require(userTx.baseTx.status == TxStatus.None, "User tx is exist");
 
@@ -168,19 +172,20 @@ library HTLCLib {
         userTx.baseTx.status = TxStatus.Locked;
         userTx.baseTx.lockedTime = self.lockedTime.mul(2);
         userTx.baseTx.beginLockedTime = now;
+        userTx.baseTx.storemanPK = storemanPK;
         userTx.sender = msg.sender;
-        userTx.storemanPK = storemanPK;
         userTx.shadow = shadow;
     }
 
-    function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr)
+    function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr, bytes storemanPK)
         external
     {
-        SmgTx storage smgTx = self.xHashSmgTxsMap[xHash];
+        SmgTx storage smgTx = self.mapHashXSmgTxs[xHash];
         require(value != 0, "Value is invalid");
         require(smgTx.baseTx.status == TxStatus.None, "Smg tx is exist");
 
         smgTx.baseTx.value = value;
+        smgTx.baseTx.storemanPK = storemanPK;
         smgTx.baseTx.status = TxStatus.Locked;
         smgTx.baseTx.lockedTime = self.lockedTime;
         smgTx.baseTx.beginLockedTime = now;
@@ -196,7 +201,7 @@ library HTLCLib {
     {
         xHash = sha256(x);
 
-        UserTx storage info = self.xHashUserTxsMap[xHash];
+        UserTx storage info = self.mapHashXUserTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
 
@@ -213,7 +218,7 @@ library HTLCLib {
     {
         xHash = sha256(x);
 
-        SmgTx storage info = self.xHashSmgTxsMap[xHash];
+        SmgTx storage info = self.mapHashXSmgTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
         require(info.userAddr == msg.sender, "Msg sender is incorrect");
@@ -227,7 +232,7 @@ library HTLCLib {
     function revokeUserTx(Data storage self, bytes32 xHash)
         external
     {
-        UserTx storage info = self.xHashUserTxsMap[xHash];
+        UserTx storage info = self.mapHashXUserTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
         require(info.sender == msg.sender, "Msg sender is incorrect");
@@ -240,7 +245,7 @@ library HTLCLib {
     function revokeSmgTx(Data storage self, bytes32 xHash)
         external
     {
-        SmgTx storage info = self.xHashSmgTxsMap[xHash];
+        SmgTx storage info = self.mapHashXSmgTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
 
