@@ -26,13 +26,18 @@
 
 pragma solidity ^0.4.24;
 
-// import "../lib/QuotaLib.sol";
 import "../components/Halt.sol";
-// import "../interfaces/ITokenManager.sol";
 import "../interfaces/IWRC20Protocol.sol";
 import "./HTLCStorage.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
+    using SafeMath for uint;
+
+  modifier onlyStoremanGroupAdmin {
+    require(msg.sender == storemanGroupAdmin, "Only storeman group admin sc can call it");
+    _;
+  }
+
     /**
      *
      * EVENTS
@@ -66,7 +71,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
     event InboundRevokeLogger(bytes32 indexed xHash, bytes tokenOrigAccount, bytes storemanGroupPK);
 
     /// @notice                 event of exchange original chain token with WERC20 token request
-    /// @param wanAddr          address of user, where the WERC20 token come from
     /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
@@ -121,12 +125,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
      *
      */
 
-    // Test code
-    function newQuota(bytes tokenOrigAccount, uint value, bytes storemanGroupPK) external {
-        quotaData.newQuota(tokenOrigAccount, storemanGroupPK, value);
-    }
-    //////////////////////////////////////////////////////////////////////////////////////////
-
     function setEconomics(address tokenManagerAddr) external {
         require(tokenManagerAddr != address(0), "Parameter is invalid");
         tokenManager = ITokenManager(tokenManagerAddr);
@@ -148,10 +146,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
-        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK));
-        require(verifySignature(mHash, storemanGroupPK, r, s), "Signature is incorrect");
+        // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK));
+        // require(verifySignature(mHash, storemanGroupPK, r, s), "Signature is incorrect");
 
-        htlcData.addSmgTx(xHash, value, wanAddr);
+        htlcData.addSmgTx(xHash, value, wanAddr, storemanGroupPK);
         require(quotaData.inLock(tokenOrigAccount, storemanGroupPK, value), "Quota lock failed");
 
         return true;
@@ -163,7 +161,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param storemanGroupPK  PK of storeman group
     /// @param userOrigAccount  account of original chain, used to receive token
     /// @param value            exchange value
-    /// @param amount           amount of WAN send in tx
     function outUserLock(bytes tokenOrigAccount, bytes32 xHash, bytes userOrigAccount, uint value, bytes storemanGroupPK)
         external
         initialized
@@ -186,12 +183,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
 
         require(quotaData.outLock(tokenOrigAccount, storemanGroupPK, value), "Outbound quota lock failed");
 
-        var (,,,instance,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
+        address instance;
+        (,,,instance,,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(IWRC20Protocol(instance).transferFrom(msg.sender, this, value), "Lock token failed");
 
-        mapXHashFee[tokenOrigAccount][xHash] = fee; // in wan coin
+        mapXHashFee[xHash] = fee; // in wan coin
 
-        emit OutboundLockLogger(storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
+        emit OutboundLockLogger(xHash, value, userOrigAccount, tokenOrigAccount, storemanGroupPK);
     }
 
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
@@ -204,7 +202,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         bytes32 xHash = htlcData.redeemSmgTx(x);
 
-        var (userAddr, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+        address userAddr;
+        uint value;
+        bytes memory storemanGroupPK;
+        (userAddr, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
 
         quotaData.inRedeem(tokenOrigAccount, storemanGroupPK, value);
 
@@ -223,15 +224,17 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         bytes32 xHash = htlcData.redeemUserTx(x);
 
-        var (, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
+        uint value;
+        bytes memory storemanGroupPK;
+        (, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
 
-        verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanGroupPK, r, s);
+        // verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanGroupPK, r, s);
         quotaData.outRedeem(tokenOrigAccount, storemanGroupPK, value);
 
         tokenManager.burnToken(tokenOrigAccount, value);
 
         // Add fee to storeman group
-        mapStoremanFee(storemanGroupPK).add(mapXHashFee[xHash]);
+        mapStoremanFee[storemanGroupPK].add(mapXHashFee[xHash]);
 
         emit OutboundRedeemLogger(xHash, x, tokenOrigAccount);
     }
@@ -248,14 +251,16 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         htlcData.revokeSmgTx(xHash);
 
-        var (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+        uint value;
+        bytes memory storemanGroupPK;
+        (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
 
-        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
-        verifySignature(mHash, storemanPK, r, s);
+        // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
+        // verifySignature(mHash, storemanGroupPK, r, s);
 
         quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
 
-        emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
+        emit InboundRevokeLogger(xHash, tokenOrigAccount, storemanGroupPK);
     }
 
     /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
@@ -267,21 +272,28 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
+        address source;
+        uint value;
+        bytes memory storemanGroupPK;
+        address instance;
+        uint revokeFeeRatio;
+        uint ratioPrecise;
+
         htlcData.revokeUserTx(xHash);
 
-        var (source, , value, storemanPK) = htlcData.getUserTx(xHash);
+        (source, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
 
-        quotaData.outRevoke(tokenOrigAccount, storemanPK, value);
+        quotaData.outRevoke(tokenOrigAccount, storemanGroupPK, value);
 
-        var (,,,instance,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
+        (,,,instance,,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
 
-        var (revokeFeeRatio, ratioPrecise) = htlcData.getGlobalInfo();
+        (revokeFeeRatio, ratioPrecise) = htlcData.getGlobalInfo();
         uint revokeFee = mapXHashFee[xHash].mul(revokeFeeRatio).div(ratioPrecise);
         uint left = mapXHashFee[xHash].sub(revokeFee);
 
         if (revokeFee > 0) {
-            mapStoremanFee(storemanGroupPK).add(revokeFee);
+            mapStoremanFee[storemanGroupPK].add(revokeFee);
         }
 
         if (left > 0) {
@@ -292,24 +304,26 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     function getOutboundFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) private returns(uint) {
-        StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
+        uint8 decimals;
+        uint token2WanRatio;
+        uint defaultPrecise;
+        uint txFeeRatio;
+        (,, decimals,,token2WanRatio,,, defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        (, txFeeRatio,,,,) = quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
 
-        var (,, decimals,,token2WanRatio,, defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
-        var (,,,txFeeRatio,,,) = smgi.mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
-        
-        uint temp = value.mul(1 ether).div(10**uint(decimals());
+        uint temp = value.mul(1 ether).div(10**uint(decimals));
         return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
     }
 
-	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) 
+	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
 		external
 		onlyStoremanGroupAdmin
 	{
-        quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota);
+        quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota, txFeeRatio);
 	}
 
 	function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
-		external 
+		external
 		onlyStoremanGroupAdmin
 	{
 		quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);

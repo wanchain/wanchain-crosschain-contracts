@@ -27,7 +27,7 @@
 pragma solidity ^0.4.24;
 
 interface IHTLC {
-	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) external;
+	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio) external;
 	function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK) external;
 	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK) external;
 }

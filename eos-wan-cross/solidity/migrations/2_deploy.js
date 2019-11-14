@@ -11,6 +11,7 @@ module.exports = async (deployer) => {
   await deployer.deploy(HTLCLib);
 
   await deployer.link(QuotaLib, HTLCDelegate);
+  await deployer.link(HTLCLib, HTLCDelegate);
   
   await deployer.deploy(HTLCDelegate);
 }

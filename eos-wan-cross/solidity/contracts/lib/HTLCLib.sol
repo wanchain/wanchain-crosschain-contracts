@@ -195,7 +195,7 @@ library HTLCLib {
     /// @notice                 refund coins from HTLC transaction
     /// @param  x               random number of HTLC
     /// @return xHash           return hash of HTLC random number
-    function redeemUserTx(Data storage self, bytes x)
+    function redeemUserTx(Data storage self, bytes32 x)
         external
         returns(bytes32 xHash)
     {
@@ -212,7 +212,7 @@ library HTLCLib {
     /// @notice                 refund coins from HTLC transaction
     /// @param  x               random number of HTLC
     /// @return xHash           return hash of HTLC random number
-    function redeemSmgTx(Data storage self, bytes x)
+    function redeemSmgTx(Data storage self, bytes32 x)
         external
         returns(bytes32 xHash)
     {

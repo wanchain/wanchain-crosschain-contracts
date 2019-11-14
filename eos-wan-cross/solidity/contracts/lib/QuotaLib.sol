@@ -34,6 +34,8 @@ library QuotaLib {
     struct Quota {
         /// storemanGroup's total quota
         uint _quota;
+        /// txFeeRatio
+        uint _ratio;
         /// amount of original token to be received, equals to amount of WAN token to be minted
         uint _receivable;
         /// amount of WAN token to be burnt
@@ -63,10 +65,10 @@ library QuotaLib {
     function getQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        returns (uint, uint, uint, uint, bool)
+        returns (uint, uint, uint, uint, uint, bool)
     {
         Quota storage quota = self.mapQuota[tokenOrigAccount][storemanGroupPK];
-        return (quota._quota, quota._receivable, quota._payable, quota._debt, quota._active);
+        return (quota._quota, quota._ratio, quota._receivable, quota._payable, quota._debt, quota._active);
     }
 
 
@@ -74,14 +76,14 @@ library QuotaLib {
     /// @param tokenOrigAccount token account of original chain
     /// @param storemanGroupPK  storemanGroup PK
     /// @param quota            a storemanGroup's quota
-    function addStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+    function addStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
         external
         onlyMeaningfulValue(quota)
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
-        self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, 0, 0, 0, true);
+        self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, txFeeRatio, 0, 0, 0, true);
 
         return true;
     }
@@ -91,17 +93,17 @@ library QuotaLib {
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-		require(isActive(tokenOrigAccount, storemanGroup), "Storeman group is active");
+		require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
 
         return true;
     }
 
-	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+	function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
 		external
 	{
-		require(!isActive(tokenOrigAccount, storemanGroupPK), "storeman group is active");
-		require(isDebtPaidOff(tokenOrigAccount, storemanGroup), "Storeman should pay off it's debt");
+		require(!isActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
+		require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
 
 		delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
 	}
@@ -298,7 +300,7 @@ library QuotaLib {
     /// @param  storemanGroupPK   the PK of storemanGroup to be checked
     /// @return                 result of debt status check
     function isDebtPaidOff(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
-        external
+        private
         view
         returns(bool)
     {

@@ -112,7 +112,6 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
         require(name.length != 0, "Name is null");
         require(symbol.length != 0, "Symbol is null");
-        require(decimals != uint(0), "Decimal is null");
         require(mapTokenInfo[tokenOrigAccount].tokenWanAddr == address(0), "Token is exist");
 
         // generate a w-token contract instance
@@ -131,16 +130,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         onlyOwner
         onlyValidAccount(tokenOrigAccount)
     {
-        TokenInfo storage tokenInfo = mapTokenInfo[tokenOrigAccount];
-
-        tokenInfo.name.length = 0;
-        tokenInfo.symbol.length = 0;
-        tokenInfo.decimals = 0;
-        tokenInfo.tokenWanAddr = address(0);
-        tokenInfo.token2WanRatio = 0;
-        tokenInfo.minDeposit = 0;
-        tokenInfo.withdrawDelayTime = 0;
-
+        delete mapTokenInfo[tokenOrigAccount];
         emit TokenRemovedLogger(tokenOrigAccount);
     }
 

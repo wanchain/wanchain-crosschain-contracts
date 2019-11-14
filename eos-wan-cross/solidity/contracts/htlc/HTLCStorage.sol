@@ -47,7 +47,8 @@ contract HTLCStorage {
     ITokenManager public tokenManager;
 
     /// storemanGroup admin instance address
-    // address public storemanGroupAdmin;
+    address public storemanGroupAdmin;
+
     /// signature verifier instance address
     // address public signVerifier;
 

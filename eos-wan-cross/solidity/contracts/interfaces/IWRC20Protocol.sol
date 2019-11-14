@@ -27,7 +27,7 @@
 pragma solidity ^0.4.24;
 
 interface IWRC20Protocol {
-    function transfer(address, uint) public returns (bool);
-    function transferFrom(address, address, uint) public returns (bool);
-    function decimals() public returns(uint8);
+    function transfer(address, uint) external returns (bool);
+    function transferFrom(address, address, uint) external returns (bool);
+    function decimals() external returns(uint8);
 }
