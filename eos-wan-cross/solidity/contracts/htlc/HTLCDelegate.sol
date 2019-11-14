@@ -26,31 +26,18 @@
 
 pragma solidity ^0.4.24;
 
-import "../lib/QuotaLib.sol";
+// import "../lib/QuotaLib.sol";
 import "../components/Halt.sol";
-import "../interfaces/ITokenManager.sol";
+// import "../interfaces/ITokenManager.sol";
+import "../interfaces/IWRC20Protocol.sol";
 import "./HTLCStorage.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
-    using QuotaLib for QuotaLib.Data;
     /**
      *
-     * VARIABLES
+     * EVENTS
      *
-     */
-
-    /// token manager instance interface
-    ITokenManager public tokenManager;
-
-    /// quota ledger
-    QuotaLib.Data quotaLedger;
-    /// storemanGroup admin instance address
-    // address public storemanGroupAdmin;
-    /// signature verifier instance address
-    // address public signVerifier;
-
-    /// @notice transaction fee
-    mapping(bytes => mapping(bytes32 => uint)) private mapXHashFee;
+     **/
 
     /**
      *
@@ -64,7 +51,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param xHash            hash of HTLC random number
     /// @param value            HTLC value
     /// @param tokenOrigAccount account of original chain token
-    event InboundLockLogger(bytes storemanGroupPK, address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAccount);
+    event InboundLockLogger(address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes storemanGroupPK);
     /// @notice                 event of refund WERC20 token from exchange WERC20 token with original chain token HTLC transaction
     /// @param wanAddr          address of user on wanchain, used to receive WERC20 token
     /// @param storemanGroupPK  PK of storeman, the WERC20 token minter
@@ -76,7 +63,44 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param storemanGroupPK  PK of storemanGroup
     /// @param xHash            hash of HTLC random number
     /// @param tokenOrigAccount account of original chain token
-    event InboundRevokeLogger(bytes indexed storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
+    event InboundRevokeLogger(bytes32 indexed xHash, bytes tokenOrigAccount, bytes storemanGroupPK);
+
+    /// @notice                 event of exchange original chain token with WERC20 token request
+    /// @param wanAddr          address of user, where the WERC20 token come from
+    /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
+    /// @param xHash            hash of HTLC random number
+    /// @param value            exchange value
+    /// @param userOrigAccount  account of original chain, used to receive token
+    /// fee              exchange fee
+    /// @param tokenOrigAccount account of original chain token
+    event OutboundLockLogger(bytes32 indexed xHash, uint value, bytes userOrigAccount, bytes tokenOrigAccount, bytes storemanGroupPK);
+    /// @notice                 event of refund WERC20 token from exchange original chain token with WERC20 token HTLC transaction
+    /// @param x                HTLC random number
+    /// @param tokenOrigAccount account of original chain token
+    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
+    /// @notice                 event of revoke exchange original chain token with WERC20 token HTLC transaction
+    /// @param wanAddr          address of user
+    /// @param xHash            hash of HTLC random number
+    /// @param tokenOrigAccount account of original chain token
+    event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount);
+
+    /// @notice                 event of store debt lock
+    /// @param srcStoremanPK    PK of src storeman
+    /// @param dstStoremanPK    PK of dst storeman
+    /// @param xHash            hash of HTLC random number
+    /// @param value            exchange value
+    /// @param tokenOrigAccount account of original chain token
+    event DebtLockLogger(bytes dstStoremanPK, bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes srcStoremanPK);
+    /// @notice                 event of refund storeman debt
+    /// @param storemanGroupPK  PK of storemanGroup, used to receive WERC20 token
+    /// @param xHash            hash of HTLC random number
+    /// @param x                HTLC random number
+    /// @param tokenOrigAccount account of original chain token
+    event DebtRedeemLogger(bytes32 indexed xHash, bytes32 x, bytes tokenOrigAccount, bytes storemanGroupPK);
+    /// @notice                 event of revoke storeman debt
+    /// @param xHash            hash of HTLC random number
+    /// @param tokenOrigAccount account of original chain token
+    event DebtRevokeLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, bytes tokenOrigAccount);
 
     /**
      *
@@ -98,8 +122,8 @@ contract HTLCDelegate is HTLCStorage, Halt {
      */
 
     // Test code
-    function newQuota(bytes tokenOrigAccount, uint value, bytes storemanPK) external {
-        quotaLedger.newQuota(tokenOrigAccount, storemanPK, value);
+    function newQuota(bytes tokenOrigAccount, uint value, bytes storemanGroupPK) external {
+        quotaData.newQuota(tokenOrigAccount, storemanGroupPK, value);
     }
     //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -108,100 +132,194 @@ contract HTLCDelegate is HTLCStorage, Halt {
         tokenManager = ITokenManager(tokenManagerAddr);
     }
 
-    // /// @notice                 request exchange WERC20 token with original chain token(to prevent collision, x must be a 256bit random bigint)
-    // /// @param  tokenOrigAccount  account of original chain token
-    // /// @param  xHash           hash of HTLC random number
-    // /// @param  wanAddr         address of user, used to receive WERC20 token
-    // /// @param  value           exchange value
-    // /// @param  storemanPK      PK of storeman
-    // /// @param  r               signature
-    // /// @param  s               signature
-    // function lock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanPK, bytes r, bytes32 s)
-    //     public
-    //     initialized
-    //     notHalted
-    //     returns(bool)
-    // {
-    //      require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
+    /// @notice                 request exchange WRC20 token with original chain token(to prevent collision, x must be a 256bit random bigint)
+    /// @param  tokenOrigAccount  account of original chain token
+    /// @param  xHash           hash of HTLC random number
+    /// @param  wanAddr         address of user, used to receive WRC20 token
+    /// @param  value           exchange value
+    /// @param  storemanGroupPK      PK of storeman
+    /// @param  r               signature
+    /// @param  s               signature
+    function inSmgLock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanGroupPK, bytes r, bytes32 s)
+        external
+        initialized
+        notHalted
+        returns(bool)
+    {
+        require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
-    //      bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanPK));
-    //      require(verifySignature(mHash, storemanPK, r, s));
+        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK));
+        require(verifySignature(mHash, storemanGroupPK, r, s), "Signature is incorrect");
+
+        htlcData.addSmgTx(xHash, value, wanAddr);
+        require(quotaData.inLock(tokenOrigAccount, storemanGroupPK, value), "Quota lock failed");
+
+        return true;
+    }
+
+    /// @notice                 request exchange original chain token with WERC20 token(to prevent collision, x must be a 256bit random big int)
+    /// @param tokenOrigAccount account of original chain token
+    /// @param xHash            hash of HTLC random number
+    /// @param storemanGroupPK  PK of storeman group
+    /// @param userOrigAccount  account of original chain, used to receive token
+    /// @param value            exchange value
+    /// @param amount           amount of WAN send in tx
+    function outUserLock(bytes tokenOrigAccount, bytes32 xHash, bytes userOrigAccount, uint value, bytes storemanGroupPK)
+        external
+        initialized
+        notHalted
+        payable
+    {
+        require(tx.origin == msg.sender, "Contract sender is not allowed");
+        require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
+
+        // check withdraw fee
+        uint fee = getOutboundFee(tokenOrigAccount, storemanGroupPK, value);
+        require(msg.value >= fee, "Transferred fee is not enough");
+
+        uint left = (msg.value).sub(fee);
+        if (left != 0) {
+            (msg.sender).transfer(left);
+        }
+
+        htlcData.addUserTx(xHash, value, userOrigAccount, storemanGroupPK);
+
+        require(quotaData.outLock(tokenOrigAccount, storemanGroupPK, value), "Outbound quota lock failed");
+
+        var (,,,instance,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
+        require(IWRC20Protocol(instance).transferFrom(msg.sender, this, value), "Lock token failed");
+
+        mapXHashFee[tokenOrigAccount][xHash] = fee; // in wan coin
+
+        emit OutboundLockLogger(storemanGroupPK, xHash, value, userOrigAccount, tokenOrigAccount);
+    }
+
+    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
+    /// @param  tokenOrigAccount  account of original chain token
+    /// @param  x               HTLC random number
+    function inUserRedeem(bytes tokenOrigAccount, bytes32 x)
+        external
+        initialized
+        notHalted
+    {
+        bytes32 xHash = htlcData.redeemSmgTx(x);
+
+        var (userAddr, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+
+        quotaData.inRedeem(tokenOrigAccount, storemanGroupPK, value);
+
+        tokenManager.mintToken(tokenOrigAccount, userAddr, value);
+
+        emit InboundRedeemLogger(userAddr, storemanGroupPK, xHash, x, tokenOrigAccount);
+    }
+
+    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
+    /// @param  tokenOrigAccount  account of original chain token
+    /// @param  x               HTLC random number
+    function outSmgRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes s)
+        external
+        initialized
+        notHalted
+    {
+        bytes32 xHash = htlcData.redeemUserTx(x);
+
+        var (, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
+
+        verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanGroupPK, r, s);
+        quotaData.outRedeem(tokenOrigAccount, storemanGroupPK, value);
+
+        tokenManager.burnToken(tokenOrigAccount, value);
+
+        // Add fee to storeman group
+        mapStoremanFee(storemanGroupPK).add(mapXHashFee[xHash]);
+
+        emit OutboundRedeemLogger(xHash, x, tokenOrigAccount);
+    }
+
+    /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
+    /// @param tokenOrigAccount account of original chain token
+    /// @param xHash            hash of HTLC random number
+    /// @param  r               signature
+    /// @param  s               signature
+    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes r, bytes s)
+        external
+        initialized
+        notHalted
+    {
+        htlcData.revokeSmgTx(xHash);
+
+        var (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+
+        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
+        verifySignature(mHash, storemanPK, r, s);
+
+        quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
+
+        emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
+    }
+
+    /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
+    /// @param  tokenOrigAccount  account of original chain token
+    /// @notice                 the revoking fee will be sent to storeman
+    /// @param  xHash           hash of HTLC random number
+    function outUserRevoke(bytes tokenOrigAccount, bytes32 xHash)
+        external
+        initialized
+        notHalted
+    {
+        htlcData.revokeUserTx(xHash);
+
+        var (source, , value, storemanPK) = htlcData.getUserTx(xHash);
+
+        quotaData.outRevoke(tokenOrigAccount, storemanPK, value);
+
+        var (,,,instance,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
+        require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
+
+        var (revokeFeeRatio, ratioPrecise) = htlcData.getGlobalInfo();
+        uint revokeFee = mapXHashFee[xHash].mul(revokeFeeRatio).div(ratioPrecise);
+        uint left = mapXHashFee[xHash].sub(revokeFee);
+
+        if (revokeFee > 0) {
+            mapStoremanFee(storemanGroupPK).add(revokeFee);
+        }
+
+        if (left > 0) {
+            source.transfer(left);
+        }
+
+        emit OutboundRevokeLogger(source, xHash, tokenOrigAccount);
+    }
+
+    function getOutboundFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) private returns(uint) {
+        StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
+
+        var (,, decimals,,token2WanRatio,, defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        var (,,,txFeeRatio,,,) = smgi.mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
         
-    //     //  addHTLCTx(tokenOrigAccount, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, new bytes(0), storemanPK, new bytes(0));
-    //     require(quotaLedger.inLock(tokenOrigAccount, storemanPK, value), "Quota lock failed");
+        uint temp = value.mul(1 ether).div(10**uint(decimals());
+        return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
+    }
 
-    //     return true;
-    // }
+	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) 
+		external
+		onlyStoremanGroupAdmin
+	{
+        quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota);
+	}
 
-    // /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
-    // /// @param  tokenOrigAccount  account of original chain token  
-    // /// @param  x               HTLC random number
-    // function redeem(bytes tokenOrigAccount, bytes32 x) 
-    //     public 
-    //     initialized 
-    //     notHalted
-    //     returns(bool, address, bytes, bytes32) 
-    // {
-    //     var (,,,,,,,,,,ha,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAccount));
-    //     bytes32 xHash= redeemHTLCTx(tokenOrigAccount, x, ha, TxDirection.Inbound);
-    //     var (source,destination,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
-    //     require(QuotaInterface(quotaLedger).mintToken(tokenOrigAccount, storemanPK, destination, value));
+	function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+		external 
+		onlyStoremanGroupAdmin
+	{
+		quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
+	}
 
-    //     //emit InboundRedeemLogger(destination, storemanPK, xHash, x, tokenOrigAccount);
-    //     return (true, destination, storemanPK, xHash);
-    // }
+	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+		external
+		onlyStoremanGroupAdmin
+	{
+        quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
+	}
 
-    // /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
-    // /// @param tokenOrigAccount account of original chain token  
-    // /// @param xHash            hash of HTLC random number
-    // /// @param  R               signature
-    // /// @param  s               signature
-    // function revoke(bytes tokenOrigAccount, bytes32 xHash, bytes R, bytes32 s) 
-    //     public 
-    //     initialized 
-    //     notHalted
-    //     returns(bool, bytes) 
-    // {
-    //     /// bytes memory mesg=abi.encode(tokenOrigAccount, xHash);
-    //     bytes32 mhash = sha256(abi.encode(tokenOrigAccount, xHash));
-    //     var (source,,storemanPK,value) = mapXHashHTLCTxs(tokenOrigAccount, xHash);
-    //     verifySignature(mhash, storemanPK, R, s);
-
-    //     revokeHTLCTx(tokenOrigAccount, xHash, TxDirection.Inbound, false);
-    //     require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAccount, storemanPK, value));
-
-    //     //emit InboundRevokeLogger(storemanPK, xHash, tokenOrigAccount);
-    //     return (true, storemanPK);
-    // }
-
-    // /// @notice       convert bytes to bytes32
-    // /// @param b      bytes array
-    // /// @param offset offset of array to begin convert
-    // function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
-    //     bytes32 out;
-      
-    //     for (uint i = 0; i < 32; i++) {
-    //       out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
-    //     }
-    //     return out;
-    // }
-
-    // /// @notice             verify signature    
-    // /// @param  mesg        message to be verified 
-    // /// @param  R           Sigature info R
-    // /// @param  s           Sigature info s
-    // /// @return             true/false
-    // function verifySignature(bytes32 mesg, bytes PK, bytes R, bytes32 s) 
-    //     private
-    //     returns (bool)
-    // {
-    //     bytes32 PKx=bytesToBytes32(PK, 1);
-    //     bytes32 PKy=bytesToBytes32(PK, 33);
-
-    //     bytes32 Rx=bytesToBytes32(R, 1);
-    //     bytes32 Ry=bytesToBytes32(R, 33);
-
-    //     require(SignatureVerifier(signVerifier).verify(s, PKx, PKy, Rx, Ry, mesg));
-    //     return true;
-    // }
 }

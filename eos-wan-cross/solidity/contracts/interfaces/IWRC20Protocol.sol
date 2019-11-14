@@ -26,35 +26,8 @@
 
 pragma solidity ^0.4.24;
 
-import "../lib/QuotaLib.sol";
-import "../lib/HTLCLib.sol";
-import "../interfaces/ITokenManager.sol";
-
-contract HTLCStorage {
-      using QuotaLib for QuotaLib.Data;
-      using HTLCLib for HTLCLib.Data;
-
-    /************************************************************
-     **
-     ** VARIABLES
-     **
-     ************************************************************/
-
-    QuotaLib.Data quotaData;
-    HTLCLib.Data htlcData;
-
-    /// token manager instance interface
-    ITokenManager public tokenManager;
-
-    /// storemanGroup admin instance address
-    // address public storemanGroupAdmin;
-    /// signature verifier instance address
-    // address public signVerifier;
-
-    /// @notice transaction fee, hashX => fee
-    mapping(bytes32 => uint) internal mapXHashFee;
-
-    /// @notice transaction fee, storemanGroupPK => fee
-    mapping(bytes => uint) internal mapStoremanFee;
-
+interface IWRC20Protocol {
+    function transfer(address, uint) public returns (bool);
+    function transferFrom(address, address, uint) public returns (bool);
+    function decimals() public returns(uint8);
 }

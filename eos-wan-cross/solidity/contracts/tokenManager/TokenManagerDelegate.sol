@@ -67,6 +67,11 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         _;
     }
 
+    modifier onlyMeaningfulValue(uint value) {
+        require(value > 0, "Value is null");
+        _;
+    }
+
     /// @notice If WAN coin is sent to this address, send it back.
     /// @dev If WAN coin is sent to this address, send it back.
     function() external payable {
@@ -173,17 +178,18 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         external
         view
         onlyValidAccount(tokenOrigAccount)
-        returns(bytes, bytes, uint8, address, uint, uint, uint)
+        returns(bytes, bytes, uint8, address, uint, uint, uint, uint)
     {
         TokenInfo storage token = mapTokenInfo[tokenOrigAccount];
-        return (token.name, token.symbol, token.decimals, token.tokenWanAddr, token.token2WanRatio, token.minDeposit, token.withdrawDelayTime);
+        return (token.name, token.symbol, token.decimals, token.tokenWanAddr,
+                token.token2WanRatio, token.minDeposit, token.withdrawDelayTime, DEFAULT_PRECISE);
     }
 
     function mintToken(bytes tokenOrigAccount, address recipient, uint value)
         external
         onlyHTLC
         onlyValidAccount(tokenOrigAccount)
-        // onlyMeaningfulValue(value)
+        onlyMeaningfulValue(value)
         returns(bool)
     {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
@@ -197,7 +203,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         external
         onlyHTLC
         onlyValidAccount(tokenOrigAccount)
-        // onlyMeaningfulValue(value)
+        onlyMeaningfulValue(value)
         returns(bool)
     {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
