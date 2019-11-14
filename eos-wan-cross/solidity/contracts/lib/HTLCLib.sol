@@ -110,7 +110,7 @@ library HTLCLib {
         return true;
     }
 
-    function getGlobalInfo(Data storage self) external returns(uint, uint) {
+    function getGlobalInfo(Data storage self) external view returns(uint, uint) {
         return (self.revokeFeeRatio, self.ratioPrecise);
     }
 
