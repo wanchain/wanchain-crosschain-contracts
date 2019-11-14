@@ -125,9 +125,11 @@ contract HTLCDelegate is HTLCStorage, Halt {
      *
      */
 
-    function setEconomics(address tokenManagerAddr) external {
-        require(tokenManagerAddr != address(0), "Parameter is invalid");
+    function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr) external {
+        require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
+
         tokenManager = ITokenManager(tokenManagerAddr);
+        storemanGroupAdmin = storemanGroupAdminAddr;
     }
 
     /// @notice                 request exchange WRC20 token with original chain token(to prevent collision, x must be a 256bit random bigint)
