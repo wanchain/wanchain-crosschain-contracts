@@ -45,7 +45,7 @@ library QuotaLib {
     }
 
     struct Data {
-        /// @notice a map from storemanGroup PK to its quota information
+        /// @notice a map from storemanGroup PK to its quota information. token => storeman => quota
         mapping(bytes => mapping(bytes => Quota)) mapQuota;
     }
 
@@ -74,7 +74,7 @@ library QuotaLib {
     /// @param tokenOrigAccount token account of original chain
     /// @param storemanGroupPK  storemanGroup PK
     /// @param quota            a storemanGroup's quota
-    function newQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+    function addStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyMeaningfulValue(quota)
         returns (bool)
@@ -86,15 +86,25 @@ library QuotaLib {
         return true;
     }
 
-    function deactivateQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
+    function deactivateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
+		require(isActive(tokenOrigAccount, storemanGroup), "Storeman group is active");
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
 
         return true;
     }
+
+	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+		external
+	{
+		require(!isActive(tokenOrigAccount, storemanGroupPK), "storeman group is active");
+		require(isDebtPaidOff(tokenOrigAccount, storemanGroup), "Storeman should pay off it's debt");
+
+		delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
+	}
 
     /// @notice                 frozen WRC token quota
     /// @dev                    frozen WRC token quota
@@ -232,101 +242,6 @@ library QuotaLib {
 
         return true;
     }
-
-    // /// @notice                 transfer debt from src to dst
-    // /// @dev                    frozen WRC token quota
-    // /// @param tokenOrigAccount account of token supported
-    // /// @param srcStoremanGroupPK  src handler PK
-    // /// @param dstStoremanGroupPK  dst handler PK
-    // /// @param value            amout of debt to be frozen
-    // /// @return                 true if successful
-    // function lockDebt(bytes tokenOrigAccount, bytes dstStoremanGroupPK, bytes srcStoremanGroupPK, uint value)
-    //     external
-    //     notHalted 
-    //     onlyHTLCWAN 
-    //     onlyMeaningfulValue(value)
-    //     returns (bool)
-    // {
-    //     /// Make sure an active storemanGroup is provided to handle transactions
-    //     require(isActive(self, tokenOrigAccount, dstStoremanGroupPK));
-    //     /// TODO: what to check srcStoreman group???
-    //     require(!isActive(self, tokenOrigAccount, srcStoremanGroupPK));
-
-    //     /// src: there's no processing tx, and have enough debt!
-    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanGroupPK];
-    //     require(src._receivable == uint(0) && src._payable == uint(0) && src._debt >= value);
-
-    //     /// dst: has enough quota 
-    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanGroupPK];
-    //     require(dst._quota.sub(dst._receivable.add(dst._debt)) >= value);
-
-    //     dst._receivable = dst._receivable.add(value);
-    //     src._payable = src._payable.add(value);
-    //     return true;
-    // }
-
-    // /// @notice                 revoke WRC20 quota
-    // /// @dev                    revoke WRC20 quota
-    // /// @param tokenOrigAccount account of token supported
-    // /// @param dstStoremanPK    dst PK
-    // /// @param srcStoremanPK    src PK
-    // /// @param value            amount of WRC20 quota to be locked
-    // /// @return                 true if successful
-    // function unlockDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value) 
-    //     external
-    //     notHalted
-    //     onlyHTLCWAN
-    //     onlyMeaningfulValue(value)
-    //     returns (bool)
-    // {
-    //     /// Make sure a valid storeman provided
-    //     require(isExist(self, tokenOrigAccount, dstStoremanPK));
-    //     /// TODO: what to check srcStoreman group???
-    //     require(!isActive(self, tokenOrigAccount, srcStoremanPK));
-
-    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
-    //     /// Make sure this specified storemanGroup has enough inbound receivable to be unlocked
-    //     require(dst._receivable >= value);
-
-    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
-    //     require(src._payable >= value);
-
-    //     /// Credit receivable, double-check receivable is no less than value to be unlocked
-    //     dst._receivable = dst._receivable.sub(value);
-    //     src._payable = src._payable.sub(value);
-    // }
-
-    // /// @notice                 mint WRC token or payoff storemanGroup debt
-    // /// @dev                    mint WRC20 token or payoff storemanGroup debt
-    // /// @param tokenOrigAccount account of token supported
-    // /// @param dstStoremanPK    dst PK
-    // /// @param srcStoremanPK    src PK
-    // /// @param value            amount of WRC20 token to be minted
-    // /// @return                 success of token mint
-    // function redeemDebt(bytes tokenOrigAccount, bytes dstStoremanPK, bytes srcStoremanPK, uint value)
-    //     external
-    //     notHalted
-    //     onlyHTLCWAN
-    //     onlyMeaningfulValue(value)
-    //     returns (bool)
-    // {
-    //     /// Make sure a legit storemanGroup provided
-    //     require(isExist(self, tokenOrigAccount, dstStoremanPK));
-    //     /// TODO: what to check srcStoreman group???
-    //     require(!isActive(self, tokenOrigAccount, srcStoremanPK));
-
-    //     Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
-    //     Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
-
-    //     /// Adjust quota record
-    //     dst._receivable = dst._receivable.sub(value);
-    //     dst._debt = dst._debt.add(value);
-
-    //     src._payable = src._payable.sub(value);
-    //     src._debt = src._debt.sub(value);
-
-    //     return true;
-    // }
 
 
     /// @param tokenOrigAccount account of token supported

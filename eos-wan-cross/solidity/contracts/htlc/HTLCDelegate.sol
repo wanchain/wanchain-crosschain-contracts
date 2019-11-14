@@ -295,10 +295,31 @@ contract HTLCDelegate is HTLCStorage, Halt {
         StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
 
         var (,, decimals,,token2WanRatio,, defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
-        var (,,,txFeeRatio,,,) = smgi.mapStoremanGroup(tokenOrigAddr, storemanGroupPK);
+        var (,,,txFeeRatio,,,) = smgi.mapStoremanGroup(tokenOrigAccount, storemanGroupPK);
         
         uint temp = value.mul(1 ether).div(10**uint(decimals());
         return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
     }
+
+	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) 
+		external
+		onlyStoremanGroupAdmin
+	{
+        quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota);
+	}
+
+	function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+		external 
+		onlyStoremanGroupAdmin
+	{
+		quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
+	}
+
+	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+		external
+		onlyStoremanGroupAdmin
+	{
+        quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
+	}
 
 }
