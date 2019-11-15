@@ -29,6 +29,7 @@ pragma solidity ^0.4.24;
 import "../components/Halt.sol";
 import "../interfaces/IWRC20Protocol.sol";
 import "./HTLCStorage.sol";
+import "../lib/SchnorrVerifier.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
     using SafeMath for uint;
@@ -148,8 +149,8 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
-        // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK));
-        // require(verifySignature(mHash, storemanGroupPK, r, s), "Signature is incorrect");
+        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK));
+        verifySignature(mHash, storemanGroupPK, r, s);
 
         htlcData.addSmgTx(xHash, value, wanAddr, storemanGroupPK);
         require(quotaData.inLock(tokenOrigAccount, storemanGroupPK, value), "Quota lock failed");
@@ -219,7 +220,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
     /// @param  tokenOrigAccount  account of original chain token
     /// @param  x               HTLC random number
-    function outSmgRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes s)
+    function outSmgRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
         external
         initialized
         notHalted
@@ -230,7 +231,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         bytes memory storemanGroupPK;
         (, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
 
-        // verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanGroupPK, r, s);
+        verifySignature(sha256(abi.encode(tokenOrigAccount, x)), storemanGroupPK, r, s);
         quotaData.outRedeem(tokenOrigAccount, storemanGroupPK, value);
 
         tokenManager.burnToken(tokenOrigAccount, value);
@@ -246,7 +247,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param xHash            hash of HTLC random number
     /// @param  r               signature
     /// @param  s               signature
-    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes r, bytes s)
+    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes r, bytes32 s)
         external
         initialized
         notHalted
@@ -257,8 +258,8 @@ contract HTLCDelegate is HTLCStorage, Halt {
         bytes memory storemanGroupPK;
         (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
 
-        // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
-        // verifySignature(mHash, storemanGroupPK, r, s);
+        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
+        verifySignature(mHash, storemanGroupPK, r, s);
 
         quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
 
@@ -337,5 +338,35 @@ contract HTLCDelegate is HTLCStorage, Halt {
 	{
         quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
 	}
+
+    /// @notice       convert bytes to bytes32
+    /// @param b      bytes array
+    /// @param offset offset of array to begin convert
+    function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
+        bytes32 out;
+
+        for (uint i = 0; i < 32; i++) {
+          out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+        }
+        return out;
+    }
+
+    /// @notice             verify signature
+    /// @param  message        message to be verified
+    /// @param  r           Signature info r
+    /// @param  s           Signature info s
+    /// @return             true/false
+    function verifySignature(bytes32 message, bytes PK, bytes r, bytes32 s)
+        private
+        pure
+    {
+        bytes32 PKx = bytesToBytes32(PK, 1);
+        bytes32 PKy = bytesToBytes32(PK, 33);
+
+        bytes32 Rx = bytesToBytes32(r, 1);
+        bytes32 Ry = bytesToBytes32(r, 33);
+
+        require(SchnorrVerifier.verify(s, PKx, PKy, Rx, Ry, message), "Signature verification failed");
+    }
 
 }
