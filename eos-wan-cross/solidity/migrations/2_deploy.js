@@ -38,5 +38,10 @@ module.exports = async (deployer) => {
   await deployer.deploy(StoremanGroupDelegate);
   let smgDelegate = await StoremanGroupDelegate.deployed();
   await smgProxy.upgradeTo(smgDelegate.address);
-  await smgDelegate.setDependence(tmProxy.address, htlcProxy.address);
+  let stormgroup = await StoremanGroupDelegate.at(smgProxy.address)
+  await stormgroup.setDependence(tmProxy.address, htlcProxy.address);
+  
+  // htlc dependence
+  let htlc = await HTLCDelegate.at(htlcProxy.address);
+  await htlc.setEconomics(tmProxy.address, smgProxy.address);
 }

@@ -134,7 +134,7 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         require(txFeeRatio > 0, "Invalid txFeeRatio");
         require(storemanGroupMap[tokenOrigAccount][storemanGroup].deposit == 0, "Duplicate register");
 
-        uint decimals;
+        uint8 decimals;
         uint token2WanRatio;
         uint minDeposit;
         uint defaultPricise;
@@ -144,11 +144,11 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
             require(mapSmgWhiteList[storemanGroup], "StoremanGroup is not in white list");
         }
 
-        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**decimals).div(1 ether);
+        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
         quotaLedger.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
         storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.value, 0, txFeeRatio, block.number, msg.sender);
 
-        emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota,txFeeRatio);
+        emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota, txFeeRatio);
     }
 
     /// @notice                           apply unregistration through a proxy
