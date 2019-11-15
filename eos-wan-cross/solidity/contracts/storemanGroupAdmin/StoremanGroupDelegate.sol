@@ -82,18 +82,15 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
     /// @param htlc          htlc(including quotaLedger) instance address
-    /// @param sv            Sign verifier address
-    function injectDependencies(address tm, address htlc, address sv)
+    function injectDependencies(address tm, address htlc)
         external
         onlyOwner
         isHalted
     {
         require(tm != address(0), "Invalide tokenManager address");
         require(htlc != address(0), "Invalide htlc address");
-        require(sv != address(0), "Invalide signVerifier address");
         tokenManager = ITokenManager(tm);
         quotaLedger = IHTLC(htlc);
-        signVerifier = sv;
     }
 
     /// @notice                  enable or disable storeman group white list by owner

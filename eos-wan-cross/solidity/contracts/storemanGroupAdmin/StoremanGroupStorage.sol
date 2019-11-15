@@ -34,8 +34,6 @@ contract StoremanGroupStorage {
     ITokenManager public tokenManager;
     /// quotaLedger(HTLC) instance address
     IHTLC public quotaLedger;
-    /// signature verifier instance address
-    address public signVerifier;
     bool public isWhiteListEnabled;
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)
