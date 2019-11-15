@@ -22,7 +22,7 @@ library SchnorrVerifier {
     }
 
     function h(bytes32 m, uint256 a, uint256 b) public pure returns (uint256) {
-        return uint256(sha256(m, uint8(0x04), a, b));
+        return uint256(sha256(abi.encodePacked(m, uint8(0x04), a, b)));
     }
 
     // function cmul(Point p, uint256 scalar) public pure returns (uint256, uint256) {
