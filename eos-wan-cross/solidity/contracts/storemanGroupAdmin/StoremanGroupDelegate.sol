@@ -67,18 +67,6 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @param deposit                    deposit in the first place
     event StoremanGroupWithdrawLogger(bytes tokenOrigAccount, bytes storemanGroup, uint actualReturn, uint deposit);
 
-    /// @notice                         function for get storemanGroup info
-    /// @param tokenOrigAccount         token account of original chain
-    /// @param storemanGroup            the storeman group info on original chain
-    function mapStoremanGroup(bytes tokenOrigAccount, bytes storemanGroup)
-        external
-        view
-        returns (uint, uint, uint, uint, address)
-    {
-        StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        return (sg.deposit, sg.unregisterApplyTime, sg.txFeeRatio, sg.startBlockNumber, sg.initiator);
-    }
-
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
     /// @param htlc          htlc(including quotaLedger) instance address
