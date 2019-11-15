@@ -79,13 +79,10 @@ library QuotaLib {
     function addStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
         external
         onlyMeaningfulValue(quota)
-        returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
         self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, txFeeRatio, 0, 0, 0, true);
-
-        return true;
     }
 
     function deactivateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
@@ -95,8 +92,6 @@ library QuotaLib {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
 		require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
-
-        return true;
     }
 
 	function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
@@ -117,7 +112,6 @@ library QuotaLib {
     function inLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns (bool)
     {
         /// Make sure an active storemanGroup is provided to handle transactions
         require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
@@ -128,8 +122,6 @@ library QuotaLib {
 
         /// Increase receivable
         quotaInfo._receivable = quotaInfo._receivable.add(value);
-
-        return true;
     }
 
     /// @notice                 revoke WRC20 quota
@@ -141,7 +133,6 @@ library QuotaLib {
     function inRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns (bool)
     {
         /// Make sure a valid storeman provided
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
@@ -150,8 +141,6 @@ library QuotaLib {
 
         /// Credit receivable, double-check receivable is no less than value to be unlocked
         quota._receivable = quota._receivable.sub(value);
-
-        return true;
     }
 
     /// @notice                 mint WRC token or payoff storemanGroup debt
@@ -163,7 +152,6 @@ library QuotaLib {
     function inRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns(bool)
     {
         /// Make sure a legit storemanGroup provided
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
@@ -173,8 +161,6 @@ library QuotaLib {
         /// Adjust quota record
         _q._receivable = _q._receivable.sub(value);
         _q._debt = _q._debt.add(value);
-
-        return true;
     }
 
     /// @notice                 lock WRC20 token and initiate an outbound transaction
@@ -186,7 +172,6 @@ library QuotaLib {
     function outLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns (bool)
     {
         /// Make sure a valid storemanGroup and a legit initiator provided
         require(isActive(self, tokenOrigAccount, storemanGroupPK), "PK is not active");
@@ -198,8 +183,6 @@ library QuotaLib {
 
         /// Adjust quota record
         quota._payable = quota._payable.add(value);
-
-        return true;
     }
 
     /// @notice                 unlock WRC20 token
@@ -211,7 +194,6 @@ library QuotaLib {
     function outRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns (bool)
     {
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
@@ -220,8 +202,6 @@ library QuotaLib {
 
         /// Adjust quota record
         quotaInfo._payable = quotaInfo._payable.sub(value);
-
-        return true;
     }
 
     /// @notice                 burn WRC20 token
@@ -233,7 +213,6 @@ library QuotaLib {
     function outRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
-        returns (bool)
     {
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
         Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
@@ -241,8 +220,6 @@ library QuotaLib {
         /// Adjust quota record
         quotaInfo._debt = quotaInfo._debt.sub(value);
         quotaInfo._payable = quotaInfo._payable.sub(value);
-
-        return true;
     }
 
 

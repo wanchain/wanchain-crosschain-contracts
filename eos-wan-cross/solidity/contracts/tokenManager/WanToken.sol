@@ -106,12 +106,10 @@ contract WanToken is StandardToken, Owned {
   /// @dev Create token
   /// @param account Address will receive token
   /// @param value Amount of token to be minted
-  /// @return True if successful
   function mint(address account, uint value)
     public
     onlyOwner
     onlyMeaningfulValue(value)
-    returns (bool)
   {
     require(account != address(0), "Account is null");
 
@@ -119,25 +117,21 @@ contract WanToken is StandardToken, Owned {
     totalSupply = totalSupply.add(value);
 
     emit TokenMintedLogger(account, value, totalSupply);
-    return true;
   }
 
   /// @notice Burn token
   /// @dev Burn token
   /// @param account Address of whose token will be burnt
   /// @param value Amount of token to be burnt
-  /// @return True if successful
   function burn(address account, uint value)
     public
     onlyOwner
     onlyMeaningfulValue(value)
-    returns (bool)
   {
     balances[account] = balances[account].sub(value);
     totalSupply = totalSupply.sub(value);
 
     emit TokenBurntLogger(account, value, totalSupply);
-    return true;
   }
 
 }

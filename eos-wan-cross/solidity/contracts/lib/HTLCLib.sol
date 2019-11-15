@@ -86,9 +86,6 @@ library HTLCLib {
         /// @notice atomic tx needed locked time(in seconds)
         uint lockedTime;
 
-        /// @notice default max UTC time
-        uint defaultMaxTime;
-
         /// @notice the fee ratio of revoking operation
         uint revokeFeeRatio;
 
@@ -103,11 +100,9 @@ library HTLCLib {
      *
      */
 
-    function init(Data storage self) external returns(bool) {
+    function init(Data storage self) external {
         self.lockedTime = uint(3600*36);
-        self.defaultMaxTime = uint(0xffffffffffffffff);
         self.ratioPrecise = 10000;
-        return true;
     }
 
     function getGlobalInfo(Data storage self) external view returns(uint, uint) {
@@ -150,11 +145,9 @@ library HTLCLib {
     /// @notice     set revoke fee ratio
     function setRevokeFeeRatio(Data storage self, uint ratio)
         external
-        returns (bool)
     {
         require(ratio <= self.ratioPrecise, "Ratio is invalid");
         self.revokeFeeRatio = ratio;
-        return true;
     }
 
     /// @notice                 add user transaction info

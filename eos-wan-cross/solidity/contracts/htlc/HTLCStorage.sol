@@ -49,9 +49,6 @@ contract HTLCStorage {
     /// storemanGroup admin instance address
     address public storemanGroupAdmin;
 
-    /// signature verifier instance address
-    // address public signVerifier;
-
     /// @notice transaction fee, hashX => fee
     mapping(bytes32 => uint) internal mapXHashFee;
 

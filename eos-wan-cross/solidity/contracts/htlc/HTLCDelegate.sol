@@ -126,6 +126,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
      *
      */
 
+    constructor() public {
+        htlcData.init();
+    }
+
     function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr) external {
         require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
 
@@ -145,7 +149,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
         external
         initialized
         notHalted
-        returns(bool)
     {
         require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
 
@@ -153,9 +156,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         verifySignature(mHash, storemanGroupPK, r, s);
 
         htlcData.addSmgTx(xHash, value, wanAddr, storemanGroupPK);
-        require(quotaData.inLock(tokenOrigAccount, storemanGroupPK, value), "Quota lock failed");
-
-        return true;
+        quotaData.inLock(tokenOrigAccount, storemanGroupPK, value);
     }
 
     /// @notice                 request exchange original chain token with WERC20 token(to prevent collision, x must be a 256bit random big int)
@@ -184,7 +185,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
 
         htlcData.addUserTx(xHash, value, userOrigAccount, storemanGroupPK);
 
-        require(quotaData.outLock(tokenOrigAccount, storemanGroupPK, value), "Outbound quota lock failed");
+        quotaData.outLock(tokenOrigAccount, storemanGroupPK, value);
 
         address instance;
         (,,,instance,,,,) = tokenManager.getTokenInfo(tokenOrigAccount);
