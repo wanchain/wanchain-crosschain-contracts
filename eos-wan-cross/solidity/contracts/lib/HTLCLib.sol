@@ -199,7 +199,7 @@ library HTLCLib {
         external
         returns(bytes32 xHash)
     {
-        xHash = sha256(x);
+        xHash = sha256(abi.encodePacked(x));
 
         UserTx storage info = self.mapHashXUserTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
@@ -216,7 +216,7 @@ library HTLCLib {
         external
         returns(bytes32 xHash)
     {
-        xHash = sha256(x);
+        xHash = sha256(abi.encodePacked(x));
 
         SmgTx storage info = self.mapHashXSmgTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
