@@ -10,14 +10,14 @@ const StoremanGroupProxy = artifacts.require('StoremanGroupProxy');
 const StoremanGroupDelegate = artifacts.require('StoremanGroupDelegate');
 
 module.exports = async (deployer) => {
-  // token manager
+  // token manager sc
   await deployer.deploy(TokenManagerProxy);
   let tmProxy = await TokenManagerProxy.deployed();
   await deployer.deploy(TokenManagerDelegate);
   let tmDelegate = await TokenManagerDelegate.deployed();
   await tmProxy.upgradeTo(tmDelegate.address);
 
-  // htlc
+  // htlc sc
   await deployer.deploy(Secp256k1);
   await deployer.link(Secp256k1, SchnorrVerifier);
   await deployer.deploy(SchnorrVerifier);
@@ -32,16 +32,22 @@ module.exports = async (deployer) => {
   let htlcDelegate = await HTLCDelegate.deployed();
   await htlcProxy.upgradeTo(htlcDelegate.address);
 
-  // storeman group admin
+  // storeman group admin sc
   await deployer.deploy(StoremanGroupProxy);
   let smgProxy = await StoremanGroupProxy.deployed();
   await deployer.deploy(StoremanGroupDelegate);
   let smgDelegate = await StoremanGroupDelegate.deployed();
   await smgProxy.upgradeTo(smgDelegate.address);
-  let stormgroup = await StoremanGroupDelegate.at(smgProxy.address)
-  await stormgroup.setDependence(tmProxy.address, htlcProxy.address);
   
+  // token manager dependence
+  let tm = await TokenManagerDelegate.at(tmProxy.address);
+  await tm.setHtlcAddr(htlcProxy.address);
+
   // htlc dependence
   let htlc = await HTLCDelegate.at(htlcProxy.address);
   await htlc.setEconomics(tmProxy.address, smgProxy.address);
+
+  // storm group admin dependence
+  let smg = await StoremanGroupDelegate.at(smgProxy.address)
+  await smg.setDependence(tmProxy.address, htlcProxy.address);
 }
