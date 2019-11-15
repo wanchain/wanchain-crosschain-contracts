@@ -82,10 +82,9 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
     /// @param htlc          htlc(including quotaLedger) instance address
-    function injectDependencies(address tm, address htlc)
+    function setDependence(address tm, address htlc)
         external
         onlyOwner
-        isHalted
     {
         require(tm != address(0), "Invalide tokenManager address");
         require(htlc != address(0), "Invalide htlc address");
@@ -135,13 +134,17 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         require(txFeeRatio > 0, "Invalid txFeeRatio");
         require(storemanGroupMap[tokenOrigAccount][storemanGroup].deposit == 0, "Duplicate register");
 
-        var (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        uint decimals;
+        uint token2WanRatio;
+        uint minDeposit;
+        uint defaultPricise;
+        (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(msg.value >= minDeposit, "Value must be greater than minDeposit");
         if (isWhiteListEnabled) {
             require(mapSmgWhiteList[storemanGroup], "StoremanGroup is not in white list");
         }
 
-        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
+        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**decimals).div(1 ether);
         quotaLedger.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
         storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.value, 0, txFeeRatio, block.number, msg.sender);
 
@@ -176,7 +179,8 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroup];
         require(sg.initiator == msg.sender, "Sender must be initiator");
         require(sg.deposit > 0, "deposit is zero");
-        var (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
+        uint withdrawDelayTime;
+        (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(now > sg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
         quotaLedger.delStoremanGroup(tokenOrigAccount, storemanGroup);
         sg.initiator.transfer(sg.deposit);
@@ -184,15 +188,6 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroup, sg.deposit, sg.deposit);
 
         delete storemanGroupMap[tokenOrigAccount][storemanGroup];
-    }
-
-    /// @notice function for destroy contract
-    function kill()
-        external
-        isHalted
-        onlyOwner
-    {
-        selfdestruct(owner);
     }
 
     /// @notice fallback function

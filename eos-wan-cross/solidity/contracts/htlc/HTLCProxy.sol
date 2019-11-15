@@ -34,7 +34,7 @@ import "../components/Halt.sol";
 import "./HTLCStorage.sol";
 import "../components/Proxy.sol";
 
-contract TokenManagerProxy is HTLCStorage, Halt, Proxy {
+contract HTLCProxy is HTLCStorage, Halt, Proxy {
 
     function upgradeTo(address impl) public onlyOwner {
         require(
