@@ -5,6 +5,7 @@ const Secp256k1 = artifacts.require('Secp256k1');
 const SchnorrVerifier = artifacts.require('SchnorrVerifier');
 const QuotaLib = artifacts.require('QuotaLib');
 const HTLCLib = artifacts.require('HTLCLib');
+const HTLCDebtLib = artifacts.require('HTLCDebtLib');
 const HTLCProxy = artifacts.require('HTLCProxy');
 const HTLCDelegate = artifacts.require('HTLCDelegate');
 const StoremanGroupProxy = artifacts.require('StoremanGroupProxy');
@@ -24,12 +25,20 @@ module.exports = async (deployer) => {
   // htlc sc
   await deployer.deploy(Secp256k1);
   await deployer.link(Secp256k1, SchnorrVerifier);
+
   await deployer.deploy(SchnorrVerifier);
   await deployer.deploy(QuotaLib);
   await deployer.deploy(HTLCLib);
+
+  await deployer.link(SchnorrVerifier, HTLCDebtLib);
+  await deployer.link(QuotaLib, HTLCDebtLib);
+  await deployer.link(HTLCLib, HTLCDebtLib);
+  await deployer.deploy(HTLCDebtLib);
+
   await deployer.link(SchnorrVerifier, HTLCDelegate);
   await deployer.link(QuotaLib, HTLCDelegate);
   await deployer.link(HTLCLib, HTLCDelegate);
+  await deployer.link(HTLCDebtLib, HTLCDelegate);
   await deployer.deploy(HTLCProxy);
   let htlcProxy = await HTLCProxy.deployed();
   await deployer.deploy(HTLCDelegate);

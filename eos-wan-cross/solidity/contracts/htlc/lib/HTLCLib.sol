@@ -26,7 +26,7 @@
 
 pragma solidity ^0.4.24;
 
-import "./SafeMath.sol";
+import "../../lib/SafeMath.sol";
 
 library HTLCLib {
     using SafeMath for uint;
@@ -40,6 +40,13 @@ library HTLCLib {
     /// @notice tx info status
     /// @notice uninitialized,locked,refunded,revoked
     enum TxStatus {None, Locked, Refunded, Revoked}
+
+    /// @notice default locked time(in seconds)
+    uint constant DEF_LOCKED_TIME = uint(3600*36);
+
+    /// @notice revoking fee ratio precise
+    /// @notice for example: revokeFeeRatio is 3, meaning that the revoking fee ratio is 3/10000
+    uint constant RATIO_PRECISE = 10000;
 
     /**
      *
@@ -83,15 +90,8 @@ library HTLCLib {
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
         mapping(bytes32 => DebtTx) mapHashXDebtTxs;
 
-        /// @notice atomic tx needed locked time(in seconds)
-        uint lockedTime;
-
         /// @notice the fee ratio of revoking operation
         uint revokeFeeRatio;
-
-        /// @notice revoking fee ratio precise
-        /// @notice for example: revokeFeeRatio is 3, meaning that the revoking fee ratio is 3/10000
-        uint ratioPrecise;
     }
 
     /**
@@ -99,14 +99,8 @@ library HTLCLib {
      * MANIPULATIONS
      *
      */
-
-    function init(Data storage self) external {
-        self.lockedTime = uint(3600*36);
-        self.ratioPrecise = 10000;
-    }
-
     function getGlobalInfo(Data storage self) external view returns(uint, uint) {
-        return (self.revokeFeeRatio, self.ratioPrecise);
+        return (self.revokeFeeRatio, RATIO_PRECISE);
     }
 
     /// @notice                  function for get user info
@@ -146,7 +140,7 @@ library HTLCLib {
     function setRevokeFeeRatio(Data storage self, uint ratio)
         external
     {
-        require(ratio <= self.ratioPrecise, "Ratio is invalid");
+        require(ratio <= RATIO_PRECISE, "Ratio is invalid");
         self.revokeFeeRatio = ratio;
     }
 
@@ -163,7 +157,7 @@ library HTLCLib {
 
         userTx.baseTx.value = value;
         userTx.baseTx.status = TxStatus.Locked;
-        userTx.baseTx.lockedTime = self.lockedTime.mul(2);
+        userTx.baseTx.lockedTime = DEF_LOCKED_TIME.mul(2);
         userTx.baseTx.beginLockedTime = now;
         userTx.baseTx.storemanPK = storemanPK;
         userTx.sender = msg.sender;
@@ -180,7 +174,7 @@ library HTLCLib {
         smgTx.baseTx.value = value;
         smgTx.baseTx.storemanPK = storemanPK;
         smgTx.baseTx.status = TxStatus.Locked;
-        smgTx.baseTx.lockedTime = self.lockedTime;
+        smgTx.baseTx.lockedTime = DEF_LOCKED_TIME;
         smgTx.baseTx.beginLockedTime = now;
         smgTx.userAddr = userAddr;
     }
@@ -195,7 +189,7 @@ library HTLCLib {
         debtTx.baseTx.value = value;
         debtTx.baseTx.storemanPK = storemanPK;
         debtTx.baseTx.status = TxStatus.Locked;
-        debtTx.baseTx.lockedTime = self.lockedTime;
+        debtTx.baseTx.lockedTime = DEF_LOCKED_TIME;
         debtTx.baseTx.beginLockedTime = now;
         debtTx.srcStoremanPK = srcStoremanPK;
     }

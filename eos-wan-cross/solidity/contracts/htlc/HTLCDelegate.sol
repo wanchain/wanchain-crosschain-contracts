@@ -25,11 +25,13 @@
 //
 
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 import "../components/Halt.sol";
 import "../interfaces/IWRC20Protocol.sol";
 import "./HTLCStorage.sol";
 import "../lib/SchnorrVerifier.sol";
+import "./lib/HTLCDebtLib.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
     using SafeMath for uint;
@@ -133,11 +135,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
      * MANIPULATIONS
      *
      */
-
-    constructor() public {
-        htlcData.init();
-    }
-
     function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr) external {
         require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
 
@@ -322,20 +319,23 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param  dstStoremanPK   PK of dst storeman
     /// @param  r               signature
     /// @param  s               signature
-     function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, uint value, bytes srcStoremanPK, bytes dstStoremanPK, bytes r, bytes32 s)
+    function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, uint value, bytes srcStoremanPK, bytes dstStoremanPK, bytes r, bytes32 s)
         external
         initialized
         notHalted
         onlyTokenRegistered(tokenOrigAccount)
-     {
-        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash, srcStoremanPK, dstStoremanPK));
-        verifySignature(mHash, dstStoremanPK, r, s);
-
-        htlcData.addDebtTx(xHash, value, srcStoremanPK, dstStoremanPK);
-        quotaData.debtLock(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
-        // emit logger...
-        emit DebtLockLogger(xHash, value, tokenOrigAccount, srcStoremanPK, dstStoremanPK);
-     }
+    {
+        HTLCDebtLib.HTLCDebtLockParams memory params = HTLCDebtLib.HTLCDebtLockParams({
+            tokenOrigAccount: tokenOrigAccount,
+            xHash: xHash,
+            value: value,
+            srcStoremanPK: srcStoremanPK,
+            dstStoremanPK: dstStoremanPK,
+            r: r,
+            s: s
+        });
+        HTLCDebtLib.inDebtLock(htlcData, quotaData, params);
+    }
 
     /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
     /// @param  tokenOrigAccount  account of original chain token
@@ -345,17 +345,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        bytes32 xHash = htlcData.redeemDebtTx(x);
-
-        uint value;
-        bytes memory srcStoremanPK;
-        bytes memory dstStoremanPK;
-        (srcStoremanPK, value, dstStoremanPK) = htlcData.getDebtTx(xHash);
-
-        verifySignature(sha256(abi.encode(tokenOrigAccount, x)), srcStoremanPK, r, s);
-        quotaData.debtRedeem(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
-
-        emit DebtRedeemLogger(xHash, x, tokenOrigAccount, srcStoremanPK, dstStoremanPK);
+        HTLCDebtLib.HTLCDebtRedeemParams memory params = HTLCDebtLib.HTLCDebtRedeemParams({
+            tokenOrigAccount: tokenOrigAccount,
+            r: r,
+            s: s,
+            x: x
+        });
+        HTLCDebtLib.inDebtRedeem(htlcData, quotaData, params);
     }
 
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
@@ -366,15 +362,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        htlcData.revokeDebtTx(xHash);
-
-        uint value;
-        bytes memory srcStoremanPK;
-        bytes memory dstStoremanPK;
-        (srcStoremanPK, value, dstStoremanPK) = htlcData.getDebtTx(xHash);
-
-        quotaData.debtRevoke(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
-        emit DebtRevokeLogger(xHash, tokenOrigAccount, srcStoremanPK, dstStoremanPK);
+        HTLCDebtLib.inDebtRevoke(htlcData, quotaData, tokenOrigAccount, xHash);
     }
 
     function getOutboundFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) private returns(uint) {
