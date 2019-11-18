@@ -97,7 +97,7 @@ library QuotaLib {
 	function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
 		external
 	{
-		require(!isActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
+		require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
 		require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
 
 		delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
@@ -169,7 +169,7 @@ library QuotaLib {
     /// @param storemanGroupPK  outbound storemanGroup handler PK
     /// @param value            amount of WRC20 token to be locked
     /// @return                 success of token locking
-    function outLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
+    function outLock(Data storage self, uint value, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyMeaningfulValue(value)
     {
@@ -222,6 +222,79 @@ library QuotaLib {
         quotaInfo._payable = quotaInfo._payable.sub(value);
     }
 
+    /// @notice                 transfer debt from src to dst
+    /// @dev                    frozen WRC-20 token quota
+    /// @param tokenOrigAccount account of token supported
+    /// @param srcStoremanGroupPK  src handler PK
+    /// @param dstStoremanGroupPK  dst handler PK
+    /// @param value            amount of debt to be frozen
+    /// @return                 true if successful
+    function debtLock(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanGroupPK, bytes dstStoremanGroupPK)
+        external
+        onlyMeaningfulValue(value)
+    {
+        /// Make sure an active storemanGroup is provided to handle transactions
+        require(notActive(self, tokenOrigAccount, srcStoremanGroupPK), "PK is active");
+        require(isActive(self, tokenOrigAccount, dstStoremanGroupPK), "PK is not active");
+
+        /// src: there's no processing tx, and have enough debt!
+        Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanGroupPK];
+        require(src._receivable == uint(0) && src._payable == uint(0) && src._debt >= value, "PK is not allowed to repay debt");
+
+        /// dst: has enough quota
+        Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanGroupPK];
+        require(dst._quota.sub(dst._receivable.add(dst._debt)) >= value, "Quota is not enough");
+
+        dst._receivable = dst._receivable.add(value);
+        src._payable = src._payable.add(value);
+    }
+
+    /// @notice                 mint WRC-20 token or payoff storemanGroup debt
+    /// @dev                    mint WRC-20 token or payoff storemanGroup debt
+    /// @param tokenOrigAccount account of token supported
+    /// @param dstStoremanPK    dst PK
+    /// @param srcStoremanPK    src PK
+    /// @param value            amount of WRC-20 token to be minted
+    function debtRedeem(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanPK, bytes dstStoremanPK)
+        external
+        onlyMeaningfulValue(value)
+    {
+        /// Make sure a legit storemanGroup provided
+        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK is not exist");
+        require(notActive(self, tokenOrigAccount, srcStoremanPK), "PK is active");
+
+        Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
+        Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
+
+        /// Adjust quota record
+        dst._receivable = dst._receivable.sub(value);
+        dst._debt = dst._debt.add(value);
+
+        src._payable = src._payable.sub(value);
+        src._debt = src._debt.sub(value);
+    }
+
+    /// @notice                 revoke WRC-20 quota
+    /// @dev                    revoke WRC-20 quota
+    /// @param tokenOrigAccount account of token supported
+    /// @param dstStoremanPK    dst PK
+    /// @param srcStoremanPK    src PK
+    /// @param value            amount of WRC-20 quota to be locked
+    function debtRevoke(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanPK, bytes dstStoremanPK)
+        external
+        onlyMeaningfulValue(value)
+    {
+        /// Make sure a valid storeman provided
+        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK is not exist");
+        require(notActive(self, tokenOrigAccount, srcStoremanPK), "PK is active");
+
+        Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
+        Quota storage src = self.mapQuota[tokenOrigAccount][srcStoremanPK];
+
+        /// Credit receivable, double-check receivable is no less than value to be unlocked
+        dst._receivable = dst._receivable.sub(value);
+        src._payable = src._payable.sub(value);
+    }
 
     /// @param tokenOrigAccount account of token supported
     /// @param storemanGroupPK  cross-chain transaction handler PK
@@ -242,6 +315,17 @@ library QuotaLib {
     {
         Quota storage q = self.mapQuota[tokenOrigAccount][storemanGroupPK];
         return q._quota != uint(0) && q._active;
+    }
+
+    /// @param tokenOrigAccount account of token supported
+    /// @param storemanGroupPK  cross-chain transaction handler PK
+    function notActive(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
+        private
+        view
+        returns (bool)
+    {
+        Quota storage q = self.mapQuota[tokenOrigAccount][storemanGroupPK];
+        return q._quota != uint(0) && !q._active;
     }
 
     /// @notice                 query storemanGroup quota detail

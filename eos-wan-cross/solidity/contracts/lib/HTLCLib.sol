@@ -70,7 +70,7 @@ library HTLCLib {
 
     struct DebtTx {
         BaseTx baseTx;
-        bytes srcPK;            // HTLC transaction sender PK
+        bytes srcStoremanPK;            // HTLC transaction sender PK
     }
 
     struct Data {
@@ -120,7 +120,7 @@ library HTLCLib {
         return (t.sender, t.shadow, t.baseTx.value, t.baseTx.storemanPK);
     }
 
-    /// @notice                  function for get user info
+    /// @notice                  function for get smg info
     /// @param xHash             xHash
     function getSmgTx(Data storage self, bytes32 xHash)
         external
@@ -131,16 +131,16 @@ library HTLCLib {
         return (t.userAddr, t.baseTx.value, t.baseTx.storemanPK);
     }
 
-    // /// @notice                  function for get HTLC info
-    // /// @param xHash             xHash
-    // function getDebtTransferSrcPK(Data storage self, bytes32 xHash)
-    //     external
-    //     view
-    //     returns (bytes)
-    // {
-    //     HTLCTx storage t = self.xHashHTLCTxsMap[xHash];
-    //     return (t.srcPK);
-    // }
+    /// @notice                  function for get debt info
+    /// @param xHash             xHash
+    function getDebtTx(Data storage self, bytes32 xHash)
+        external
+        view
+        returns (bytes, uint, bytes)
+    {
+        DebtTx storage t = self.mapHashXDebtTxs[xHash];
+        return (t.srcStoremanPK, t.baseTx.value, t.baseTx.storemanPK);
+    }
 
     /// @notice     set revoke fee ratio
     function setRevokeFeeRatio(Data storage self, uint ratio)
@@ -185,6 +185,21 @@ library HTLCLib {
         smgTx.userAddr = userAddr;
     }
 
+    function addDebtTx(Data storage self, bytes32 xHash, uint value, bytes srcStoremanPK, bytes storemanPK)
+        external
+    {
+        DebtTx storage debtTx = self.mapHashXDebtTxs[xHash];
+        require(value != 0, "Value is invalid");
+        require(debtTx.baseTx.status == TxStatus.None, "Debt tx is exist");
+
+        debtTx.baseTx.value = value;
+        debtTx.baseTx.storemanPK = storemanPK;
+        debtTx.baseTx.status = TxStatus.Locked;
+        debtTx.baseTx.lockedTime = self.lockedTime;
+        debtTx.baseTx.beginLockedTime = now;
+        debtTx.srcStoremanPK = srcStoremanPK;
+    }
+
     /// @notice                 refund coins from HTLC transaction
     /// @param  x               random number of HTLC
     /// @return xHash           return hash of HTLC random number
@@ -220,6 +235,23 @@ library HTLCLib {
         return (xHash);
     }
 
+    /// @notice                 refund coins from HTLC transaction
+    /// @param  x               random number of HTLC
+    /// @return xHash           return hash of HTLC random number
+    function redeemDebtTx(Data storage self, bytes32 x)
+        external
+        returns(bytes32 xHash)
+    {
+        xHash = sha256(abi.encodePacked(x));
+
+        DebtTx storage info = self.mapHashXDebtTxs[xHash];
+        require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
+        require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
+
+        info.baseTx.status = TxStatus.Refunded;
+        return (xHash);
+    }
+
     /// @notice                 revoke user transaction
     /// @param  xHash           hash of HTLC random number
     function revokeUserTx(Data storage self, bytes32 xHash)
@@ -239,6 +271,18 @@ library HTLCLib {
         external
     {
         SmgTx storage info = self.mapHashXSmgTxs[xHash];
+        require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
+        require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
+
+        info.baseTx.status = TxStatus.Revoked;
+    }
+
+    /// @notice                 revoke user transaction
+    /// @param  xHash           hash of HTLC random number
+    function revokeDebtTx(Data storage self, bytes32 xHash)
+        external
+    {
+        DebtTx storage info = self.mapHashXDebtTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
 
