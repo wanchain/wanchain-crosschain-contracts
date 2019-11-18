@@ -153,7 +153,7 @@ library QuotaLib {
         external
         onlyMeaningfulValue(value)
     {
-        /// Make sure a legit storemanGroup provided
+        /// Make sure a legal storemanGroup provided
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
 
         Quota storage _q = self.mapQuota[tokenOrigAccount][storemanGroupPK];

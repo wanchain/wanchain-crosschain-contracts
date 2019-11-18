@@ -228,7 +228,7 @@ library HTLCLib {
         UserTx storage info = self.mapHashXUserTxs[xHash];
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now >= info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Revoke is not permitted");
-        require(info.sender == msg.sender, "Msg sender is incorrect");
+        // require(info.sender == msg.sender, "Msg sender is incorrect");
 
         info.baseTx.status = TxStatus.Revoked;
     }

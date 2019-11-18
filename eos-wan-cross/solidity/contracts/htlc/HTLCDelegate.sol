@@ -246,9 +246,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
     /// @param tokenOrigAccount account of original chain token
     /// @param xHash            hash of HTLC random number
-    /// @param  r               signature
-    /// @param  s               signature
-    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash, bytes r, bytes32 s)
+    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash)
         external
         initialized
         notHalted
@@ -259,8 +257,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         bytes memory storemanGroupPK;
         (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
 
-        bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
-        verifySignature(mHash, storemanGroupPK, r, s);
+        // Anyone could do revoke for the owner
+        // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
+        // verifySignature(mHash, storemanGroupPK, r, s);
 
         quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
 
