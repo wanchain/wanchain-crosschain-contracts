@@ -11,12 +11,20 @@ contract TestHTLCLib {
 
     constructor() public {
     }
-    // execute the function of the lib.
+    // ======= invoke the lib execution ============
     function init() public{
         htlcData.init();
     }
 
-    // get the result of lib execution.
+    function setRevokeFeeRatio(uint ratio) public{
+        htlcData.setRevokeFeeRatio(ratio);
+    }
+
+    function getGlobalInfo() public view returns (uint,uint){
+        return htlcData.getGlobalInfo();
+    }
+
+    // ======= get the result of lib execution. ============
     function lockedTime() public view returns (uint){
         return htlcData.lockedTime;
     }
@@ -25,4 +33,7 @@ contract TestHTLCLib {
         return htlcData.ratioPrecise;
     }
 
+    function revokeFeeRatio() public view returns (uint){
+        return htlcData.revokeFeeRatio;
+    }
 }
