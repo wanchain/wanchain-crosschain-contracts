@@ -24,16 +24,45 @@ contract TestHTLCLib {
         return htlcData.getGlobalInfo();
     }
 
+    function addUserTx(bytes32 xHash, uint value, bytes shadow, bytes storemanPK)  public {
+        return htlcData.addUserTx(xHash,value,shadow,storemanPK);
+    }
+
+    function addSmgTx(bytes32 xHash, uint value, address userAddr, bytes storemanPK) public{
+        return htlcData.addSmgTx(xHash,value,userAddr,storemanPK);
+    }
+
+    function redeemUserTx(bytes32 x) public returns(bytes32 xHash){
+        return htlcData.redeemUserTx(x);
+    }
+
+    function redeemSmgTx(bytes32 x) public returns(bytes32 xHash){
+        return htlcData.redeemSmgTx(x);
+    }
+
+    function revokeUserTx(bytes32 xHash) public{
+        return htlcData.revokeUserTx(xHash);
+    }
+
+    function revokeSmgTx(bytes32 xHash) public{
+        return htlcData.revokeSmgTx(xHash);
+    }
+
     // ======= get the result of lib execution. ============
     function lockedTime() public view returns (uint){
         return htlcData.lockedTime;
     }
-
     function ratioPrecise() public view returns (uint){
         return htlcData.ratioPrecise;
     }
-
     function revokeFeeRatio() public view returns (uint){
         return htlcData.revokeFeeRatio;
+    }
+    // used by invoke lib execution and by result getting
+    function getUserTx(bytes32 xHash) public view returns (address, bytes, uint, bytes){
+        return htlcData.getUserTx(xHash);
+    }
+    function getSmgTx(bytes32 xHash) public view returns (address, uint, bytes){
+        return htlcData.getSmgTx(xHash);
     }
 }
