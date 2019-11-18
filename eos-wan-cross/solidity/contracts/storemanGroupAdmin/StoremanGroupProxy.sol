@@ -16,27 +16,21 @@
 
 */
 
-//                            _           _           _            
+//                            _           _           _
 //  __      ____ _ _ __   ___| |__   __ _(_)_ __   __| | _____   __
 //  \ \ /\ / / _` | '_ \ / __| '_ \ / _` | | '_ \@/ _` |/ _ \ \ / /
-//   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V / 
-//    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/  
-//    
-//  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
+//   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
+//    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
+//
+//
 
 pragma solidity ^0.4.24;
 
 import "../components/Halt.sol";
 import "./StoremanGroupStorage.sol";
+import "../components/Proxy.sol";
 
-contract StoremanGroupProxy is Halt, StoremanGroupStorage {
-    event Upgraded(address indexed implementation);
-
-    address public _implementation;
-
-    function implementation() public view returns (address) {
-        return _implementation;
-    }
+contract StoremanGroupProxy is Halt, StoremanGroupStorage, Proxy {
 
     function upgradeTo(address impl) public onlyOwner {
         require(
@@ -45,24 +39,5 @@ contract StoremanGroupProxy is Halt, StoremanGroupStorage {
         );
         _implementation = impl;
         emit Upgraded(impl);
-    }
-
-    function () public payable {
-        address _impl = implementation();
-        require(
-            _impl != address(0),
-            "Cannot set implementation to address(0)"
-        );
-        bytes memory data = msg.data;
-
-        assembly {
-          let result := delegatecall(gas, _impl, add(data, 0x20), mload(data), 0, 0)
-          let size := returndatasize
-          let ptr := mload(0x40)
-          returndatacopy(ptr, 0, size)
-          switch result
-          case 0 { revert(ptr, size) }
-          default { return(ptr, size) }
-        }
     }
 }

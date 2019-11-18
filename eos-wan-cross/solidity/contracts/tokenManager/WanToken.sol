@@ -30,108 +30,110 @@ import '../components/StandardToken.sol';
 import '../components/Owned.sol';
 
 contract WanToken is StandardToken, Owned {
-  /**************************************
-   **
-   ** VARIABLES
-   **
-   **************************************/
+    using SafeMath for uint;
 
-  string public name;
-  string public symbol;
-  uint8 public decimals;
+    /**************************************
+     **
+     ** VARIABLES
+     **
+     **************************************/
 
-  /****************************************************************************
-   **
-   ** MODIFIERS
-   **
-   ****************************************************************************/
-  modifier onlyMeaningfulValue(uint value) {
-      require(value > 0, "Value is null");
-      _;
-  }
+    string public name;
+    string public symbol;
+    uint8 public decimals;
 
-  /****************************************************************************
-   **
-   ** EVENTS
-   **
-   ****************************************************************************/
-  /// @notice Logger for token mint
-  /// @dev Logger for token mint
-  /// @param account Whom these token will be minted to
-  /// @param value Amount of ETH/WETH to be minted
-  /// @param totalSupply Total amount of WETH after token mint
-  event TokenMintedLogger(
-    address indexed account,
-    uint indexed value,
-    uint indexed totalSupply
-  );
+    /****************************************************************************
+     **
+     ** MODIFIERS
+     **
+     ****************************************************************************/
+    modifier onlyMeaningfulValue(uint value) {
+            require(value > 0, "Value is null");
+            _;
+    }
 
-  /// @notice Logger for token burn
-  /// @dev Logger for token burn
-  /// @param account Initiator address
-  /// @param value Amount of WETH to be burnt
-  /// @param totalSupply Total amount of WETH after token burn
-  event TokenBurntLogger(
-    address indexed account,
-    uint indexed value,
-    uint indexed totalSupply
-  );
+    /****************************************************************************
+     **
+     ** EVENTS
+     **
+     ****************************************************************************/
+    /// @notice Logger for token mint
+    /// @dev Logger for token mint
+    /// @param account Whom these token will be minted to
+    /// @param value Amount of ETH/WETH to be minted
+    /// @param totalSupply Total amount of WETH after token mint
+    event TokenMintedLogger(
+        address indexed account,
+        uint indexed value,
+        uint indexed totalSupply
+    );
 
-  ///@notice Initialize the TokenManager address
-  ///@dev Initialize the TokenManager address
-  ///@param tokenName The token name to be used
-  ///@param tokenSymbol The token symbol to be used
-  ///@param tokenDecimal The token decimals to be used
-  constructor(string tokenName, string tokenSymbol, uint8 tokenDecimal)
-    public
-  {
-      name = tokenName;
-      symbol = tokenSymbol;
-      decimals = tokenDecimal;
-  }
+    /// @notice Logger for token burn
+    /// @dev Logger for token burn
+    /// @param account Initiator address
+    /// @param value Amount of WETH to be burnt
+    /// @param totalSupply Total amount of WETH after token burn
+    event TokenBurntLogger(
+        address indexed account,
+        uint indexed value,
+        uint indexed totalSupply
+    );
 
-  /// @notice If WAN coin is sent to this address, send it back.
-  /// @dev If WAN coin is sent to this address, send it back.
-  function() public payable {
-    revert("Not support");
-  }
+    ///@notice Initialize the TokenManager address
+    ///@dev Initialize the TokenManager address
+    ///@param tokenName The token name to be used
+    ///@param tokenSymbol The token symbol to be used
+    ///@param tokenDecimal The token decimals to be used
+    constructor(string tokenName, string tokenSymbol, uint8 tokenDecimal)
+        public
+    {
+            name = tokenName;
+            symbol = tokenSymbol;
+            decimals = tokenDecimal;
+    }
 
-  /****************************************************************************
-   **
-   ** MANIPULATIONS
-   **
-   ****************************************************************************/
+    /// @notice If WAN coin is sent to this address, send it back.
+    /// @dev If WAN coin is sent to this address, send it back.
+    function() public payable {
+        revert("Not support");
+    }
 
-  /// @notice Create token
-  /// @dev Create token
-  /// @param account Address will receive token
-  /// @param value Amount of token to be minted
-  function mint(address account, uint value)
-    public
-    onlyOwner
-    onlyMeaningfulValue(value)
-  {
-    require(account != address(0), "Account is null");
+    /****************************************************************************
+     **
+     ** MANIPULATIONS
+     **
+     ****************************************************************************/
 
-    balances[account] = balances[account].add(value);
-    totalSupply = totalSupply.add(value);
+    /// @notice Create token
+    /// @dev Create token
+    /// @param account Address will receive token
+    /// @param value Amount of token to be minted
+    function mint(address account, uint value)
+        public
+        onlyOwner
+        onlyMeaningfulValue(value)
+    {
+        require(account != address(0), "Account is null");
 
-    emit TokenMintedLogger(account, value, totalSupply);
-  }
+        balances[account] = balances[account].add(value);
+        totalSupply = totalSupply.add(value);
 
-  /// @notice Burn token
-  /// @dev Burn token
-  /// @param account Address of whose token will be burnt
-  /// @param value Amount of token to be burnt
-  function burn(address account, uint value)
-    public
-    onlyOwner
-    onlyMeaningfulValue(value)
-  {
-    balances[account] = balances[account].sub(value);
-    totalSupply = totalSupply.sub(value);
+        emit TokenMintedLogger(account, value, totalSupply);
+    }
 
-    emit TokenBurntLogger(account, value, totalSupply);
-  }
+    /// @notice Burn token
+    /// @dev Burn token
+    /// @param account Address of whose token will be burnt
+    /// @param value Amount of token to be burnt
+    function burn(address account, uint value)
+        public
+        onlyOwner
+        onlyMeaningfulValue(value)
+    {
+        balances[account] = balances[account].sub(value);
+        totalSupply = totalSupply.sub(value);
+
+        emit TokenBurntLogger(account, value, totalSupply);
+    }
 
 }
