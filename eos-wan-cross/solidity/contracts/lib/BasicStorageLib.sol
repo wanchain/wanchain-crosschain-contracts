@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-library BasicLib {
+library BasicStorageLib {
 
     struct UintData {
         mapping(bytes => mapping(bytes => uint))           _storage;

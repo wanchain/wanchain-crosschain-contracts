@@ -26,8 +26,9 @@
 
 pragma solidity ^0.4.24;
 
+import "../components/BasicStorage.sol";
 
-contract TokenManagerStorage {
+contract TokenManagerStorage is BasicStorage {
     /************************************************************
      **
      ** VARIABLES
