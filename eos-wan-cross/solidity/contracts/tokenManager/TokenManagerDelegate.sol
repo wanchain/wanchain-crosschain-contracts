@@ -183,7 +183,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
 
         // needs to pass recipient address
-        require(IWanToken(instance).mint(recipient, value), "Mint token failed");
+        IWanToken(instance).mint(recipient, value);
     }
 
     function burnToken(bytes tokenOrigAccount, uint value)
@@ -193,8 +193,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         onlyMeaningfulValue(value)
     {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
-
-        require(IWanToken(instance).burn(htlcAddr, value), "Burn token failed");
+        IWanToken(instance).burn(htlcAddr, value);
     }
 
     function setHtlcAddr(address addr)
