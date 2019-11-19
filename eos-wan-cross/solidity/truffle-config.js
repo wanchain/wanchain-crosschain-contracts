@@ -75,6 +75,15 @@ module.exports = {
       // network_id: 2111,   // This network is yours, in the cloud.
       // production: true    // Treats this network as if it was a public net. (default: false)
     // }
+
+    // deploy on wanchain testnet, usage: truffle console --network testnet
+    testnet: {
+        host: "192.168.1.58",     // Localhost (default: none)
+        port: 18545,            // Standard Ethereum port (default: none)
+        network_id: "*",       // Any network (default: none)
+        gas: 4700000,           // Gas sent with each transaction (default: ~6700000)
+        gasPrice: 180000000000,  // 20 gwei (in wei) (default: 100 gwei)
+    },
   },
 
   // Set default mocha options here, use special reporters etc.
