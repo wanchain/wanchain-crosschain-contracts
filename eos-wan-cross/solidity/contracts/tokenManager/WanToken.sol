@@ -48,8 +48,8 @@ contract WanToken is StandardToken, Owned {
      **
      ****************************************************************************/
     modifier onlyMeaningfulValue(uint value) {
-            require(value > 0, "Value is null");
-            _;
+        require(value > 0, "Value is null");
+        _;
     }
 
     /****************************************************************************
@@ -87,9 +87,9 @@ contract WanToken is StandardToken, Owned {
     constructor(string tokenName, string tokenSymbol, uint8 tokenDecimal)
         public
     {
-            name = tokenName;
-            symbol = tokenSymbol;
-            decimals = tokenDecimal;
+        name = tokenName;
+        symbol = tokenSymbol;
+        decimals = tokenDecimal;
     }
 
     /// @notice If WAN coin is sent to this address, send it back.

@@ -29,6 +29,6 @@ pragma solidity ^0.4.24;
 interface ITokenManager {
     function getTokenInfo(bytes) external returns(bytes, bytes, uint8, address, uint, uint, uint, uint);
     function isTokenRegistered(bytes) external returns(bool);
-    function mintToken(bytes, address, uint) external returns(bool);
-    function burnToken(bytes, uint) external returns(bool);
+    function mintToken(bytes, address, uint) external;
+    function burnToken(bytes, uint) external;
 }

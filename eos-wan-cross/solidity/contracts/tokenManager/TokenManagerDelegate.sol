@@ -153,7 +153,6 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
         require(name.length != 0, "Name is null");
         require(symbol.length != 0, "Symbol is null");
-        require(decimals != uint(0), "Decimal is null");
         require(tokenWanAddr != address(0), "Token address on Wanchain is null");
 
         // create a new record
@@ -184,7 +183,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
 
         // needs to pass recipient address
-        require(IWanToken(instance).mint(recipient, value), "Mint token failed");
+        IWanToken(instance).mint(recipient, value);
     }
 
     function burnToken(bytes tokenOrigAccount, uint value)
@@ -194,8 +193,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         onlyMeaningfulValue(value)
     {
         address instance = mapTokenInfo[tokenOrigAccount].tokenWanAddr;
-
-        require(IWanToken(instance).burn(htlcAddr, value), "Burn token failed");
+        IWanToken(instance).burn(htlcAddr, value);
     }
 
     function setHtlcAddr(address addr)

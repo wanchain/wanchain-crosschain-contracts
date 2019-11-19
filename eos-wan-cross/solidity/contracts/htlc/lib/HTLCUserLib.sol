@@ -80,7 +80,7 @@ library HTLCUserLib {
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
     /// @param tokenOrigAccount account of original chain token
-    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAccount);
+    event InboundRedeemLogger(address indexed wanAddr, bytes32 indexed xHash, bytes32 indexed x, bytes storemanGroupPK, bytes tokenOrigAccount);
 
     /// @notice                 event of revoke exchange original chain token with WERC20 token HTLC transaction
     /// @param wanAddr          address of user
@@ -116,7 +116,7 @@ library HTLCUserLib {
 
         params.tokenManager.mintToken(params.tokenOrigAccount, userAddr, value);
 
-        emit InboundRedeemLogger(userAddr, storemanGroupPK, xHash, params.x, params.tokenOrigAccount);
+        emit InboundRedeemLogger(userAddr, xHash, params.x, storemanGroupPK, params.tokenOrigAccount);
     }
 
     function outUserRevoke(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCUserRevokeParams memory params)
