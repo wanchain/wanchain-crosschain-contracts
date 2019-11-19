@@ -1,4 +1,3 @@
-const BasicStorageLib = artifacts.require('BasicStorageLib');
 const TokenManagerProxy = artifacts.require('TokenManagerProxy');
 const TokenManagerDelegate = artifacts.require('TokenManagerDelegate');
 const Secp256k1 = artifacts.require('Secp256k1');
@@ -14,10 +13,7 @@ const StoremanGroupProxy = artifacts.require('StoremanGroupProxy');
 const StoremanGroupDelegate = artifacts.require('StoremanGroupDelegate');
 
 module.exports = async (deployer) => {
-  await deployer.deploy(BasicStorageLib);
-
   // token manager sc
-  await deployer.link(BasicStorageLib, TokenManagerProxy);
   await deployer.deploy(TokenManagerProxy);
   let tmProxy = await TokenManagerProxy.deployed();
   await deployer.deploy(TokenManagerDelegate);

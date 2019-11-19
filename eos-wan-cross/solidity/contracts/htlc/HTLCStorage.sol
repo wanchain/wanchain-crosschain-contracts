@@ -28,9 +28,10 @@ pragma solidity ^0.4.24;
 
 import "../lib/QuotaLib.sol";
 import "./lib/HTLCLib.sol";
+import "../components/BasicStorage.sol";
 import "../interfaces/ITokenManager.sol";
 
-contract HTLCStorage {
+contract HTLCStorage is BasicStorage {
     using QuotaLib for QuotaLib.Data;
     using HTLCLib for HTLCLib.Data;
 
