@@ -55,4 +55,12 @@ contract TestHTLCLib {
     function getSmgTx(bytes32 xHash) public view returns (address, uint, bytes){
         return htlcData.getSmgTx(xHash);
     }
+
+    function getUserTxStatus(bytes32 xHash) public view returns (HTLCLib.TxStatus){
+        return htlcData.mapHashXUserTxs[xHash].baseTx.status;
+    }
+
+    function getSmgStatus(bytes32 xHash) public view returns (HTLCLib.TxStatus){
+        return htlcData.mapHashXSmgTxs[xHash].baseTx.status;
+    }
 }
