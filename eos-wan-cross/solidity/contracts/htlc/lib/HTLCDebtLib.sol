@@ -27,11 +27,9 @@
 pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
-// import "../../lib/SchnorrVerifier.sol";
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
 import "./commonLib.sol";
-import "../../interfaces/ITokenManager.sol";
 
 library HTLCDebtLib {
     using SafeMath for uint;
