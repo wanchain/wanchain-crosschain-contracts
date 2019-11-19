@@ -153,7 +153,6 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
         require(name.length != 0, "Name is null");
         require(symbol.length != 0, "Symbol is null");
-        require(decimals != uint(0), "Decimal is null");
         require(tokenWanAddr != address(0), "Token address on Wanchain is null");
 
         // create a new record
