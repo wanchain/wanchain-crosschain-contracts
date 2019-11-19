@@ -27,11 +27,11 @@
 pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
-import "../components/Halt.sol";
-import "./HTLCStorage.sol";
 import "./lib/HTLCDebtLib.sol";
 import "./lib/HTLCSmgLib.sol";
 import "./lib/HTLCUserLib.sol";
+import "../components/Halt.sol";
+import "./HTLCStorage.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
     using SafeMath for uint;

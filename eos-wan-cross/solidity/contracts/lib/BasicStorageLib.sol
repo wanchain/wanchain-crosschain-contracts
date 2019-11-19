@@ -24,72 +24,72 @@ library BasicStorageLib {
 
     /* uintStorage */
 
-    function setStorage(UintData storage self, bytes memory key, bytes memory innerkey, uint value) internal {
-        self._storage[key][innerkey] = value;
+    function setStorage(UintData storage self, bytes memory key, bytes memory innerKey, uint value) internal {
+        self._storage[key][innerKey] = value;
     }
 
-    function getStorage(UintData storage self, bytes memory key, bytes memory innerkey) internal view returns (uint) {
-        return self._storage[key][innerkey];
+    function getStorage(UintData storage self, bytes memory key, bytes memory innerKey) internal view returns (uint) {
+        return self._storage[key][innerKey];
     }
 
-    function delStorage(UintData storage self, bytes memory key, bytes memory innerkey) internal {
-        delete self._storage[key][innerkey];
+    function delStorage(UintData storage self, bytes memory key, bytes memory innerKey) internal {
+        delete self._storage[key][innerKey];
     }
 
     /* boolStorage */
 
-    function setStorage(BoolData storage self, bytes memory key, bytes memory innerkey, bool value) internal {
-        self._storage[key][innerkey] = value;
+    function setStorage(BoolData storage self, bytes memory key, bytes memory innerKey, bool value) internal {
+        self._storage[key][innerKey] = value;
     }
 
-    function getStorage(BoolData storage self, bytes memory key, bytes memory innerkey) internal view returns (bool) {
-        return self._storage[key][innerkey];
+    function getStorage(BoolData storage self, bytes memory key, bytes memory innerKey) internal view returns (bool) {
+        return self._storage[key][innerKey];
     }
 
-    function delStorage(BoolData storage self, bytes memory key, bytes memory innerkey) internal {
-        delete self._storage[key][innerkey];
+    function delStorage(BoolData storage self, bytes memory key, bytes memory innerKey) internal {
+        delete self._storage[key][innerKey];
     }
 
     /* addressStorage */
 
-    function setStorage(AddressData storage self, bytes memory key, bytes memory innerkey, address value) internal {
-        self._storage[key][innerkey] = value;
+    function setStorage(AddressData storage self, bytes memory key, bytes memory innerKey, address value) internal {
+        self._storage[key][innerKey] = value;
     }
 
-    function getStorage(AddressData storage self, bytes memory key, bytes memory innerkey) internal view returns (address) {
-        return self._storage[key][innerkey];
+    function getStorage(AddressData storage self, bytes memory key, bytes memory innerKey) internal view returns (address) {
+        return self._storage[key][innerKey];
     }
 
-    function delStorage(AddressData storage self, bytes memory key, bytes memory innerkey) internal {
-        delete self._storage[key][innerkey];
+    function delStorage(AddressData storage self, bytes memory key, bytes memory innerKey) internal {
+        delete self._storage[key][innerKey];
     }
 
     /* bytesStorage */
 
-    function setStorage(BytesData storage self, bytes memory key, bytes memory innerkey, bytes memory value) internal {
-        self._storage[key][innerkey] = value;
+    function setStorage(BytesData storage self, bytes memory key, bytes memory innerKey, bytes memory value) internal {
+        self._storage[key][innerKey] = value;
     }
 
-    function getStorage(BytesData storage self, bytes memory key, bytes memory innerkey) internal view returns (bytes memory) {
-        return self._storage[key][innerkey];
+    function getStorage(BytesData storage self, bytes memory key, bytes memory innerKey) internal view returns (bytes memory) {
+        return self._storage[key][innerKey];
     }
 
-    function delStorage(BytesData storage self, bytes memory key, bytes memory innerkey) internal {
-        delete self._storage[key][innerkey];
+    function delStorage(BytesData storage self, bytes memory key, bytes memory innerKey) internal {
+        delete self._storage[key][innerKey];
     }
 
     /* stringStorage */
 
-    function setStorage(StringData storage self, bytes memory key, bytes memory innerkey, string memory value) internal {
-        self._storage[key][innerkey] = value;
+    function setStorage(StringData storage self, bytes memory key, bytes memory innerKey, string memory value) internal {
+        self._storage[key][innerKey] = value;
     }
 
-    function getStorage(StringData storage self, bytes memory key, bytes memory innerkey) internal view returns (string memory) {
-        return self._storage[key][innerkey];
+    function getStorage(StringData storage self, bytes memory key, bytes memory innerKey) internal view returns (string memory) {
+        return self._storage[key][innerKey];
     }
 
-    function delStorage(StringData storage self, bytes memory key, bytes memory innerkey) internal {
-        delete self._storage[key][innerkey];
+    function delStorage(StringData storage self, bytes memory key, bytes memory innerKey) internal {
+        delete self._storage[key][innerKey];
     }
 
 }

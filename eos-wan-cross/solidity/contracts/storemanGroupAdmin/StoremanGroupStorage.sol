@@ -25,10 +25,11 @@
 
 pragma solidity ^0.4.24;
 
+import "../components/BasicStorage.sol";
 import "../interfaces/ITokenManager.sol";
 import "../interfaces/IHTLC.sol";
 
-contract StoremanGroupStorage {
+contract StoremanGroupStorage is BasicStorage {
     /// token manager instance address
     ITokenManager public tokenManager;
     /// quotaLedger(HTLC) instance address
