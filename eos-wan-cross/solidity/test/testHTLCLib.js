@@ -28,8 +28,8 @@ const v1            = 10;
 const v2            = 20;
 
 const shdw          = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
-const storemanPK1    = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
-const storemanPK2    = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
+const storemanPK1   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
+const storemanPK2   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
 
 var STATUS = {
   None :      0,
@@ -114,14 +114,28 @@ contract('Test HTLCLib', async (accounts) => {
   });
 
   it('redeemUserTx test', async() => {
-    let xHash,x,xHashGot;
+    let xHash,x;
     xHash         = xHash1;
     x             = x1;
     testHtlcLib   = await TestHTLCLib.deployed();
     let statusOld = await(testHtlcLib.getUserTxStatus(xHash));
-    await debug(testHtlcLib.redeemUserTx(x));
+    await testHtlcLib.redeemUserTx(x);
     assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
     let statusNew = await(testHtlcLib.getUserTxStatus(xHash));
     assert.equal(statusNew.toNumber(), STATUS.Refunded, "The status do not equal the test props.");
   });
+
+  it('redeemSmgTx test', async() => {
+    let xHash,x;
+    xHash         = xHash2;
+    x             = x2;
+    testHtlcLib   = await TestHTLCLib.deployed();
+    let statusOld = await(testHtlcLib.getSmgTxStatus(xHash, {from: accounts[1]}));
+    await testHtlcLib.redeemSmgTx(x,{from: accounts[1]});
+    assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
+
+    let statusNew = await(testHtlcLib.getSmgTxStatus(xHash, {from: accounts[1]}));
+    assert.equal(statusNew.toNumber(), STATUS.Refunded, "The status do not equal the test props.");
+  });
+
 });
