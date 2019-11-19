@@ -61,7 +61,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
     /// @param tokenOrigAccount account of original chain token
-    event InboundRedeemLogger(address indexed wanAddr, bytes storemanGroupPK, bytes32 indexed xHash, bytes32 indexed x, bytes tokenOrigAccount);
+    event InboundRedeemLogger(address indexed wanAddr, bytes32 indexed xHash, bytes32 indexed x, bytes storemanGroupPK, bytes tokenOrigAccount);
     /// @notice                 event of revoke exchange WERC20 token with original chain token HTLC transaction
     /// @param storemanGroupPK  PK of storemanGroup
     /// @param xHash            hash of HTLC random number
@@ -221,7 +221,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
 
         tokenManager.mintToken(tokenOrigAccount, userAddr, value);
 
-        emit InboundRedeemLogger(userAddr, storemanGroupPK, xHash, x, tokenOrigAccount);
+        emit InboundRedeemLogger(userAddr, xHash, x, storemanGroupPK, tokenOrigAccount);
     }
 
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
