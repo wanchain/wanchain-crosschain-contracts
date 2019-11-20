@@ -39,7 +39,7 @@ function getInvalidInfo() {
   };
 }
 
-contract('TokenManager', async (accounts) => {
+contract('CryptoInstance', async (accounts) => {
 
   it ('init deployment', async() => {
     let instance = await CryptoInstance.deployed();

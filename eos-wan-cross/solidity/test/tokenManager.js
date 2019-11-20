@@ -1130,6 +1130,7 @@ contract('TokenManager', async (accounts) => {
       } else {
         await contract.methods.upgradeTo(delegateV2.address).send({from: sender});
       }
+      lib.assertFail("upgrade token manager delegate by others instead of owner, it should throw error");
     } catch (err) {
       // console.log(JSON.stringify(err.message), typeof(err.message));
       lib.expectToBeAnInstanceOf(err, Error);
@@ -1229,6 +1230,7 @@ contract('TokenManager', async (accounts) => {
 
     try {
       await contract.methods.setHtlcAddr(htlcAddr).send({from: sender});
+      lib.assertFail("set htlc address by others instead of owner, it should throw error");
     } catch (err) {
       // console.log(JSON.stringify(err.message), typeof(err.message));
       lib.expectToBeAnInstanceOf(err, Error);
@@ -1826,7 +1828,7 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(tokenInfoV1["6"].toNumber(), withdrawDelayTime);
       // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update an not existed token, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -1877,7 +1879,7 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(tokenInfoV1["6"].toNumber(), withdrawDelayTime);
       // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with 0 decimals, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -1926,7 +1928,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with 0 token to wan ratio, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -1975,7 +1977,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with low deposit, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -2024,7 +2026,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with low withdraw delay time, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -2073,7 +2075,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty name, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -2122,7 +2124,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty symbol, it should be success");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -2171,7 +2173,7 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty token origin account, it should be throw error");
+      lib.assertFail(JSON.stringify(err));
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -2191,6 +2193,7 @@ contract('TokenManager', async (accounts) => {
     proxyDelegateV1 = await TokenManagerDelegate.at(proxy.address);
     try {
       await proxyDelegateV1.setHtlcAddr(htlcAddr);
+      lib.assertFail("set htlc address address(0), it should be throw error");
     } catch (err) {
       lib.expectToBeAnInstanceOf(err, Error);
       lib.assertExists(err.reason);
@@ -2353,7 +2356,7 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(userBalance, htlcBurnedBalance);
 
     } catch (err) {
-      console.error(JSON.stringify(err));
+      // console.error(JSON.stringify(err));
       // lib.assertFail("mint token with self-defined htlc address, it should be success", err);
       lib.assertFail(JSON.stringify(err));
     }
