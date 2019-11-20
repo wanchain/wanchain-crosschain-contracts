@@ -47,17 +47,8 @@ async function sleep(time){
     }, time);
   });
 }
-/*
-async function changeLockedTime(newLockedTime){
-  let htlcLibSolFilePath = __dirname+"/../contracts/htlc/lib/HTLCLib.sol";
-  let htlcLibSolFilePathOrg = __dirname+"/../contracts/htlc/lib/HTLCLib.sol.org";
-  console.log("copy "+htlcLibSolFilePath+" to "+htlcLibSolFilePathOrg);
-  fsPromises.copyFile(htlcLibSolFilePath,htlcLibSolFilePathOrg);
-}
-changeLockedTime(600);
-*/
-contract('Test HTLCLib', async (accounts) => {
 
+contract('Test HTLCLib', async (accounts) => {
 
   it('setRevokeFeeRatio test', async() => {
 

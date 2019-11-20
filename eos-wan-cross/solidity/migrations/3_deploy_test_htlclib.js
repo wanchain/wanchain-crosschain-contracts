@@ -11,13 +11,12 @@ const StoremanGroupDelegate = artifacts.require('StoremanGroupDelegate');
 const TestHTLCLib = artifacts.require('TestHTLCLib');
 
 module.exports = async (deployer) => {
-  // htlc sc
-  console.log("Jacob deploy HTLCLib.......");
-  await deployer.deploy(HTLCLib);
-  console.log("Jacob link HTLCLib to TestHTLCLib.......");
-  await deployer.link(HTLCLib, TestHTLCLib);
-
-  console.log("Jacob deploy TestHTLCLib.......");
-  await deployer.deploy(TestHTLCLib);
-  let testHtlcLib = await HTLCDelegate.deployed();
+  try{
+    await deployer.deploy(HTLCLib);
+    await deployer.link(HTLCLib, TestHTLCLib);
+    await deployer.deploy(TestHTLCLib);
+  }
+  catch (err) {
+    console.error("Deployment TestHTLCLib failed", err);
+  }
 }
