@@ -1,0 +1,22 @@
+{
+  "name": "eoshtlc",
+  "version": "0.0.1",
+  "description": "HTLC contracts for EOS-Cross.",
+  "author": "wanchain dev",
+  "license": "MIT",
+  "devDependencies": {
+    "assert": "^1.4.1"
+  },
+  "dependencies": {
+    "chai": "^4.2.0",
+    "circular-json": "^0.5.9",
+    "eoslime": "0.0.17",
+    "keccak": "^2.0.0",
+    "keosdjs": "git+https://github.com/gao623/keosdjs.git",
+    "optimist": "^0.6.1",
+    "solc": "^0.5.13"
+  },
+  "scripts": {
+    "test": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c"
+  }
+}
