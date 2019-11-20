@@ -4,7 +4,7 @@ const TestHTLCLib = artifacts.require('TestHTLCLib');
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 60;
+let lockedTime      = 60*1000; //unit: ms
 
 const x1            = '0x0000000000000000000000000000000000000000000000000000000000000001';
 const xHash1        = '0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5';
@@ -30,7 +30,7 @@ const v2            = 20;
 
 const shdw          = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
 const storemanPK1   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
-const storemanPK2   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
+const storemanPK2   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebba';
 
 var STATUS = {
   None :      0,
@@ -129,6 +129,31 @@ contract('Test HTLCLib', async (accounts) => {
 
   });
 
+  it('addDebtTx and getDebtTx test', async() => {
+    let xHash, value, storemanPK, srcStoremanPK;
+    testHtlcLib         = await TestHTLCLib.deployed();
+
+    xHash               = xHash5;
+    value               = v2;
+    storemanPK          = storemanPK2;
+    srcStoremanPK       = storemanPK1;
+    await testHtlcLib.addDebtTx(xHash, value, srcStoremanPK, storemanPK);
+
+    let storemanPKGot, srcStoremanPKGot, valueGot;
+    let ret             = await  testHtlcLib.getDebtTx(xHash);
+    srcStoremanPKGot    = ret[0];
+    valueGot            = ret[1];
+    storemanPKGot       = ret[2];
+
+    assert.equal(srcStoremanPKGot, srcStoremanPK, "The srcStoremanPK do not equal the test props.");
+    assert.equal(value, valueGot, "The value do not equal the test props.");
+    assert.equal(storemanPKGot, storemanPK, "The storemanPK do not equal the test props.");
+
+    let statusNew;
+    statusNew = await testHtlcLib.getDebtTxStatus(xHash);
+    assert.equal(statusNew.toNumber(), STATUS.Locked, "The status do not equal the test props.");
+  });
+
   it('redeemUserTx test', async() => {
     let xHash,x;
     xHash         = xHash1;
@@ -154,6 +179,19 @@ contract('Test HTLCLib', async (accounts) => {
     assert.equal(statusNew.toNumber(), STATUS.Refunded, "The status do not equal the test props.");
   });
 
+  it('redeemDebtTx test', async() => {
+    let xHash,x;
+    xHash         = xHash5;
+    x             = x5;
+    testHtlcLib   = await TestHTLCLib.deployed();
+    let statusOld = await(testHtlcLib.getDebtTxStatus(xHash));
+    await testHtlcLib.redeemDebtTx(x);
+    assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
+
+    let statusNew = await(testHtlcLib.getDebtTxStatus(xHash));
+    assert.equal(statusNew.toNumber(), STATUS.Refunded, "The status do not equal the test props.");
+  });
+
   it('revokeUserTx test', async() => {
     let xHash, value, shadow, storemanPK;
     testHtlcLib         = await TestHTLCLib.deployed();
@@ -165,10 +203,43 @@ contract('Test HTLCLib', async (accounts) => {
     //await debug(testHtlcLib.addUserTx(xHash, value, shadow, storemanPK));
     await testHtlcLib.addUserTx(xHash, value, shadow, storemanPK);
     console.log("Waiting for invoke......");
-    await sleep( (2*lockedTime+1) *1000);
+    await sleep( 2*lockedTime );
     await testHtlcLib.revokeUserTx(xHash);
     let statusNew = await testHtlcLib.getUserTxStatus(xHash);
-    console.log(statusNew.toNumber());
+    //console.log(statusNew.toNumber());
+    assert.equal(statusNew.toNumber(), STATUS.Revoked, "The status do not equal the test props.");
+  });
+
+  it('revokeSmgTx test', async() => {
+    let xHash, value, storemanPK;
+    testHtlcLib         = await TestHTLCLib.deployed();
+
+    xHash               = xHash4;
+    value               = v2;
+    storemanPK          = storemanPK2;
+    await testHtlcLib.addSmgTx(xHash, value, accounts[1], storemanPK);
+    console.log("Waiting for invoke......");
+    await sleep(lockedTime );
+    await testHtlcLib.revokeSmgTx(xHash);
+    let statusNew = await testHtlcLib.getSmgTxStatus(xHash);
+    assert.equal(statusNew.toNumber(), STATUS.Revoked, "The status do not equal the test props.");
+  });
+
+  it('revokeDebtTx test', async() => {
+    let xHash, value, storemanPK, srcStoremanPK;
+    testHtlcLib         = await TestHTLCLib.deployed();
+
+    xHash               = xHash6;
+    value               = v2;
+    storemanPK          = storemanPK2;
+    srcStoremanPK       = storemanPK1;
+    await testHtlcLib.addDebtTx(xHash, value, srcStoremanPK, storemanPK);
+
+    console.log("Waiting for invoke......");
+    await sleep(lockedTime);
+    await testHtlcLib.revokeDebtTx(xHash);
+    let statusNew = await testHtlcLib.getDebtTxStatus(xHash);
+    assert.equal(statusNew.toNumber(), STATUS.Revoked, "The status do not equal the test props.");
   });
 
 });
