@@ -81,7 +81,7 @@ library QuotaLib {
         onlyMeaningfulValue(quota)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-        require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK already exists");
         self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, txFeeRatio, 0, 0, 0, true);
     }
 
@@ -90,18 +90,28 @@ library QuotaLib {
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-		require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
+        require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
     }
 
-	function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
-		external
-	{
-		require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
-		require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
+    function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
+        external
+    {
+        require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
+        require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
 
-		delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
-	}
+        delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
+    }
+
+    function smgAppendQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+        external
+        onlyMeaningfulValue(quota)
+    {
+        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
+        uint newQuota = self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota.add(quota);
+        self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota = newQuota;
+    }
 
     /// @notice                 frozen WRC token quota
     /// @dev                    frozen WRC token quota
@@ -135,7 +145,7 @@ library QuotaLib {
         onlyMeaningfulValue(value)
     {
         /// Make sure a valid storeman provided
-        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
 
         Quota storage quota = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
@@ -154,7 +164,7 @@ library QuotaLib {
         onlyMeaningfulValue(value)
     {
         /// Make sure a legal storemanGroup provided
-        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
 
         Quota storage _q = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
@@ -195,7 +205,7 @@ library QuotaLib {
         external
         onlyMeaningfulValue(value)
     {
-        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
 
         /// Make sure it has enough quota for a token unlocking
         Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
@@ -214,7 +224,7 @@ library QuotaLib {
         external
         onlyMeaningfulValue(value)
     {
-        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
         Quota storage quotaInfo = self.mapQuota[tokenOrigAccount][storemanGroupPK];
 
         /// Adjust quota record
@@ -260,7 +270,7 @@ library QuotaLib {
         onlyMeaningfulValue(value)
     {
         /// Make sure a legit storemanGroup provided
-        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK doesn't exist");
         require(notActive(self, tokenOrigAccount, srcStoremanPK), "PK is active");
 
         Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];
@@ -285,7 +295,7 @@ library QuotaLib {
         onlyMeaningfulValue(value)
     {
         /// Make sure a valid storeman provided
-        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK is not exist");
+        require(isExist(self, tokenOrigAccount, dstStoremanPK), "PK doesn't exist");
         require(notActive(self, tokenOrigAccount, srcStoremanPK), "PK is active");
 
         Quota storage dst = self.mapQuota[tokenOrigAccount][dstStoremanPK];

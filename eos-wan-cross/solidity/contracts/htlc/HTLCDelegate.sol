@@ -233,26 +233,33 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCDebtLib.inDebtRevoke(htlcStorageData, tokenOrigAccount, xHash);
     }
 
-	function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
-		external
-		onlyStoremanGroupAdmin
-	{
+    function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
+        external
+        onlyStoremanGroupAdmin
+    {
         htlcStorageData.quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota, txFeeRatio);
-	}
+    }
 
-	function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
-		external
-		onlyStoremanGroupAdmin
-	{
-		htlcStorageData.quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
-	}
+    function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+        external
+        onlyStoremanGroupAdmin
+    {
+        htlcStorageData.quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
+    }
 
-	function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
-		external
-		onlyStoremanGroupAdmin
-	{
+    function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
+        external
+        onlyStoremanGroupAdmin
+    {
         htlcStorageData.quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
-	}
+    }
+
+    function smgAppendQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+        external
+        onlyStoremanGroupAdmin
+    {
+        htlcStorageData.quotaData.smgAppendQuota(tokenOrigAccount, storemanGroupPK, quota);
+    }
 
     function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
         HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);

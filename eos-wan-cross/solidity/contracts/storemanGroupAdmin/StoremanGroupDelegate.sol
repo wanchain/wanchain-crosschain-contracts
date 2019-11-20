@@ -66,6 +66,14 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @param deposit                    deposit in the first place
     event StoremanGroupWithdrawLogger(bytes tokenOrigAccount, bytes storemanGroup, uint actualReturn, uint deposit);
 
+    /// @notice                           event for storeman register
+    /// @dev                              event for storeman register
+    /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanGroup              storemanGroup PK
+    /// @param wanDeposit                 deposit wancoin number
+    /// @param quota                      corresponding token quota
+    event StoremanGroupAppendDepositLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
+
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
     /// @param htlc          htlc(including quotaLedger) instance address
@@ -128,7 +136,7 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(msg.value >= minDeposit, "Value must be greater than minDeposit");
         if (isWhiteListEnabled) {
-            require(mapSmgWhiteList[storemanGroup], "StoremanGroup is not in white list");
+            require(mapSmgWhiteList[storemanGroup], "Not in white list");
         }
 
         uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
@@ -163,18 +171,44 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         notHalted
     {
-        StoremanGroup memory sg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(sg.initiator == msg.sender, "Sender must be initiator");
-        require(sg.deposit > 0, "deposit is zero");
+        StoremanGroup memory smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
+        require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(smg.deposit > 0, "Not registered");
         uint withdrawDelayTime;
         (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
-        require(now > sg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
+        require(now > smg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
         quotaLedger.delStoremanGroup(tokenOrigAccount, storemanGroup);
-        sg.initiator.transfer(sg.deposit);
+        smg.initiator.transfer(smg.deposit);
 
-        emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroup, sg.deposit, sg.deposit);
+        emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroup, smg.deposit, smg.deposit);
 
         delete storemanGroupMap[tokenOrigAccount][storemanGroup];
+    }
+
+    /// @notice                           append deposit through a proxy
+    /// @dev                              append deposit through a proxy
+    /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanGroup              storemanGroup PK
+    function smgAppendDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroup)
+        external
+        payable
+        notHalted
+    {
+        require(storemanGroup.length != 0, "Invalid storemanGroup");
+        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
+        require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(smg.deposit > 0, "Not registered");
+
+        uint8 decimals;
+        uint token2WanRatio;
+        uint defaultPricise;
+        (,,decimals,,token2WanRatio,,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
+        require(quota > 0, "Value too small");
+        quotaLedger.smgAppendQuota(tokenOrigAccount, storemanGroup, quota);
+        // TODO: notify bonus contract
+        smg.deposit = smg.deposit.add(quota);
+        emit StoremanGroupAppendDepositLogger(tokenOrigAccount, storemanGroup, msg.value, quota);
     }
 
     /// @notice fallback function
