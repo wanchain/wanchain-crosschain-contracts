@@ -81,7 +81,7 @@ library QuotaLib {
         onlyMeaningfulValue(quota)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-        require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK is not exist");
+        require(!isExist(self, tokenOrigAccount, storemanGroupPK), "PK already exist");
         self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, txFeeRatio, 0, 0, 0, true);
     }
 
@@ -90,18 +90,28 @@ library QuotaLib {
         returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
-		require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
+        require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
     }
 
-	function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
-		external
-	{
-		require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
-		require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
+    function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
+        external
+    {
+        require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
+        require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
 
-		delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
-	}
+        delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
+    }
+
+    function smgAppendQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+        external
+        onlyMeaningfulValue(quota)
+    {
+        require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
+        require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK not exist");
+        uint newQuota = self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota.add(quota);
+        self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota = newQuota;
+    }
 
     /// @notice                 frozen WRC token quota
     /// @dev                    frozen WRC token quota
