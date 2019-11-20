@@ -6,20 +6,13 @@ contract TestHTLCLib {
     using SafeMath for uint;
     using HTLCLib  for HTLCLib.Data;
 
-    HTLCLib.Data public htlcData;
+    HTLCLib.Data htlcData;
     uint         _lockedTime;
 
     constructor() public {
         _lockedTime = 60; // 60s
     }
     // ======= invoke the lib execution ============
-    function setRevokeFeeRatio(uint ratio) public{
-        htlcData.setRevokeFeeRatio(ratio);
-    }
-
-    function getGlobalInfo() public view returns (uint,uint){
-        return htlcData.getGlobalInfo();
-    }
 
     function addUserTx(bytes32 xHash, uint value, bytes shadow, bytes storemanPK)  public {
         return htlcData.addUserTx(xHash,value,shadow,storemanPK);
@@ -58,9 +51,6 @@ contract TestHTLCLib {
     }
 
     // ======= get the result of lib execution. ============
-    function revokeFeeRatio() public view returns (uint){
-        return htlcData.revokeFeeRatio;
-    }
     // used by invoke lib execution and by result getting
     function getUserTx(bytes32 xHash) public view returns (address, bytes, uint, bytes){
         return htlcData.getUserTx(xHash);

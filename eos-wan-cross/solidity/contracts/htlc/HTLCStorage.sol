@@ -26,10 +26,8 @@
 
 pragma solidity ^0.4.24;
 
-import "../lib/QuotaLib.sol";
-import "./lib/HTLCLib.sol";
 import "../components/BasicStorage.sol";
-import "../interfaces/ITokenManager.sol";
+import "./lib/HTLCTypes.sol";
 
 contract HTLCStorage is BasicStorage {
     using QuotaLib for QuotaLib.Data;
@@ -41,19 +39,6 @@ contract HTLCStorage is BasicStorage {
      **
      ************************************************************/
 
-    QuotaLib.Data quotaData;
-    HTLCLib.Data htlcData;
-
-    /// token manager instance interface
-    ITokenManager public tokenManager;
-
-    /// storemanGroup admin instance address
-    address public storemanGroupAdmin;
-
-    /// @notice transaction fee, hashX => fee
-    mapping(bytes32 => uint) internal mapXHashFee;
-
-    /// @notice transaction fee, storemanGroupPK => fee
-    mapping(bytes => uint) internal mapStoremanFee;
+    HTLCTypes.HTLCStorageData htlcStorageData;
 
 }

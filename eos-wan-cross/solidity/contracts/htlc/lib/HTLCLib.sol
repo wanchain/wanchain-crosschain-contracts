@@ -44,10 +44,6 @@ library HTLCLib {
     /// @notice default locked time(in seconds)
     uint constant DEF_LOCKED_TIME = uint(3600*36);
 
-    /// @notice revoking fee ratio precise
-    /// @notice for example: revokeFeeRatio is 3, meaning that the revoking fee ratio is 3/10000
-    uint constant RATIO_PRECISE = 10000;
-
     /**
      *
      * STRUCTURES
@@ -56,7 +52,6 @@ library HTLCLib {
 
     /// @notice HTLC(Hashed TimeLock Contract) tx info
     struct BaseTx {
-        // TxDirection direction;  // HTLC transfer direction
         uint value;             // HTLC transfer value of token
         bytes storemanPK;       // HTLC transaction storeman PK
         TxStatus status;        // HTLC transaction status
@@ -89,9 +84,6 @@ library HTLCLib {
 
         /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
         mapping(bytes32 => DebtTx) mapHashXDebtTxs;
-
-        /// @notice the fee ratio of revoking operation
-        uint revokeFeeRatio;
     }
 
     /**
@@ -99,9 +91,6 @@ library HTLCLib {
      * MANIPULATIONS
      *
      */
-    function getGlobalInfo(Data storage self) external view returns(uint, uint) {
-        return (self.revokeFeeRatio, RATIO_PRECISE);
-    }
 
     /// @notice                  function for get user info
     /// @param xHash             xHash
@@ -134,14 +123,6 @@ library HTLCLib {
     {
         DebtTx storage t = self.mapHashXDebtTxs[xHash];
         return (t.srcStoremanPK, t.baseTx.value, t.baseTx.storemanPK);
-    }
-
-    /// @notice     set revoke fee ratio
-    function setRevokeFeeRatio(Data storage self, uint ratio)
-        external
-    {
-        require(ratio <= RATIO_PRECISE, "Ratio is invalid");
-        self.revokeFeeRatio = ratio;
     }
 
     /// @notice                 add user transaction info

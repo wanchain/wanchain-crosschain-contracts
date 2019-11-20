@@ -31,6 +31,7 @@ pragma experimental ABIEncoderV2;
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
 import "./commonLib.sol";
+import "./HTLCTypes.sol";
 import "../../interfaces/ITokenManager.sol";
 
 library HTLCSmgLib {
@@ -88,59 +89,62 @@ library HTLCSmgLib {
     event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
 
 
-    function inSmgLock(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCSmgLockParams memory params)
+    function inSmgLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCSmgLockParams memory params)
         public
     {
         bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.wanAddr, params.value, params.storemanGroupPK));
         commonLib.verifySignature(mHash, params.storemanGroupPK, params.r, params.s);
 
-        htlcData.addSmgTx(params.xHash, params.value, params.wanAddr, params.storemanGroupPK);
-        quotaData.inLock(params.tokenOrigAccount, params.storemanGroupPK, params.value);
+        htlcStorageData.htlcData.addSmgTx(params.xHash, params.value, params.wanAddr, params.storemanGroupPK);
+        htlcStorageData.quotaData.inLock(params.tokenOrigAccount, params.storemanGroupPK, params.value);
 
         emit InboundLockLogger(params.wanAddr, params.xHash, params.value, params.tokenOrigAccount, params.storemanGroupPK);
     }
 
-    function outSmgRedeem(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCSmgRedeemParams memory params)
+    function outSmgRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCSmgRedeemParams memory params)
         public
-        returns(bytes32, bytes)
     {
-        bytes32 xHash = htlcData.redeemUserTx(params.x);
+        bytes32 xHash = htlcStorageData.htlcData.redeemUserTx(params.x);
 
         uint value;
         bytes memory storemanGroupPK;
-        (, , value, storemanGroupPK) = htlcData.getUserTx(xHash);
+        (, , value, storemanGroupPK) = htlcStorageData.htlcData.getUserTx(xHash);
 
         commonLib.verifySignature(sha256(abi.encode(params.tokenOrigAccount, params.x)), storemanGroupPK, params.r, params.s);
-        quotaData.outRedeem(params.tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.outRedeem(params.tokenOrigAccount, storemanGroupPK, value);
 
         params.tokenManager.burnToken(params.tokenOrigAccount, value);
 
+        // Add fee to storeman group
+        htlcStorageData.mapStoremanFee[storemanGroupPK].add(htlcStorageData.mapXHashFee[xHash]);
+        delete htlcStorageData.mapXHashFee[xHash];
+
         emit OutboundRedeemLogger(xHash, params.x, params.tokenOrigAccount);
-        return (xHash, storemanGroupPK);
     }
 
-    function inSmgRevoke(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, bytes tokenOrigAccount, bytes32 xHash)
+    function inSmgRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes32 xHash)
         public
     {
-        htlcData.revokeSmgTx(xHash);
+        htlcStorageData.htlcData.revokeSmgTx(xHash);
 
         uint value;
         bytes memory storemanGroupPK;
-        (, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+        (, value, storemanGroupPK) = htlcStorageData.htlcData.getSmgTx(xHash);
 
         // Anyone could do revoke for the owner
         // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
         // commonLib.verifySignature(mHash, storemanGroupPK, r, s);
 
-        quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.inRevoke(tokenOrigAccount, storemanGroupPK, value);
 
         emit InboundRevokeLogger(xHash, tokenOrigAccount, storemanGroupPK);
     }
 
-    function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s)
+    function smgWithdrawFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes storemanGroupPK, address receiver, bytes r, bytes32 s)
         public
     {
         commonLib.verifySignature(sha256(abi.encode(receiver)), storemanGroupPK, r, s);
+        receiver.transfer(htlcStorageData.mapStoremanFee[storemanGroupPK]);
     }
 
 }
