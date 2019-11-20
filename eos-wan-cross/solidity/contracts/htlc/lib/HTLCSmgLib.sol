@@ -137,4 +137,10 @@ library HTLCSmgLib {
         emit InboundRevokeLogger(xHash, tokenOrigAccount, storemanGroupPK);
     }
 
+    function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s)
+        public
+    {
+        commonLib.verifySignature(sha256(abi.encode(receiver)), storemanGroupPK, r, s);
+    }
+
 }

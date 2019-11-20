@@ -181,7 +181,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        HTLCDebtLib.inDebtRevoke(htlcData, quotaData, tokenOrigAccount, xHash);
+        HTLCSmgLib.inSmgRevoke(htlcData, quotaData, tokenOrigAccount, xHash);
     }
 
     /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
@@ -245,7 +245,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCDebtLib.inDebtLock(htlcData, quotaData, params);
     }
 
-    /// @notice                 refund WERC20 token from recorded HTLC transaction, should be invoked before timeout
+    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
     /// @param  tokenOrigAccount  account of original chain token
     /// @param  x               HTLC random number
     function inDebtRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
@@ -306,4 +306,8 @@ contract HTLCDelegate is HTLCStorage, Halt {
         quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
 	}
 
+    function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
+        HTLCSmgLib.smgWithdrawFee(storemanGroupPK, receiver, r, s);
+        receiver.transfer(mapStoremanFee[storemanGroupPK]);
+    }
 }
