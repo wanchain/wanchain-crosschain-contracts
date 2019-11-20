@@ -1,9 +1,10 @@
+const fsPromises = require('fs').promises;
 /* global describe it artifacts */
 const TestHTLCLib = artifacts.require('TestHTLCLib');
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 3600*36;
+let lockedTime      = 60;
 
 const x1            = '0x0000000000000000000000000000000000000000000000000000000000000001';
 const xHash1        = '0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5';
@@ -37,9 +38,24 @@ var STATUS = {
   Refunded :  2,
   Revoked :   3
 };
-
 let testHtlcLib;
 
+async function sleep(time){
+  return new Promise(function(resolve, reject) {
+    setTimeout(function() {
+      resolve();
+    }, time);
+  });
+}
+/*
+async function changeLockedTime(newLockedTime){
+  let htlcLibSolFilePath = __dirname+"/../contracts/htlc/lib/HTLCLib.sol";
+  let htlcLibSolFilePathOrg = __dirname+"/../contracts/htlc/lib/HTLCLib.sol.org";
+  console.log("copy "+htlcLibSolFilePath+" to "+htlcLibSolFilePathOrg);
+  fsPromises.copyFile(htlcLibSolFilePath,htlcLibSolFilePathOrg);
+}
+changeLockedTime(600);
+*/
 contract('Test HTLCLib', async (accounts) => {
 
 
@@ -136,6 +152,23 @@ contract('Test HTLCLib', async (accounts) => {
 
     let statusNew = await(testHtlcLib.getSmgTxStatus(xHash, {from: accounts[1]}));
     assert.equal(statusNew.toNumber(), STATUS.Refunded, "The status do not equal the test props.");
+  });
+
+  it('revokeUserTx test', async() => {
+    let xHash, value, shadow, storemanPK;
+    testHtlcLib         = await TestHTLCLib.deployed();
+
+    xHash = xHash3;
+    value = v1;
+    shadow = shdw;
+    storemanPK = storemanPK1;
+    //await debug(testHtlcLib.addUserTx(xHash, value, shadow, storemanPK));
+    await testHtlcLib.addUserTx(xHash, value, shadow, storemanPK);
+    console.log("Waiting for invoke......");
+    await sleep( (2*lockedTime+1) *1000);
+    await testHtlcLib.revokeUserTx(xHash);
+    let statusNew = await testHtlcLib.getUserTxStatus(xHash);
+    console.log(statusNew.toNumber());
   });
 
 });
