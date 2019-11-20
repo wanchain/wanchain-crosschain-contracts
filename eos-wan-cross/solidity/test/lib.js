@@ -38,7 +38,11 @@ function assertNotDeepEqual(x, y) {
 }
 
 function assertExists(x) {
-  return assert.exists(x, x + " should be exists");
+  return assert.exists(x, x + " should exist");
+}
+
+function assertNotExists(x) {
+  return assert.notExists(x, x + " should not exist");
 }
 
 function assertIfError(err) {
@@ -51,6 +55,10 @@ function assertFail(err) {
 
 function assertInstanceOf(err) {
   return assert.instanceOf();
+}
+
+function assertInclude(container, finder, err) {
+  return assert.include(container, finder, err);
 }
 
 function expectNotOwnProperty(Obj, property) {
@@ -75,8 +83,10 @@ function expectToBeAnInstanceOf(x, y) {
 
 module.exports = {
   assertExists: assertExists,
+  assertNotExists: assertNotExists,
   assertIfError: assertIfError,
   assertFail: assertFail,
+  assertInclude: assertInclude,
   assertInstanceOf: assertInstanceOf,
   assertCommonEqual: assertCommonEqual,
   assertNotDeepEqual: assertNotDeepEqual,
