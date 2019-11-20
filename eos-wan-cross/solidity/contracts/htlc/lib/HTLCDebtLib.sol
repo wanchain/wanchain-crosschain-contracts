@@ -30,6 +30,7 @@ pragma experimental ABIEncoderV2;
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
 import "./commonLib.sol";
+import "./HTLCTypes.sol";
 
 library HTLCDebtLib {
     using SafeMath for uint;
@@ -81,45 +82,45 @@ library HTLCDebtLib {
     event DebtRevokeLogger(bytes32 indexed xHash, bytes tokenOrigAccount, bytes srcStoremanPK, bytes dstStoremanPK);
 
 
-    function inDebtLock(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCDebtLockParams memory params)
+    function inDebtLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCDebtLockParams memory params)
         public
     {
         bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.srcStoremanPK, params.dstStoremanPK));
         commonLib.verifySignature(mHash, params.dstStoremanPK, params.r, params.s);
 
-        htlcData.addDebtTx(params.xHash, params.value, params.srcStoremanPK, params.dstStoremanPK);
-        quotaData.debtLock(params.tokenOrigAccount, params.value, params.srcStoremanPK, params.dstStoremanPK);
+        htlcStorageData.htlcData.addDebtTx(params.xHash, params.value, params.srcStoremanPK, params.dstStoremanPK);
+        htlcStorageData.quotaData.debtLock(params.tokenOrigAccount, params.value, params.srcStoremanPK, params.dstStoremanPK);
         // emit logger...
         emit DebtLockLogger(params.xHash, params.value, params.tokenOrigAccount, params.srcStoremanPK, params.dstStoremanPK);
     }
 
-    function inDebtRedeem(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCDebtRedeemParams memory params)
+    function inDebtRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCDebtRedeemParams memory params)
         public
     {
-        bytes32 xHash = htlcData.redeemDebtTx(params.x);
+        bytes32 xHash = htlcStorageData.htlcData.redeemDebtTx(params.x);
 
         uint value;
         bytes memory srcStoremanPK;
         bytes memory dstStoremanPK;
-        (srcStoremanPK, value, dstStoremanPK) = htlcData.getDebtTx(xHash);
+        (srcStoremanPK, value, dstStoremanPK) = htlcStorageData.htlcData.getDebtTx(xHash);
 
         commonLib.verifySignature(sha256(abi.encode(params.tokenOrigAccount, params.x)), srcStoremanPK, params.r, params.s);
-        quotaData.debtRedeem(params.tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
+        htlcStorageData.quotaData.debtRedeem(params.tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
 
         emit DebtRedeemLogger(xHash, params.x, params.tokenOrigAccount, srcStoremanPK, dstStoremanPK);
     }
 
-    function inDebtRevoke(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, bytes tokenOrigAccount, bytes32 xHash)
+    function inDebtRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes32 xHash)
         public
     {
-        htlcData.revokeDebtTx(xHash);
+        htlcStorageData.htlcData.revokeDebtTx(xHash);
 
         uint value;
         bytes memory srcStoremanPK;
         bytes memory dstStoremanPK;
-        (srcStoremanPK, value, dstStoremanPK) = htlcData.getDebtTx(xHash);
+        (srcStoremanPK, value, dstStoremanPK) = htlcStorageData.htlcData.getDebtTx(xHash);
 
-        quotaData.debtRevoke(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
+        htlcStorageData.quotaData.debtRevoke(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
         emit DebtRevokeLogger(xHash, tokenOrigAccount, srcStoremanPK, dstStoremanPK);
     }
 

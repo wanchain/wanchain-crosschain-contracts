@@ -31,6 +31,7 @@ pragma experimental ABIEncoderV2;
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
 import "./commonLib.sol";
+import "./HTLCTypes.sol";
 import "../../interfaces/ITokenManager.sol";
 import "../../interfaces/IWRC20Protocol.sol";
 
@@ -65,7 +66,7 @@ library HTLCUserLib {
      * EVENTS
      *
      **/
-    /// @notice                 event of exchange original chain token with WERC20 token request
+    /// @notice                 event of exchange original chain token with WRC-20 token request
     /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
     /// @param xHash            hash of HTLC random number
     /// @param value            exchange value
@@ -74,52 +75,62 @@ library HTLCUserLib {
     /// @param tokenOrigAccount account of original chain token
     event OutboundLockLogger(bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes userOrigAccount, bytes storemanGroupPK);
 
-    /// @notice                 event of refund WERC20 token from exchange WERC20 token with original chain token HTLC transaction
-    /// @param wanAddr          address of user on wanchain, used to receive WERC20 token
-    /// @param storemanGroupPK  PK of storeman, the WERC20 token minter
+    /// @notice                 event of refund WRC-20 token from exchange WRC-20 token with original chain token HTLC transaction
+    /// @param wanAddr          address of user on wanchain, used to receive WRC-20 token
+    /// @param storemanGroupPK  PK of storeman, the WRC-20 token minter
     /// @param xHash            hash of HTLC random number
     /// @param x                HTLC random number
     /// @param tokenOrigAccount account of original chain token
     event InboundRedeemLogger(address indexed wanAddr, bytes32 indexed xHash, bytes32 indexed x, bytes storemanGroupPK, bytes tokenOrigAccount);
 
-    /// @notice                 event of revoke exchange original chain token with WERC20 token HTLC transaction
+    /// @notice                 event of revoke exchange original chain token with WRC-20 token HTLC transaction
     /// @param wanAddr          address of user
     /// @param xHash            hash of HTLC random number
     /// @param tokenOrigAccount account of original chain token
     event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount);
 
-    function outUserLock(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCUserLockParams memory params)
+    function outUserLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserLockParams memory params)
         public
     {
-        htlcData.addUserTx(params.xHash, params.value, params.userOrigAccount, params.storemanGroupPK);
+        // check withdraw fee
+        uint fee = getOutboundFee(htlcStorageData, params.tokenOrigAccount, params.storemanGroupPK, params.value);
+        require(msg.value >= fee, "Transferred fee is not enough");
 
-        quotaData.outLock(params.value, params.tokenOrigAccount, params.storemanGroupPK);
+        uint left = (msg.value).sub(fee);
+        if (left != 0) {
+            (msg.sender).transfer(left);
+        }
+
+        htlcStorageData.htlcData.addUserTx(params.xHash, params.value, params.userOrigAccount, params.storemanGroupPK);
+
+        htlcStorageData.quotaData.outLock(params.value, params.tokenOrigAccount, params.storemanGroupPK);
 
         address instance;
         (,,,instance,,,,) = params.tokenManager.getTokenInfo(params.tokenOrigAccount);
         require(IWRC20Protocol(instance).transferFrom(msg.sender, this, params.value), "Lock token failed");
 
+        htlcStorageData.mapXHashFee[params.xHash] = fee; // in wan coin
         emit OutboundLockLogger(params.xHash, params.value, params.tokenOrigAccount, params.userOrigAccount, params.storemanGroupPK);
     }
 
-    function inUserRedeem(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCUserRedeemParams memory params)
+    function inUserRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserRedeemParams memory params)
         public
     {
-        bytes32 xHash = htlcData.redeemSmgTx(params.x);
+        bytes32 xHash = htlcStorageData.htlcData.redeemSmgTx(params.x);
 
         address userAddr;
         uint value;
         bytes memory storemanGroupPK;
-        (userAddr, value, storemanGroupPK) = htlcData.getSmgTx(xHash);
+        (userAddr, value, storemanGroupPK) = htlcStorageData.htlcData.getSmgTx(xHash);
 
-        quotaData.inRedeem(params.tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.inRedeem(params.tokenOrigAccount, storemanGroupPK, value);
 
         params.tokenManager.mintToken(params.tokenOrigAccount, userAddr, value);
 
         emit InboundRedeemLogger(userAddr, xHash, params.x, storemanGroupPK, params.tokenOrigAccount);
     }
 
-    function outUserRevoke(HTLCLib.Data storage htlcData, QuotaLib.Data storage quotaData, HTLCUserRevokeParams memory params)
+    function outUserRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserRevokeParams memory params)
         public
     {
         address source;
@@ -127,16 +138,46 @@ library HTLCUserLib {
         bytes memory storemanGroupPK;
         address instance;
 
-        htlcData.revokeUserTx(params.xHash);
+        htlcStorageData.htlcData.revokeUserTx(params.xHash);
 
-        (source, , value, storemanGroupPK) = htlcData.getUserTx(params.xHash);
+        (source, , value, storemanGroupPK) = htlcStorageData.htlcData.getUserTx(params.xHash);
 
-        quotaData.outRevoke(params.tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.outRevoke(params.tokenOrigAccount, storemanGroupPK, value);
 
         (,,,instance,,,,) = params.tokenManager.getTokenInfo(params.tokenOrigAccount);
         require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
 
+        (source, , , storemanGroupPK) = htlcStorageData.htlcData.getUserTx(params.xHash);
+
+        uint revokeFeeRatio = htlcStorageData.revokeFeeRatio;
+        uint ratioPrecise = HTLCTypes.getRatioPrecise();
+        uint revokeFee = htlcStorageData.mapXHashFee[params.xHash].mul(revokeFeeRatio).div(ratioPrecise);
+        uint left = htlcStorageData.mapXHashFee[params.xHash].sub(revokeFee);
+
+        if (revokeFee > 0) {
+            htlcStorageData.mapStoremanFee[storemanGroupPK].add(revokeFee);
+        }
+
+        if (left > 0) {
+            source.transfer(left);
+        }
+
         emit OutboundRevokeLogger(source, params.xHash, params.tokenOrigAccount);
+    }
+
+    function getOutboundFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
+        private
+        returns(uint)
+    {
+        uint8 decimals;
+        uint token2WanRatio;
+        uint defaultPrecise;
+        uint txFeeRatio;
+        (,, decimals,,token2WanRatio,,, defaultPrecise) = htlcStorageData.tokenManager.getTokenInfo(tokenOrigAccount);
+        (, txFeeRatio,,,,) = htlcStorageData.quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
+
+        uint temp = value.mul(1 ether).div(10**uint(decimals));
+        return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
     }
 
 }

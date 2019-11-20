@@ -43,19 +43,19 @@ contract HTLCDelegate is HTLCStorage, Halt {
      */
 
     modifier onlyStoremanGroupAdmin {
-        require(msg.sender == storemanGroupAdmin, "Only storeman group admin sc can call it");
+        require(msg.sender == htlcStorageData.storemanGroupAdmin, "Only storeman group admin sc can call it");
         _;
     }
 
     /// @dev Check relevant contract addresses must be initialized before call its method
     modifier initialized {
-        require(tokenManager != ITokenManager(address(0)), "Token manager is null");
-        // require(storemanGroupAdmin != address(0));
+        require(htlcStorageData.tokenManager != ITokenManager(address(0)), "Token manager is null");
+        // require(htlcStorageData.storemanGroupAdmin != address(0));
         _;
     }
 
     modifier onlyTokenRegistered(bytes tokenOrigAccount) {
-        require(tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
+        require(htlcStorageData.tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
         _;
     }
 
@@ -64,12 +64,6 @@ contract HTLCDelegate is HTLCStorage, Halt {
      * MANIPULATIONS
      *
      */
-    function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr) external {
-        require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
-
-        tokenManager = ITokenManager(tokenManagerAddr);
-        storemanGroupAdmin = storemanGroupAdminAddr;
-    }
 
     /// @notice                 request exchange WRC20 token with original chain token(to prevent collision, x must be a 256bit random bigint)
     /// @param  tokenOrigAccount  account of original chain token
@@ -94,10 +88,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
             r: r,
             s: s
         });
-        HTLCSmgLib.inSmgLock(htlcData, quotaData, params);
+        HTLCSmgLib.inSmgLock(htlcStorageData, params);
     }
 
-    /// @notice                 request exchange original chain token with WERC20 token(to prevent collision, x must be a 256bit random big int)
+    /// @notice                 request exchange original chain token with WRC-20 token(to prevent collision, x must be a 256bit random big int)
     /// @param tokenOrigAccount account of original chain token
     /// @param xHash            hash of HTLC random number
     /// @param storemanGroupPK  PK of storeman group
@@ -112,26 +106,16 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         require(tx.origin == msg.sender, "Contract sender is not allowed");
 
-        // check withdraw fee
-        uint fee = getOutboundFee(tokenOrigAccount, storemanGroupPK, value);
-        require(msg.value >= fee, "Transferred fee is not enough");
-
-        uint left = (msg.value).sub(fee);
-        if (left != 0) {
-            (msg.sender).transfer(left);
-        }
-
         HTLCUserLib.HTLCUserLockParams memory params = HTLCUserLib.HTLCUserLockParams({
             tokenOrigAccount: tokenOrigAccount,
             xHash: xHash,
             value: value,
             storemanGroupPK: storemanGroupPK,
             userOrigAccount: userOrigAccount,
-            tokenManager: tokenManager
+            tokenManager: htlcStorageData.tokenManager
         });
-        HTLCUserLib.outUserLock(htlcData, quotaData, params);
+        HTLCUserLib.outUserLock(htlcStorageData, params);
 
-        mapXHashFee[xHash] = fee; // in wan coin
     }
 
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
@@ -144,10 +128,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         HTLCUserLib.HTLCUserRedeemParams memory params = HTLCUserLib.HTLCUserRedeemParams({
             tokenOrigAccount: tokenOrigAccount,
-            tokenManager: tokenManager,
+            tokenManager: htlcStorageData.tokenManager,
             x: x
         });
-        HTLCUserLib.inUserRedeem(htlcData, quotaData, params);
+        HTLCUserLib.inUserRedeem(htlcStorageData, params);
     }
 
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
@@ -160,20 +144,15 @@ contract HTLCDelegate is HTLCStorage, Halt {
     {
         HTLCSmgLib.HTLCSmgRedeemParams memory params = HTLCSmgLib.HTLCSmgRedeemParams({
             tokenOrigAccount: tokenOrigAccount,
-            tokenManager: tokenManager,
+            tokenManager: htlcStorageData.tokenManager,
             r: r,
             s: s,
             x: x
         });
-        bytes32 xHash;
-        bytes memory storemanGroupPK;
-        (xHash, storemanGroupPK) = HTLCSmgLib.outSmgRedeem(htlcData, quotaData, params);
-
-        // Add fee to storeman group
-        mapStoremanFee[storemanGroupPK].add(mapXHashFee[xHash]);
+        HTLCSmgLib.outSmgRedeem(htlcStorageData, params);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
+    /// @notice                 revoke HTLC transaction of exchange WRC-20 token with original chain token
     /// @param tokenOrigAccount account of original chain token
     /// @param xHash            hash of HTLC random number
     function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash)
@@ -181,10 +160,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        HTLCSmgLib.inSmgRevoke(htlcData, quotaData, tokenOrigAccount, xHash);
+        HTLCSmgLib.inSmgRevoke(htlcStorageData, tokenOrigAccount, xHash);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange original chain token with WERC20 token(must be called after HTLC timeout)
+    /// @notice                 revoke HTLC transaction of exchange original chain token with WRC-20 token(must be called after HTLC timeout)
     /// @param  tokenOrigAccount  account of original chain token
     /// @notice                 the revoking fee will be sent to storeman
     /// @param  xHash           hash of HTLC random number
@@ -193,31 +172,12 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        address source;
-        bytes memory storemanGroupPK;
-        uint revokeFeeRatio;
-        uint ratioPrecise;
-
         HTLCUserLib.HTLCUserRevokeParams memory params = HTLCUserLib.HTLCUserRevokeParams({
             tokenOrigAccount: tokenOrigAccount,
-            tokenManager: tokenManager,
+            tokenManager: htlcStorageData.tokenManager,
             xHash: xHash
         });
-        HTLCUserLib.outUserRevoke(htlcData, quotaData, params);
-
-        (source, , , storemanGroupPK) = htlcData.getUserTx(xHash);
-
-        (revokeFeeRatio, ratioPrecise) = htlcData.getGlobalInfo();
-        uint revokeFee = mapXHashFee[xHash].mul(revokeFeeRatio).div(ratioPrecise);
-        uint left = mapXHashFee[xHash].sub(revokeFee);
-
-        if (revokeFee > 0) {
-            mapStoremanFee[storemanGroupPK].add(revokeFee);
-        }
-
-        if (left > 0) {
-            source.transfer(left);
-        }
+        HTLCUserLib.outUserRevoke(htlcStorageData, params);
     }
 
     /// @notice                 lock storeman deb
@@ -242,7 +202,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
             r: r,
             s: s
         });
-        HTLCDebtLib.inDebtLock(htlcData, quotaData, params);
+        HTLCDebtLib.inDebtLock(htlcStorageData, params);
     }
 
     /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
@@ -259,10 +219,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
             s: s,
             x: x
         });
-        HTLCDebtLib.inDebtRedeem(htlcData, quotaData, params);
+        HTLCDebtLib.inDebtRedeem(htlcStorageData, params);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange WERC20 token with original chain token
+    /// @notice                 revoke HTLC transaction of exchange WRC-20 token with original chain token
     /// @param tokenOrigAccount account of original chain token
     /// @param xHash            hash of HTLC random number
     function inDebtRevoke(bytes tokenOrigAccount, bytes32 xHash)
@@ -270,51 +230,67 @@ contract HTLCDelegate is HTLCStorage, Halt {
         initialized
         notHalted
     {
-        HTLCDebtLib.inDebtRevoke(htlcData, quotaData, tokenOrigAccount, xHash);
-    }
-
-    function getOutboundFee(bytes tokenOrigAccount, bytes storemanGroupPK, uint value) private returns(uint) {
-        uint8 decimals;
-        uint token2WanRatio;
-        uint defaultPrecise;
-        uint txFeeRatio;
-        (,, decimals,,token2WanRatio,,, defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
-        (, txFeeRatio,,,,) = quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
-
-        uint temp = value.mul(1 ether).div(10**uint(decimals));
-        return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
+        HTLCDebtLib.inDebtRevoke(htlcStorageData, tokenOrigAccount, xHash);
     }
 
     function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
         external
         onlyStoremanGroupAdmin
     {
-        quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota, txFeeRatio);
+        htlcStorageData.quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota, txFeeRatio);
     }
 
     function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyStoremanGroupAdmin
     {
-        quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        htlcStorageData.quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
     function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyStoremanGroupAdmin
     {
-        quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
+        htlcStorageData.quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
     function smgAppendQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyStoremanGroupAdmin
     {
-        quotaData.smgAppendQuota(tokenOrigAccount, storemanGroupPK, quota);
+        htlcStorageData.quotaData.smgAppendQuota(tokenOrigAccount, storemanGroupPK, quota);
     }
 
     function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
-        HTLCSmgLib.smgWithdrawFee(storemanGroupPK, receiver, r, s);
-        receiver.transfer(mapStoremanFee[storemanGroupPK]);
+        HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);
+    }
+
+    function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr, uint ratio) external {
+        require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
+        require(ratio <= HTLCTypes.getRatioPrecise(), "Ratio is invalid");
+
+        htlcStorageData.revokeFeeRatio = ratio;
+        htlcStorageData.tokenManager = ITokenManager(tokenManagerAddr);
+        htlcStorageData.storemanGroupAdmin = storemanGroupAdminAddr;
+    }
+
+    function getEconomics() external view returns(address, address, uint) {
+        return (address(htlcStorageData.tokenManager), htlcStorageData.storemanGroupAdmin, htlcStorageData.revokeFeeRatio);
+    }
+
+    function getQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
+        external
+        view
+        returns (uint, uint, uint, uint, uint, bool)
+    {
+        return htlcStorageData.quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
+    }
+
+    function getStoremanFee(bytes storemanGroupPK)
+        external
+        view
+        returns(uint)
+    {
+        return htlcStorageData.mapStoremanFee[storemanGroupPK];
     }
 }

@@ -67,7 +67,7 @@ module.exports = async (deployer) => {
 
   // htlc dependence
   let htlc = await HTLCDelegate.at(htlcProxy.address);
-  await htlc.setEconomics(tmProxy.address, smgProxy.address);
+  await htlc.setEconomics(tmProxy.address, smgProxy.address, 0);
 
   // storm group admin dependence
   let smg = await StoremanGroupDelegate.at(smgProxy.address)
