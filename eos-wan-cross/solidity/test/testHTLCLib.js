@@ -50,28 +50,28 @@ async function sleep(time){
 
 contract('Test HTLCLib', async (accounts) => {
 
-  it('setRevokeFeeRatio test', async() => {
+  // it('setRevokeFeeRatio test', async() => {
+  //
+  //   testHtlcLib = await TestHTLCLib.deployed();
+  //   await testHtlcLib.setRevokeFeeRatio(revokeFeeRatio);
+  //   let revokeFeeRatioGot = await testHtlcLib.revokeFeeRatio();
+  //   assert.equal(revokeFeeRatioGot.toNumber(), revokeFeeRatio, "The revokeFeeRatio do not equal the test props.");
+  //
+  // });
 
-    testHtlcLib = await TestHTLCLib.deployed();
-    await testHtlcLib.setRevokeFeeRatio(revokeFeeRatio);
-    let revokeFeeRatioGot = await testHtlcLib.revokeFeeRatio();
-    assert.equal(revokeFeeRatioGot.toNumber(), revokeFeeRatio, "The revokeFeeRatio do not equal the test props.");
-
-  });
-
-  it('getGlobalInfo test', async() => {
-
-    testHtlcLib         = await TestHTLCLib.deployed();
-
-    let revokeFeeRatioGot, ratioPreciseGot;
-    let ret             = await testHtlcLib.getGlobalInfo();
-    revokeFeeRatioGot   = ret[0];
-    ratioPreciseGot     = ret[1];
-
-    assert.equal(revokeFeeRatioGot.toNumber(), revokeFeeRatio, "The revokeFeeRatio do not equal the test props.");
-    assert.equal(ratioPreciseGot.toNumber(), ratioPrecise, "The ratioPrecise do not equal the test props.");
-
-  });
+  // it('getGlobalInfo test', async() => {
+  //
+  //   testHtlcLib         = await TestHTLCLib.deployed();
+  //
+  //   let revokeFeeRatioGot, ratioPreciseGot;
+  //   let ret             = await testHtlcLib.getGlobalInfo();
+  //   revokeFeeRatioGot   = ret[0];
+  //   ratioPreciseGot     = ret[1];
+  //
+  //   assert.equal(revokeFeeRatioGot.toNumber(), revokeFeeRatio, "The revokeFeeRatio do not equal the test props.");
+  //   assert.equal(ratioPreciseGot.toNumber(), ratioPrecise, "The ratioPrecise do not equal the test props.");
+  //
+  // });
 
   it('addUserTx and getUserTx test', async() => {
     let xHash, value, shadow, storemanPK;
