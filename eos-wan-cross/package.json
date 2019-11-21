@@ -5,7 +5,9 @@
   "author": "wanchain dev",
   "license": "MIT",
   "devDependencies": {
-    "assert": "^1.4.1"
+    "assert": "^1.4.1",
+    "coveralls": "^3.0.7",
+    "solidity-coverage": "^0.6.7"
   },
   "dependencies": {
     "chai": "^4.2.0",
@@ -17,6 +19,9 @@
     "solc": "^0.5.13"
   },
   "scripts": {
-    "test": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c"
+    "eos": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c",
+    "test": "cd solidity && truffle test",
+    "compile": "cd solidity && truffle compile",
+    "coverage": "cd solidity && npx solidity-coverage"
   }
 }

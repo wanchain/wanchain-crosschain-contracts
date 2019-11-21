@@ -42,13 +42,13 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    development: {
-        host: "127.0.0.1",     // Localhost (default: none)
-        port: 9545,            // Standard Ethereum port (default: none)
-        network_id: "*",       // Any network (default: none)
-        gas: 4700000,           // Gas sent with each transaction (default: ~6700000)
-        gasPrice: 180000000000,  // 20 gwei (in wei) (default: 100 gwei)
-    },
+    // development: {
+    //     host: "127.0.0.1",     // Localhost (default: none)
+    //     port: 9545,            // Standard Ethereum port (default: none)
+    //     network_id: "*",       // Any network (default: none)
+    //     gas: 4700000,           // Gas sent with each transaction (default: ~6700000)
+    //     gasPrice: 180000000000,  // 20 gwei (in wei) (default: 100 gwei)
+    // },
 
 // Another network with more advanced options...
     // advanced: {
@@ -86,6 +86,13 @@ module.exports = {
         gas: 4700000,           // Gas sent with each transaction (default: ~6700000)
         gasPrice: 180000000000,  // 20 gwei (in wei) (default: 100 gwei)
     },
+    coverage: {
+      host: 'localhost',
+      port: 6545,
+      network_id: '*',
+      gas: 0xfffffffffff,
+      gasPrice: 0x01
+    }
   },
 
   // Set default mocha options here, use special reporters etc.
