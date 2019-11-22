@@ -28,7 +28,7 @@ pragma solidity ^0.4.24;
 
 import "../tokenManager/TokenManagerDelegate.sol";
 
-contract TokenManagerDelegateV2 is TokenManagerDelegate {
+contract TestTokenManagerDelegateV2 is TokenManagerDelegate {
 
     function setTokenFlag(bytes key, bytes tokenOrigAccount, string flag)
         external

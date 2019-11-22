@@ -3,16 +3,6 @@ const chai = require('chai')
   , expect = chai.expect
   , should = chai.should();
 
-function sha256(message) {
-  const crypto=require('crypto');
-  return crypto.createHash('SHA256').update(message, "utf8").digest('hex');
-}
-
-function keccak(message) {
-  const keccak = require('keccak');
-  return keccak('keccak256').update(message).digest('hex');
-}
-
 function assertPartialMatch(expect, actual) {
   if (typeof(actual) === "object") {
       if (Array.isArray(actual)) {
@@ -92,8 +82,6 @@ function expectToBeAnInstanceOf(x, y) {
 }
 
 module.exports = {
-  sha256: sha256,
-  keccak: keccak,
   assertExists: assertExists,
   assertNotExists: assertNotExists,
   assertIfError: assertIfError,

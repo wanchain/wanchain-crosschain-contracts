@@ -1,69 +1,132 @@
-const config = require("../migrations/config");
-if (!config.testSchnorrVerify) {
-  return ;
-}
-
 const lib = require("./lib");
+const utils = require("./utils");
+
 /* global describe it artifacts */
-const CryptoInstance = artifacts.require('CryptoInstance.sol')
+const Secp256k1 = artifacts.require('Secp256k1.sol');
+const SchnorrVerifier = artifacts.require('SchnorrVerifier.sol');
+const commonLib = artifacts.require('commonLib.sol');
+const TestCryptoInstance = artifacts.require('TestCryptoInstance.sol')
 
 function getInfo() {
-  /**
-   * @@@@@@@@@@@@@@Jacob verifyRS@@@@@@@@@@@@@@
-   * originalM = wanchain
-   * M=0x77616e636861696e
-   * hash(M)=0xf76ae2f74b52984faa585c27e55e72cb0b318d71621b448c52012923ad117230
-   * m=0xb530b6ae76939f5fb4e07a38084cb28652b74cf6115596107741048c5f8cc9fd
-   * R=0x044ba1ba8e5e297c3267069407d54e7dd0405cbeb9511b9d2802e407253a360eb3d61ab9c56c3e3ddbbea97e9b194340c36259e6314d72290d53598b81cb75c5bb
-   * rpk+m*gpk=0x04dc3ebf7ba2293bef391c6aac40421ba3a0b71276327633c1efc2d0ba81046aff06ffa4035d7dc068b3723d428d5412cf05c83d0935df53e20d73009e30c956a8
-   * sG=0x04dc3ebf7ba2293bef391c6aac40421ba3a0b71276327633c1efc2d0ba81046aff06ffa4035d7dc068b3723d428d5412cf05c83d0935df53e20d73009e30c956a8
-   * s=0xc0e7fc619cb10827948c0965b5f07fb7c66cbecba6ecbc67291fac09ec0f1e7a
-   * gpk=0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9
-   * Verification Succeeded
-   * */
   return {
-    /* 0xf76ae2f74b52984faa585c27e55e72cb0b318d71621b448c52012923ad117230 */
-    hashMsg: "0x" + lib.sha256("wanchain"),
-    R: "0x044ba1ba8e5e297c3267069407d54e7dd0405cbeb9511b9d2802e407253a360eb3d61ab9c56c3e3ddbbea97e9b194340c36259e6314d72290d53598b81cb75c5bb",
-    s: "0xc0e7fc619cb10827948c0965b5f07fb7c66cbecba6ecbc67291fac09ec0f1e7a",
-    PK: "0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9"
+    /* 0x41b983b133eb591b0bdf6b21c2bb92ecfe034576cbae3c45bab24f07dc9e075d */
+    hashMsg: "0x" + utils.sha256(Buffer.from("00000000000000000000000000000000000000000000000000000000000000a0cb326a3a8f5f082e7a73600f47fcd1b6f2db70803f732aa953939af3bb927831000000000000000000000000393e86756d8d4cf38493ce6881eb3a8f2966bb27000000000000000000000000000000000000000000000000000000000000000900000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000001401800000c2656f73696f2e746f6b656e3a454f530000000000000000000000000000000000000000000000000000000000000000000000000000000000000041042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c34161900000000000000000000000000000000000000000000000000000000000000", "hex")),
+    R: "0x042c73b8cbc70bb635922a60f5eb9e6dcae637bbb05869fa5a4134f0c5ec859c0462696cd577c419666045ec6310a85f6638532d8d23cdbc2006a60dc3fbbada7e",
+    s: "0x0c595b48605562a1a6492540b875da4ff203946a9dd0e451cd33d06ef568626b",
+    PK: "0x042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619",
   };
 }
 
 function getInvalidInfo() {
   return {
-    hashMsg: "0x" + lib.keccak("wanchain"),
-    R: "0x044ba1ba8e5e297c3267069407d54e7dd0405cbeb9511b9d2802e407253a360eb3d61ab9c56c3e3ddbbea97e9b194340c36259e6314d72290d53598b81cb75c5bb",
-    s: "0xc0e7fc619cb10827948c0965b5f07fb7c66cbecba6ecbc67291fac09ec0f1e7a",
-    PK: "0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9"
+    /* 0x41b983b133eb591b0bdf6b21c2bb92ecfe034576cbae3c45bab24f07dc9e075d */
+    hashMsg: "0x" + utils.keccak(Buffer.from("00000000000000000000000000000000000000000000000000000000000000a0cb326a3a8f5f082e7a73600f47fcd1b6f2db70803f732aa953939af3bb927831000000000000000000000000393e86756d8d4cf38493ce6881eb3a8f2966bb27000000000000000000000000000000000000000000000000000000000000000900000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000001401800000c2656f73696f2e746f6b656e3a454f530000000000000000000000000000000000000000000000000000000000000000000000000000000000000041042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c34161900000000000000000000000000000000000000000000000000000000000000", "hex")),
+    R: "0x042c73b8cbc70bb635922a60f5eb9e6dcae637bbb05869fa5a4134f0c5ec859c0462696cd577c419666045ec6310a85f6638532d8d23cdbc2006a60dc3fbbada7e",
+    s: "0x0c595b48605562a1a6492540b875da4ff203946a9dd0e451cd33d06ef568626b",
+    PK: "0x042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619",
   };
 }
 
-contract('CryptoInstance', async (accounts) => {
+async function deploy(sol, address) {
+  let contract;
+  if (!await sol.isDeployed()) {
+    contract = await utils.deployContract(sol, { from: address });
+  } else {
+    contract = await utils.contractAt(sol, sol.address);
+  }
+  lib.assertExists(contract);
+  return contract;
+}
 
-  it ('init deployment', async() => {
-    let instance = await CryptoInstance.deployed();
+async function initContracts(accounts) {
+  lib.assertExists(Secp256k1);
+  lib.assertExists(SchnorrVerifier);
+  lib.assertExists(commonLib);
+  lib.assertExists(TestCryptoInstance);
+
+  let LibNameDict = {
+    "Secp256k1": "Secp256k1",
+    "SchnorrVerifier": "SchnorrVerifier",
+    "commonLib": "commonLib",
+  }
+
+  let LibAddrDict = {}
+
+  let sender = accounts[0];
+  // console.log("sender=>", sender);
+
+  let secp256k1 = await deploy(Secp256k1, sender);
+  // console.log("Secp256k1 success =>", secp256k1.address);
+  lib.assertExists(secp256k1);
+  LibAddrDict[LibNameDict.Secp256k1] = secp256k1.address;
+
+  // utils.linkLibrary(SchnorrVerifier, Secp256k1);
+  utils.linkLibrary(SchnorrVerifier, LibNameDict.Secp256k1, LibAddrDict.Secp256k1);
+  // console.log("SchnorrVerifier link Secp256k1 success");
+  let schnorr = await deploy(SchnorrVerifier, sender);
+// console.log("SchnorrVerifier success =>", schnorr.address);
+  lib.assertExists(schnorr);
+  LibAddrDict[LibNameDict.SchnorrVerifier] = schnorr.address;
+
+  utils.linkLibrary(SchnorrVerifier, LibNameDict.SchnorrVerifier, LibAddrDict.SchnorrVerifier);
+  // utils.linkLibrary(commonLib, SchnorrVerifier);
+  // console.log("commonLib link SchnorrVerifier success");
+  let common = await deploy(commonLib, sender);
+// console.log("commonLib success =>", common.address);
+  lib.assertExists(common);
+  LibAddrDict[LibNameDict.commonLib] = common.address;
+
+  utils.linkMultiLibrary(TestCryptoInstance, LibAddrDict);
+  // console.log("TestCryptoInstance link libs success");
+  let testCryptoInstance = await deploy(TestCryptoInstance, sender);
+// console.log("TestCryptoInstance success =>", testCryptoInstance.address);
+  lib.assertExists(testCryptoInstance);
+
+  return testCryptoInstance;
+}
+
+contract('TestCryptoInstance', async (accounts) => {
+  let testCryptoInstance;
+  before("init contracts", async() => {
+    testCryptoInstance = await initContracts(accounts);
+  });
+
+  it ('storeman lock, it should success', async() => {
+    let info = {
+      tokenOrigAccount: "0x01800000c2656f73696f2e746f6b656e3a454f53",
+      // xHash: "0xcb326a3a8f5f082e7a73600f47fcd1b6f2db70803f732aa953939af3bb927830",
+      xHash: "0xcb326a3a8f5f082e7a73600f47fcd1b6f2db70803f732aa953939af3bb927831",
+      wanAddr:"0x393e86756d8d4cf38493ce6881eb3a8f2966bb27",
+      value: 9,
+
+      storemanGroupPK: "0x042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619",
+      R: "0x042c73b8cbc70bb635922a60f5eb9e6dcae637bbb05869fa5a4134f0c5ec859c0462696cd577c419666045ec6310a85f6638532d8d23cdbc2006a60dc3fbbada7e",
+      s: "0x0c595b48605562a1a6492540b875da4ff203946a9dd0e451cd33d06ef568626b",
+    };
+
+    try {
+    console.log(await testCryptoInstance.inSmgLock.call(info.tokenOrigAccount, info.xHash, info.wanAddr, info.value,
+        info.storemanGroupPK, info.R, info.s));
+    } catch (err) {
+      lib.assertFail(err);;
+    }
   });
 
   it('verify valid message with the right PK and R and s, it should success', async () => {
-    let instance = await CryptoInstance.deployed();
-
     let info = getInfo();
     // console.log(info.hashMsg);
     try {
-      await instance.verifySignature(info.hashMsg, info.PK, info.R, info.s);
+      await testCryptoInstance.verifySignature(info.hashMsg, info.PK, info.R, info.s, {from: accounts[1]});
     } catch (err) {
-      lib.assertFail(err);
+      lib.assertFail(err);;
     }
   });
 
   it('verify invalid message with PK and R and s, it should throw error', async () => {
-    let instance = await CryptoInstance.deployed();
-
     let info = getInvalidInfo();
     try {
       // console.log(info.hashMsg);
-      await instance.verifySignature(info.hashMsg, info.PK, info.R, info.s);
+      await testCryptoInstance.verifySignature(info.hashMsg, info.PK, info.R, info.s, {from: accounts[1]});
       lib.assertFail("verify invalid message with PK and R and s, it should throw error");
     } catch (err) {
       // console.log(JSON.stringify(err), typeof(err));
