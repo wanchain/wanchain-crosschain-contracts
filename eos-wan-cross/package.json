@@ -21,6 +21,7 @@
   "scripts": {
     "eos": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c",
     "test": "cd solidity && truffle test",
+    "develop": "cd solidity && truffle develop",
     "compile": "cd solidity && truffle compile",
     "coverage": "cd solidity && npx solidity-coverage"
   }
