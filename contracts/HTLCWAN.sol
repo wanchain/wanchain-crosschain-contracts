@@ -39,14 +39,7 @@ interface StoremanGroupInterface {
     function mapStoremanGroup(address, address) public returns(uint, address, uint, uint, uint, address, uint);
 }
 
-interface QuotaInterface {
-    function lockQuota(address, address, address, uint) external returns (bool);
-    function unlockQuota(address, address, uint) external returns (bool);
-    function mintToken(address, address, address, uint) external returns (bool);
-    function lockToken(address, address, address, uint) external returns (bool);
-    function unlockToken(address, address, uint) external returns (bool);
-    function burnToken(address, address, uint) external returns (bool);
-}
+
 
 interface WERCProtocol {
     function transfer(address, uint) public returns (bool);
@@ -153,7 +146,6 @@ contract HTLCWAN is HTLCBase {
         require(TokenInterface(tokenManager).isTokenRegistered(tokenOrigAddr));
         
         addHTLCTx(tokenOrigAddr, TxDirection.Inbound, msg.sender, wanAddr, xHash, value, false, address(0x00));
-        require(QuotaInterface(quotaLedger).lockQuota(tokenOrigAddr, msg.sender, wanAddr, value));
 
         emit InboundLockLogger(msg.sender, wanAddr, xHash, value, tokenOrigAddr);
         return true;
@@ -170,7 +162,6 @@ contract HTLCWAN is HTLCBase {
     {
         bytes32 xHash= redeemHTLCTx(tokenOrigAddr, x, TxDirection.Inbound);
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
-        require(QuotaInterface(quotaLedger).mintToken(tokenOrigAddr, info.source, info.destination, info.value));
 
         emit InboundRedeemLogger(info.destination, info.source, xHash, x, tokenOrigAddr);
         return true;
@@ -187,7 +178,6 @@ contract HTLCWAN is HTLCBase {
     {
         revokeHTLCTx(tokenOrigAddr, xHash, TxDirection.Inbound, false);
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
-        require(QuotaInterface(quotaLedger).unlockQuota(tokenOrigAddr, info.source, info.value));
 
         emit InboundRevokeLogger(info.source, xHash, tokenOrigAddr);
         return true;
@@ -215,7 +205,6 @@ contract HTLCWAN is HTLCBase {
 
         addHTLCTx(tokenOrigAddr, TxDirection.Outbound, msg.sender, storemanGroup, xHash, value, true, ethAddr);
 
-        require(QuotaInterface(quotaLedger).lockToken(tokenOrigAddr, storemanGroup, msg.sender, value));
 
         address instance;
         (,instance,,,,,,,,) = TokenInterface(tokenManager).mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
@@ -246,7 +235,6 @@ contract HTLCWAN is HTLCBase {
         bytes32 xHash = redeemHTLCTx(tokenOrigAddr, x, TxDirection.Outbound);
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
 
-        require(QuotaInterface(quotaLedger).burnToken(tokenOrigAddr, info.destination, info.value));
 
         // transfer to storemanGroup
         info.destination.transfer(mapXHashFee[tokenOrigAddr][xHash]); 
@@ -267,7 +255,6 @@ contract HTLCWAN is HTLCBase {
         revokeHTLCTx(tokenOrigAddr, xHash, TxDirection.Outbound, true);
         HTLCTx storage info = mapXHashHTLCTxs[tokenOrigAddr][xHash];
 
-        require(QuotaInterface(quotaLedger).unlockToken(tokenOrigAddr, info.destination, info.value));
 
         bytes32 key;
         key = TokenInterface(tokenManager).mapKey(tokenOrigAddr);
@@ -299,12 +286,7 @@ contract HTLCWAN is HTLCBase {
         private
         returns(uint)
     {
-        TokenInterface ti = TokenInterface(tokenManager);
-        StoremanGroupInterface smgi = StoremanGroupInterface(storemanGroupAdmin);
-        var (,tokenWanAddr,token2WanRatio,,,,,,,) = ti.mapTokenInfo(TokenInterface(tokenManager).mapKey(tokenOrigAddr));
-        var (,,,txFeeratio,,,) = smgi.mapStoremanGroup(tokenOrigAddr, storemanGroup);
-        uint temp = value.mul(token2WanRatio).mul(txFeeratio).div(ti.DEFAULT_PRECISE()).div(ti.DEFAULT_PRECISE());
-        return temp.mul(1 ether).div(10**uint(WERCProtocol(tokenWanAddr).decimals()));
+        return 0;
     }
 
     /// @notice                 set quota ledger SC address(only owner have the right)
