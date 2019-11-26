@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
-import "../../lib/SafeMath.sol";
-import "./HTLCLib.sol";
+import "../lib/SafeMath.sol";
+import "../htlc/lib/HTLCLib.sol";
 contract TestHTLCLib {
     using SafeMath for uint;
     using HTLCLib  for HTLCLib.Data;

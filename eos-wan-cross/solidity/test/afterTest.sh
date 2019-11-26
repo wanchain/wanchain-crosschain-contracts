@@ -1,4 +1,6 @@
-PROJECT_ROOT="/home/jacob/wanchain/wanchain-crosschain-contracts/eos-wan-cross/solidity"
-cd ${PROJECT_ROOT}"/contracts/htlc/lib" 
-mv HTLCLib.sol.org HTLCLib.sol
+curPath=$(readlink -f "$(dirname "$0")")
+cd $curPath
+
+mv  ../contracts/htlc/lib/HTLCLib.sol.org ../contracts/htlc/lib/HTLCLib.sol
+mv  ../contracts/htlc/lib/commonLib.sol.org ../contracts/htlc/lib/commonLib.sol
 
