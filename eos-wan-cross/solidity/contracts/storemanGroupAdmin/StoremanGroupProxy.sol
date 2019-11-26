@@ -35,7 +35,7 @@ contract StoremanGroupProxy is Halt, StoremanGroupStorage, Proxy {
     function upgradeTo(address impl) public onlyOwner {
         require(
             _implementation != impl,
-            "Cannot upgrade to the same implementation."
+            "Cannot upgrade to the same implementation"
         );
         _implementation = impl;
         emit Upgraded(impl);
