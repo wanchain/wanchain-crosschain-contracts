@@ -1,13 +1,53 @@
-const config = require("../migrations/config");
-if (!config.testTMUpdate) {
-  return ;
-}
-
 const lib = require("./lib");
+const utils = require("./utils");
 /* global describe it artifacts */
-const TokenManagerDelegateV2 = artifacts.require('TokenManagerDelegateV2.sol')
+const TestTokenManagerDelegateV2 = artifacts.require('TestTokenManagerDelegateV2.sol')
 const TokenManagerDelegate = artifacts.require('TokenManagerDelegate.sol')
 const TokenManagerProxy = artifacts.require('TokenManagerProxy.sol')
+
+async function deploy(sol, address) {
+  let contract;
+  if (!await sol.isDeployed()) {
+    contract = await utils.deployContract(sol, { from: address });
+  } else {
+    contract = await utils.contractAt(sol, sol.address);
+  }
+  lib.assertExists(contract);
+  return contract;
+}
+
+async function initContracts(accounts) {
+  lib.assertExists(TestTokenManagerDelegateV2);
+  lib.assertExists(TokenManagerDelegate);
+  lib.assertExists(TokenManagerProxy);
+
+  let LibNameDict = {
+    "TestTokenManagerDelegateV2": "TestTokenManagerDelegateV2",
+    "TokenManagerDelegate": "TokenManagerDelegate",
+    "TokenManagerProxy": "TokenManagerProxy",
+  }
+
+  let LibAddrDict = {}
+
+  let sender = accounts[0];
+  // console.log("sender=>", sender);
+
+  let delegateV2 = await deploy(TestTokenManagerDelegateV2, sender);
+  // console.log("TestTokenManagerDelegateV2 success =>", delegateV2.address);
+  lib.assertExists(delegateV2);
+  LibAddrDict[LibNameDict.TestTokenManagerDelegateV2] = delegateV2.address;
+
+  let delegate = await deploy(TokenManagerDelegate, sender);
+  // console.log("TokenManagerDelegate success =>", delegate.address);
+  lib.assertExists(delegate);
+  LibAddrDict[LibNameDict.TokenManagerDelegate] = delegate.address;
+
+  let proxy = await deploy(TokenManagerProxy, sender);
+  // console.log("TokenManagerProxy success =>", proxy.address);
+  lib.assertExists(proxy);
+
+  return [delegateV2, delegate, proxy];
+}
 
 function getTokenInfo() {
   let asciiTokenOrigAccount = "YCC-Account";
@@ -1107,17 +1147,15 @@ function getTokenManagerAbi() {
 }
 
 contract('TokenManager', async (accounts) => {
+  let proxy;
+  let delegate;
+  let delegateV2;
 
-  it ('init deployment', async() => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
-    let delegateV2 = await TokenManagerDelegateV2.deployed();
+  before("init contracts", async() => {
+    [delegateV2, delegate, proxy] = await initContracts(accounts);
   });
 
   it('upgrade token manager delegate by others instead of owner, it should throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
-    let delegateV2 = await TokenManagerDelegateV2.deployed();
     let sender = accounts[3];
 
     const abi = getProxyAbi();
@@ -1130,6 +1168,7 @@ contract('TokenManager', async (accounts) => {
       } else {
         await contract.methods.upgradeTo(delegateV2.address).send({from: sender});
       }
+      lib.assertFail("upgrade token manager delegate by others instead of owner, it should throw error");
     } catch (err) {
       // console.log(JSON.stringify(err.message), typeof(err.message));
       lib.expectToBeAnInstanceOf(err, Error);
@@ -1138,8 +1177,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('remove and add and update token by others instead of owner, it should throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let tokenInfoV1;
     let sender = accounts[3];
@@ -1212,8 +1249,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('set htlc address by others instead of owner, it should throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let htlcAddr = accounts[0];
     let sender = accounts[3];
@@ -1229,6 +1264,7 @@ contract('TokenManager', async (accounts) => {
 
     try {
       await contract.methods.setHtlcAddr(htlcAddr).send({from: sender});
+      lib.assertFail("set htlc address by others instead of owner, it should throw error");
     } catch (err) {
       // console.log(JSON.stringify(err.message), typeof(err.message));
       lib.expectToBeAnInstanceOf(err, Error);
@@ -1237,8 +1273,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 token manager delegate by owner, add token info, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let tokenInfoV1;
 
@@ -1265,7 +1299,9 @@ contract('TokenManager', async (accounts) => {
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
     await proxyDelegateV1.removeToken(tokenOrigAccount);
+    lib.assertCommonEqual(await proxyDelegateV1.isTokenRegistered(tokenOrigAccount), false);
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
+    lib.assertCommonEqual(await proxyDelegateV1.isTokenRegistered(tokenOrigAccount), true);
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
     lib.assertExists(tokenInfoV1);
@@ -1282,9 +1318,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('updated v2 token manager delegate, add token info, token info should be still existed', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
-    let delegateV2 = await TokenManagerDelegateV2.deployed();
     let proxyDelegateV1, proxyDelegateV2;
     let tokenInfoV1, tokenInfoV2;
 
@@ -1316,7 +1349,7 @@ contract('TokenManager', async (accounts) => {
 
     // Upgrade to the latest delegate version 2
     await proxy.upgradeTo(delegateV2.address)
-    proxyDelegateV2 = await TokenManagerDelegateV2.at(proxy.address);
+    proxyDelegateV2 = await TestTokenManagerDelegateV2.at(proxy.address);
     tokenInfoV2 = await proxyDelegateV2.getTokenInfo(tokenOrigAccount);
 
     // token info should be same
@@ -1325,9 +1358,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('updated v2 token manager delegate, the features should be used', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
-    let delegateV2 = await TokenManagerDelegateV2.deployed();
     let proxyDelegateV1, proxyDelegateV2;
 
     // Upgrade to the latest delegate version 1
@@ -1341,7 +1371,7 @@ contract('TokenManager', async (accounts) => {
 
     // Upgrade to the latest delegate version 2
     await proxy.upgradeTo(delegateV2.address)
-    proxyDelegateV2 = await TokenManagerDelegateV2.at(proxy.address);
+    proxyDelegateV2 = await TestTokenManagerDelegateV2.at(proxy.address);
     // delegateV2 add the new feature setTokenFlag and getTokenFlag
     let flag = "YCC-pk";
     await proxyDelegateV2.setTokenFlag(await web3.utils.hexToBytes(await web3.utils.toHex("pk")), await web3.utils.hexToBytes(await web3.utils.toHex("YCC")), flag);
@@ -1353,9 +1383,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token, v2 delegate removed the existed token info, updated v1 token manager delegate, token info should be removed, v2 features should be not exists', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
-    let delegateV2 = await TokenManagerDelegateV2.deployed();
     let proxyDelegateV1, proxyDelegateV2;
     let tokenInfoV1, tokenInfoV2;
 
@@ -1387,7 +1414,7 @@ contract('TokenManager', async (accounts) => {
 
     // Upgrade to the latest delegate version 2
     await proxy.upgradeTo(delegateV2.address)
-    proxyDelegateV2 = await TokenManagerDelegateV2.at(proxy.address);
+    proxyDelegateV2 = await TestTokenManagerDelegateV2.at(proxy.address);
 
     tokenInfoV2 = await proxyDelegateV2.getTokenInfo(tokenOrigAccount);
     lib.assertFullMatch(tokenInfoV1, tokenInfoV2);
@@ -1399,7 +1426,7 @@ contract('TokenManager', async (accounts) => {
     // Upgrade to the latest delegate version 1
     await proxy.upgradeTo(delegate.address)
     proxyDelegateV1 = await TokenManagerDelegate.at(proxy.address);
-    // tokenInfoV1 storage deleted in TokenManagerDelegateV2, and the info would be same as TokenManagerDelegateV2 in TokenManagerDelegate
+    // tokenInfoV1 storage deleted in TestTokenManagerDelegateV2, and the info would be same as TestTokenManagerDelegateV2 in TokenManagerDelegate
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
     lib.assertFullMatch(tokenInfoV1, tokenInfoV2);
 
@@ -1409,8 +1436,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with 0 decimals, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let tokenInfoV1;
 
@@ -1456,8 +1481,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with reduplicate, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let tokenInfoV1;
 
@@ -1500,8 +1523,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with 0 token to wan ratio, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1540,8 +1561,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with low deposit, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1581,8 +1600,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with low withdraw delay time, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1622,8 +1639,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with empty name, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1665,8 +1680,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with empty symbol, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1705,8 +1718,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with empty token origin account, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1746,8 +1757,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate add token with empty symbol, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1786,8 +1795,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('v1 delegate update an not existed token, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1826,14 +1833,12 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(tokenInfoV1["6"].toNumber(), withdrawDelayTime);
       // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update an not existed token, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with 0 decimals, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1877,14 +1882,12 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(tokenInfoV1["6"].toNumber(), withdrawDelayTime);
       // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with 0 decimals, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with 0 token to wan ratio, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1926,14 +1929,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with 0 token to wan ratio, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with low deposit, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -1975,14 +1976,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with low deposit, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with low withdraw delay time, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -2024,14 +2023,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with low withdraw delay time, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with empty name, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -2073,14 +2070,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty name, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with empty symbol, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -2122,14 +2117,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty symbol, it should be success");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('v1 delegate add token and update it with empty token origin account, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
 
     // Initalize the proxy with the first delegate version 1.
@@ -2171,14 +2164,12 @@ contract('TokenManager', async (accounts) => {
       }
         // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
-      lib.assertFail("add token and update it with empty token origin account, it should be throw error");
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('set htlc address address(0), it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1;
     let htlcAddr = getAddress_0();
 
@@ -2191,6 +2182,7 @@ contract('TokenManager', async (accounts) => {
     proxyDelegateV1 = await TokenManagerDelegate.at(proxy.address);
     try {
       await proxyDelegateV1.setHtlcAddr(htlcAddr);
+      lib.assertFail("set htlc address address(0), it should be throw error");
     } catch (err) {
       lib.expectToBeAnInstanceOf(err, Error);
       lib.assertExists(err.reason);
@@ -2199,8 +2191,6 @@ contract('TokenManager', async (accounts) => {
   });
 
   it('mint and burn token with self-defined htlc address, it should be success', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
     let htlcAddr = accounts[0];
     let userAddr = accounts[1];
@@ -2269,14 +2259,12 @@ contract('TokenManager', async (accounts) => {
     } catch (err) {
       // console.error(JSON.stringify(err));
       // lib.assertFail("mint token with self-defined htlc address, it should be success", err);
-      lib.assertFail(JSON.stringify(err));
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
 
   it('mint and burn token with non-htlc address, it should be throw error', async () => {
-    let proxy = await TokenManagerProxy.deployed();
-    let delegate = await TokenManagerDelegate.deployed();
     let proxyDelegateV1, tokenInfoV1;
     let htlcAddr = accounts[3];
     let userAddr = accounts[1];
@@ -2353,11 +2341,22 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(userBalance, htlcBurnedBalance);
 
     } catch (err) {
-      console.error(JSON.stringify(err));
-      // lib.assertFail("mint token with self-defined htlc address, it should be success", err);
-      lib.assertFail(JSON.stringify(err));
+      // console.error(JSON.stringify(err));
+      lib.assertFail(err);
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
+  });
+
+  it('transfer wan coin to token manager delegate contract, it should be throw error', async () => {
+    let userAddr = accounts[1];
+
+    try {
+      await web3.eth.sendTransaction({from: userAddr, to: delegate.address, value: web3.utils.toWei("0.5")})
+      lib.assertFail("transfer to tokenManagerDelegate contract, it should be throw error");
+    } catch (err) {
+      lib.expectToBeAnInstanceOf(err, Error);
+      lib.assertInclude(err.message, "Not support", err);
+    }
   });
 
 });

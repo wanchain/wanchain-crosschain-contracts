@@ -5,12 +5,10 @@ import "./HTLCLib.sol";
 contract TestHTLCLib {
     using SafeMath for uint;
     using HTLCLib  for HTLCLib.Data;
-
     HTLCLib.Data htlcData;
-    uint         _lockedTime;
 
     constructor() public {
-        _lockedTime = 60; // 60s
+
     }
     // ======= invoke the lib execution ============
 
