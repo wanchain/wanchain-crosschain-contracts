@@ -10,6 +10,7 @@ contract TestCryptoInstance {
 
   function inSmgLock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanGroupPK, bytes R, bytes32 s)
       public
+      pure
       returns (bytes32, bytes)
   {
       bytes memory encoded = abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK);
@@ -29,6 +30,7 @@ contract TestCryptoInstance {
 
   function inSmgLockData(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanGroupPK)
       public
+      pure
       returns (bytes32, bytes, bytes)
   {
     bytes memory encoded = abi.encode(tokenOrigAccount, xHash, wanAddr, value, storemanGroupPK);
