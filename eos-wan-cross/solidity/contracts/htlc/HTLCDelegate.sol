@@ -278,12 +278,12 @@ contract HTLCDelegate is HTLCStorage, Halt {
         return (address(htlcStorageData.tokenManager), htlcStorageData.storemanGroupAdmin, htlcStorageData.revokeFeeRatio);
     }
 
-    function getQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
+    function queryStoremanGroupQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        returns (uint, uint, uint, uint, uint, bool)
+        returns (uint, uint, uint, uint, uint, uint)
     {
-        return htlcStorageData.quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
+        return htlcStorageData.quotaData.queryQuotaInfo(tokenOrigAccount, storemanGroupPK);
     }
 
     function getStoremanFee(bytes storemanGroupPK)
