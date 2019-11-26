@@ -44,7 +44,7 @@ contract StandardToken is WRC20Protocol {
         _;
     }
 
-    function transfer(address _to, uint _value) onlyPayloadSize(2 * 32) public returns (bool success) {
+    function transfer(address _to, uint _value) public onlyPayloadSize(2 * 32) returns (bool success) {
         //Default assumes totalSupply can't be over max (2^256 - 1).
         //If your token leaves out totalSupply and can issue more tokens as time goes on, you need to check if it doesn't wrap.
         //Replace the if with this one instead.
@@ -57,7 +57,7 @@ contract StandardToken is WRC20Protocol {
         } else { return false; }
     }
 
-    function transferFrom(address _from, address _to, uint _value) onlyPayloadSize(3 * 32) public returns (bool success) {
+    function transferFrom(address _from, address _to, uint _value) public onlyPayloadSize(3 * 32) returns (bool success) {
         //same as above. Replace this line with the following if you want to protect against wrapping uints.
         //if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
         if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value) {
@@ -69,11 +69,11 @@ contract StandardToken is WRC20Protocol {
         } else { return false; }
     }
 
-    function balanceOf(address _owner) public constant returns (uint balance) {
+    function balanceOf(address _owner) public view returns (uint balance) {
         return balances[_owner];
     }
 
-    function approve(address _spender, uint _value) onlyPayloadSize(2 * 32) public returns (bool success) {
+    function approve(address _spender, uint _value) public onlyPayloadSize(2 * 32) returns (bool success) {
         //  To change the approve amount you first have to reduce the addresses`
         //  allowance to zero by calling `approve(_spender, 0)` if it is not
         //  already 0 to mitigate the race condition described here:
@@ -85,7 +85,7 @@ contract StandardToken is WRC20Protocol {
         return true;
     }
 
-    function allowance(address _owner, address _spender) public constant returns (uint remaining) {
+    function allowance(address _owner, address _spender) public view returns (uint remaining) {
       return allowed[_owner][_spender];
     }
 }
