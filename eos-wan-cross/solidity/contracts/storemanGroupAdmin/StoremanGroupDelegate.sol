@@ -74,6 +74,16 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @param quota                      corresponding token quota
     event StoremanGroupAppendDepositLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
+    modifier onlyValidAccount(bytes account) {
+        require(account.length != 0, "Account is null");
+        _;
+    }
+
+    modifier onlyValidPK(bytes pk) {
+        require(pk.length != 0, "PK is null");
+        _;
+    }
+
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
     /// @param htlc          htlc(including quotaLedger) instance address
@@ -102,8 +112,8 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     function setSmgWhiteList(bytes storemanGroup, bool isEnable)
         external
         onlyOwner
+        onlyValidPK(storemanGroup)
     {
-        require(storemanGroup.length != 0, "Invalid storemanGroup");
         require(isWhiteListEnabled, "White list is disabled");
         require(mapSmgWhiteList[storemanGroup] != isEnable, "Duplicate set");
         if (isEnable) {
@@ -124,8 +134,9 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         payable
         notHalted
+        onlyValidAccount(tokenOrigAccount)
+        onlyValidPK(storemanGroup)
     {
-        require(storemanGroup.length != 0, "Invalid storemanGroup");
         require(txFeeRatio > 0, "Invalid txFeeRatio");
         require(storemanGroupMap[tokenOrigAccount][storemanGroup].deposit == 0, "Duplicate register");
 
@@ -134,6 +145,7 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         uint minDeposit;
         uint defaultPricise;
         (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        require(minDeposit > 0, "Token not exist");
         require(msg.value >= minDeposit, "Value must be greater than minDeposit");
         if (isWhiteListEnabled) {
             require(mapSmgWhiteList[storemanGroup], "Not in white list");
@@ -173,7 +185,6 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     {
         StoremanGroup memory smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
         require(smg.initiator == msg.sender, "Sender must be initiator");
-        require(smg.deposit > 0, "Not registered");
         uint withdrawDelayTime;
         (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(now > smg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
@@ -193,11 +204,12 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         payable
         notHalted
+        onlyValidAccount(tokenOrigAccount)
+        onlyValidPK(storemanGroup)
     {
-        require(storemanGroup.length != 0, "Invalid storemanGroup");
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(smg.initiator == msg.sender, "Sender must be initiator");
         require(smg.deposit > 0, "Not registered");
+        require(smg.initiator == msg.sender, "Sender must be initiator");
 
         uint8 decimals;
         uint token2WanRatio;
