@@ -1,5 +1,6 @@
 const encoder = require("../utils/encoder");
 const crossChainAccount = require('../utils/account/crossChainAccount');
+var BN = web3.utils.BN;
 
 const TokenManagerProxy = artifacts.require('TokenManagerProxy');
 const TokenManagerDelegate = artifacts.require('TokenManagerDelegate');
@@ -17,8 +18,7 @@ const StoremanGroupProxy = artifacts.require('StoremanGroupProxy');
 const StoremanGroupDelegate = artifacts.require('StoremanGroupDelegate');
 
 // common
-const address0 = '0x0000000000000000000000000000000000000000';
-const address1 = '0x0000000000000000000000000000000000000001';
+const ADDRESS_0 = '0x0000000000000000000000000000000000000000';
 
 // storeman
 const storemanTxFeeRatio = 10; // 0.001
@@ -38,7 +38,7 @@ const eosToken = {
   decimals: 4
 }
 
-let tmSc, weosSc, smgSC, htlcSc;
+let tmSc, weosSc, smgSC, htlcSc, qlSc;
 
 function sleep(seconds) {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000))
@@ -57,13 +57,18 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     let smgProxy = await StoremanGroupProxy.deployed();
     smgSC = await StoremanGroupDelegate.at(smgProxy.address);    
     // await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, storemanTxFeeRatio, {value: storemanDeposit});
+
+    // other sc
+    let htlcProxy = await HTLCProxy.deployed();
+    htlcSc = await HTLCDelegate.at(htlcProxy.address);
+    qlSc = htlcSc; // quotaLedger act as a lib of htlc
   })
 
   // setDependence
   it('[StoremanGroupAdmin_setDependence] should fail in case invoked by not owner', async () => {
     let error = {};
     try {
-      await smgSC.setDependence(address0, address0, {from: someone});
+      await smgSC.setDependence(tmSc.address, qlSc.address, {from: someone});
     } catch (e) {
       error = e;
     }
@@ -73,7 +78,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupAdmin_setDependence] should fail in case invalide tokenManager address', async () => {
     let error = {};
     try {
-      await smgSC.setDependence(address0, address1, {from: owner});
+      await smgSC.setDependence(ADDRESS_0, qlSc.address, {from: owner});
     } catch (e) {
       error = e;
     }
@@ -83,7 +88,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupAdmin_setDependence] should fail in case invalide htlc address', async () => {
     let error = {};
     try {
-      await smgSC.setDependence(address1, address0, {from: owner});
+      await smgSC.setDependence(tmSc.address, ADDRESS_0, {from: owner});
     } catch (e) {
       error = e;
     }
@@ -93,9 +98,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupAdmin_setDependence] should success', async () => {
     let error = {};
     try {
-      let tokenManager = await smgSC.tokenManager.call();
-      let quotaLedger = await smgSC.quotaLedger.call();
-      await smgSC.setDependence(tokenManager, quotaLedger, {from: owner});
+      await smgSC.setDependence(tmSc.address, qlSc.address, {from: owner});
     } catch (e) {
       error = e;
     }
@@ -231,8 +234,8 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupAdmin_storemanGroupRegisterByDelegate] should fail in case deposit less than minDeposit', async () => {
     let error = {};
     try {
-      const storemanLessDeposit = web3.utils.toWei('9');
-      await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanLessDeposit});
+      const deposit = new BN(storemanDeposit).sub(new BN(1));
+      await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: deposit});
     } catch (e) {
       error = e;
     }

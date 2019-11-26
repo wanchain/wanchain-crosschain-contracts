@@ -13,3 +13,8 @@ if [ ! -f "../contracts/htlc/lib/commonLib.sol.org" ];then
 fi
 #cp ../contracts/htlc/lib/commonLib.sol ../contracts/htlc/lib/commonLib.sol.org
 sed -i '/.*SchnorrVerifier\.verify/d'  ../contracts/htlc/lib/commonLib.sol
+
+if [ ! -f "../contracts/tokenManager/TokenManagerStorage.sol.org" ];then
+	cp ../contracts/tokenManager/TokenManagerStorage.sol ../contracts/tokenManager/TokenManagerStorage.sol.org
+fi
+sed -i 's/MIN_WITHDRAW_WINDOW[ \t]*=.*\;/MIN_WITHDRAW_WINDOW = 10;/' ../contracts/tokenManager/TokenManagerStorage.sol
