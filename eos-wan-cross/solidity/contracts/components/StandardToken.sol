@@ -68,7 +68,7 @@ contract StandardToken is WRC20Protocol {
         //  allowance to zero by calling `approve(_spender, 0)` if it is not
         //  already 0 to mitigate the race condition described here:
         //  https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-        assert((_value == 0) || (allowed[msg.sender][_spender] == 0));
+        require((_value == 0) || (allowed[msg.sender][_spender] == 0), "Not permitted");
 
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
