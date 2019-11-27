@@ -282,6 +282,7 @@ contract('Test HTLC', async (accounts) => {
  */
 
   it('WAN->EOS outUserLock--> Account has no WEOS', async() => {
+    let error = null;
     try{
       // account[0] has no WEOS
       htlcUserLockParams.userOrigAccount = accounts[3];
@@ -292,11 +293,16 @@ contract('Test HTLC', async (accounts) => {
         htlcSmgLockParams.storemanGroupPK);
 
     }catch(err){
-      assert.include(err.toString(),"Lock token failed");
+      //assert.include(err.toString(),"Lock token failed");
+      error = err;
+    }
+    if(!error){
+      assert.fail("should catch a error!")
     }
   });
 
   it('WAN->EOS outUserLock--> Before lock, No approve', async() => {
+    let error = null;
     try{
 
       htlcUserLockParams.userOrigAccount = accounts[3];
@@ -307,7 +313,11 @@ contract('Test HTLC', async (accounts) => {
         htlcSmgLockParams.storemanGroupPK, {from:accounts[1]});
 
     }catch(err){
-      assert.include(err.toString(),"Lock token failed");
+      //assert.include(err.toString(),"Lock token failed");
+      error = err;
+    }
+    if(!error){
+      assert.fail("should catch a error!")
     }
   });
 
