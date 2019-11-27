@@ -1,8 +1,8 @@
 const fsPromises = require('fs').promises;
 /* global describe it artifacts */
 const TestHTLCLib = artifacts.require('TestHTLCLib');
+const HTLCLib = artifacts.require('HTLCLib');
 
-console.log(assert);
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
@@ -51,11 +51,24 @@ async function sleep(time){
 }
 
 contract('Test HTLCLib', async (accounts) => {
+  before("Deploy htlc test lib", async() => {
+    try{
+      let deployHtlcLib;
+      deployHtlcLib = await HTLCLib.new();
+      let htlcLibInst;
+      htlcLibInst = await HTLCLib.at(deployHtlcLib.address);
+
+      await TestHTLCLib.link('HTLCLib',htlcLibInst.address);
+      let deploy;
+      deploy = await TestHTLCLib.new();
+      testHtlcLib         = await TestHTLCLib.at(deploy.address);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
 
   it('addUserTx and getUserTx test', async() => {
     let xHash, value, shadow, storemanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
-
     xHash = xHash1;
     value = v1;
     shadow = shdw;
@@ -79,7 +92,6 @@ contract('Test HTLCLib', async (accounts) => {
 
   it('addSmgTx and getSmgTx test', async() => {
     let xHash, value, storemanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
 
     xHash               = xHash2;
     value               = v2;
@@ -101,7 +113,6 @@ contract('Test HTLCLib', async (accounts) => {
 
   it('addDebtTx and getDebtTx test', async() => {
     let xHash, value, storemanPK, srcStoremanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
 
     xHash               = xHash5;
     value               = v2;
@@ -128,7 +139,7 @@ contract('Test HTLCLib', async (accounts) => {
     let xHash,x;
     xHash         = xHash1;
     x             = x1;
-    testHtlcLib   = await TestHTLCLib.deployed();
+
     let statusOld = await(testHtlcLib.getUserTxStatus(xHash));
     await testHtlcLib.redeemUserTx(x);
     assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
@@ -140,7 +151,7 @@ contract('Test HTLCLib', async (accounts) => {
     let xHash,x;
     xHash         = xHash2;
     x             = x2;
-    testHtlcLib   = await TestHTLCLib.deployed();
+
     let statusOld = await(testHtlcLib.getSmgTxStatus(xHash, {from: accounts[1]}));
     await testHtlcLib.redeemSmgTx(x,{from: accounts[1]});
     assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
@@ -153,7 +164,7 @@ contract('Test HTLCLib', async (accounts) => {
     let xHash,x;
     xHash         = xHash5;
     x             = x5;
-    testHtlcLib   = await TestHTLCLib.deployed();
+
     let statusOld = await(testHtlcLib.getDebtTxStatus(xHash));
     await testHtlcLib.redeemDebtTx(x);
     assert.equal(statusOld.toNumber(), STATUS.Locked, "The status do not equal the test props.");
@@ -164,7 +175,7 @@ contract('Test HTLCLib', async (accounts) => {
 
   it('revokeUserTx test', async() => {
     let xHash, value, shadow, storemanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
+
 
     xHash = xHash3;
     value = v1;
@@ -182,7 +193,7 @@ contract('Test HTLCLib', async (accounts) => {
 
   it('revokeSmgTx test', async() => {
     let xHash, value, storemanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
+
 
     xHash               = xHash4;
     value               = v2;
@@ -197,7 +208,7 @@ contract('Test HTLCLib', async (accounts) => {
 
   it('revokeDebtTx test', async() => {
     let xHash, value, storemanPK, srcStoremanPK;
-    testHtlcLib         = await TestHTLCLib.deployed();
+
 
     xHash               = xHash6;
     value               = v2;
