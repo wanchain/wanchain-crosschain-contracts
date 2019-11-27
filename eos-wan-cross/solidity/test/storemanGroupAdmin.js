@@ -224,9 +224,21 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   })
 
   // storemanGroupRegisterByDelegate
+  it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should fail in case halted', async () => {
+    let error = {};
+    try {
+      await smgSC.setHalt(true, {from: owner});
+      await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
+    } catch (e) {
+      error = e;
+    }
+    assert.equal(error.reason, 'Smart contract is halted')
+  })
+
   it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should fail in case invalid tokenOrigAccount', async () => {
     let error = {};
     try {
+      await smgSC.setHalt(false, {from: owner});
       await smgSC.storemanGroupRegisterByDelegate('0x', storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
     } catch (e) {
       error = e;
@@ -319,9 +331,21 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   })
 
   // smgApplyUnregisterByDelegate
+  it('[StoremanGroupDelegate_smgApplyUnregisterByDelegate] should fail in case halted', async () => {
+    let error = {};
+    try {
+      await smgSC.setHalt(true, {from: owner});
+      await smgSC.smgApplyUnregisterByDelegate(eosToken.origAddr, storeman, {from: delegate});
+    } catch (e) {
+      error = e;
+    }
+    assert.equal(error.reason, 'Smart contract is halted')
+  })
+
   it('[StoremanGroupDelegate_smgApplyUnregisterByDelegate] should fail in case invoked by not initiator', async () => {
     let error = {};
     try {
+      await smgSC.setHalt(false, {from: owner});
       await smgSC.smgApplyUnregisterByDelegate(eosToken.origAddr, storeman, {from: someone});
     } catch (e) {
       error = e;
@@ -350,9 +374,21 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   })
 
   // smgWithdrawDepositByDelegate
+  it('[StoremanGroupDelegate_smgWithdrawDepositByDelegate] should fail in case halted', async () => {
+    let error = {};
+    try {
+      await smgSC.setHalt(true, {from: owner});
+      await smgSC.smgWithdrawDepositByDelegate(eosToken.origAddr, storeman, {from: delegate});
+    } catch (e) {
+      error = e;
+    }
+    assert.equal(error.reason, 'Smart contract is halted')
+  })
+
   it('[StoremanGroupDelegate_smgWithdrawDepositByDelegate] should fail in case invoked by not initiator', async () => {
     let error = {};
     try {
+      await smgSC.setHalt(false, {from: owner});
       await smgSC.smgWithdrawDepositByDelegate(eosToken.origAddr, storeman, {from: someone});
     } catch (e) {
       error = e;
@@ -396,9 +432,21 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   })
 
   // smgAppendDepositByDelegate
+  it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case halted', async () => {
+    let error = {};
+    try {
+      await smgSC.setHalt(true, {from: owner});
+      await smgSC.smgAppendDepositByDelegate(eosToken.origAddr, storeman, {from: delegate, value: storemanDeposit});
+    } catch (e) {
+      error = e;
+    }
+    assert.equal(error.reason, 'Smart contract is halted')
+  })
+
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case invalid tokenOrigAccount', async () => {
     let error = {};
     try {
+      await smgSC.setHalt(false, {from: owner});
       await smgSC.smgAppendDepositByDelegate('0x', storeman, {from: delegate, value: storemanDeposit});
     } catch (e) {
       error = e;
