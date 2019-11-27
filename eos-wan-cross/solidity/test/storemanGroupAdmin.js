@@ -309,13 +309,17 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
 
   it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should success', async () => {
     let result = {};
+    let beforeBalance = 0, afterBalance = 0;
     try {
+      beforeBalance = await web3.eth.getBalance(smgSC.address);
       await smgSC.setSmgWhiteList(storeman, true, {from: owner});
       result = await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
+      afterBalance = await web3.eth.getBalance(smgSC.address);
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined)
+    assert.equal(new BN(afterBalance).sub(new BN(beforeBalance)).eq(new BN(storemanDeposit)), true)
     let event = result.logs[0].args;
     assert.equal(event.tokenOrigAccount, eosToken.origAddr)
     assert.equal(event.storemanGroup, storeman)
@@ -326,14 +330,18 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
 
   it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should success in case WhiteList is disabled', async () => {
     let result = {};
+    let beforeBalance = 0, afterBalance = 0;
     let fakeSmg = encoder.str2hex('fake_storeman');
     try {
+      beforeBalance = await web3.eth.getBalance(smgSC.address);
       await smgSC.enableSmgWhiteList(false, {from: owner});
       result = await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, fakeSmg, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
+      afterBalance = await web3.eth.getBalance(smgSC.address);
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined)
+    assert.equal(new BN(afterBalance).sub(new BN(beforeBalance)).eq(new BN(storemanDeposit)), true)
     let event = result.logs[0].args;
     assert.equal(event.tokenOrigAccount, eosToken.origAddr)
     assert.equal(event.storemanGroup, fakeSmg)
@@ -434,13 +442,17 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
 
   it('[StoremanGroupDelegate_smgWithdrawDepositByDelegate] should success', async () => {
     let result = {};
+    let beforeBalance = 0, afterBalance = 0;
     try {
-      await sleep(eosToken.withdrawDelayTime);
+      await sleep(eosToken.withdrawDelayTime + 2);
+      beforeBalance = await web3.eth.getBalance(delegate);
       result = await smgSC.smgWithdrawDepositByDelegate(eosToken.origAddr, storeman, {from: delegate});
+      afterBalance = await web3.eth.getBalance(delegate);
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined)
+    assert.equal(new BN(afterBalance).sub(new BN(beforeBalance)).add(new BN(web3.utils.toWei('1'))).gt(new BN(storemanDeposit)), true)
     let event = result.logs[0].args;
     assert.equal(event.tokenOrigAccount, eosToken.origAddr)
     assert.equal(event.storemanGroup, storeman)
@@ -524,12 +536,16 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
 
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should success', async () => {
     let result = {};
+    let beforeBalance = 0, afterBalance = 0;
     try {
+      beforeBalance = await web3.eth.getBalance(smgSC.address);
       result = await smgSC.smgAppendDepositByDelegate(eosToken.origAddr, storeman, {from: delegate, value: storemanDeposit});
+      afterBalance = await web3.eth.getBalance(smgSC.address);
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined)
+    assert.equal(new BN(afterBalance).sub(new BN(beforeBalance)).eq(new BN(storemanDeposit)), true)
     let event = result.logs[0].args;
     assert.equal(event.tokenOrigAccount, eosToken.origAddr)
     assert.equal(event.storemanGroup, storeman)
