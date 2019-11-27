@@ -2,9 +2,11 @@ const fsPromises = require('fs').promises;
 /* global describe it artifacts */
 const TestHTLCLib = artifacts.require('TestHTLCLib');
 
+console.log(assert);
+
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 60*1000; //unit: ms
+let lockedTime      = 6*1000; //unit: ms
 
 const x1            = '0x0000000000000000000000000000000000000000000000000000000000000001';
 const xHash1        = '0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5';
