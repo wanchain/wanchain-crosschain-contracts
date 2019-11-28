@@ -51,9 +51,9 @@ function sleep(seconds) {
 contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('should do all preparations', async () => {
     // unlock account
-    // await web3.eth.personal.unlockAccount(owner, 'wl', 99999)
-    // await web3.eth.personal.unlockAccount(delegate, 'wl', 99999)
-    // await web3.eth.personal.unlockAccount(someone, 'wl', 99999)
+    await web3.eth.personal.unlockAccount(owner, 'wl', 99999);
+    await web3.eth.personal.unlockAccount(delegate, 'wl', 99999);
+    await web3.eth.personal.unlockAccount(someone, 'wl', 99999);
 
     // register eos token
     let tmProxy = await TokenManagerProxy.deployed();
