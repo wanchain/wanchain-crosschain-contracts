@@ -37,10 +37,8 @@ import "../components/Proxy.sol";
 contract TokenManagerProxy is TokenManagerStorage, Owned, Proxy {
 
     function upgradeTo(address impl) public onlyOwner {
-        require(
-            _implementation != impl,
-            "Cannot upgrade to the same implementation."
-        );
+        require(impl != address(0), "Cannot upgrade to invalid address");
+        require(impl != _implementation, "Cannot upgrade to the same implementation");
         _implementation = impl;
         emit Upgraded(impl);
     }

@@ -1620,7 +1620,7 @@ contract('TokenManager', async (accounts) => {
       decimals
     } = getTokenInfo();
 
-    withdrawDelayTime = 10;
+    withdrawDelayTime = 1;
     let tokenOrigAccount = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenOrigAccount));
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
@@ -2012,7 +2012,7 @@ contract('TokenManager', async (accounts) => {
       let wTokenAddr = tokenInfoV1["3"];
 
       try {
-        withdrawDelayTime = 10;
+        withdrawDelayTime = 1;
         await proxyDelegateV1.updateToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals, wTokenAddr);
         lib.assertFail("add token and update it with low withdraw delay time, it should be throw error");
       } catch (err) {

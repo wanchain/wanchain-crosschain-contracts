@@ -50,6 +50,11 @@ function sleep(seconds) {
 
 contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('should do all preparations', async () => {
+    // unlock account
+    // await web3.eth.personal.unlockAccount(owner, 'wl', 99999)
+    // await web3.eth.personal.unlockAccount(delegate, 'wl', 99999)
+    // await web3.eth.personal.unlockAccount(someone, 'wl', 99999)
+
     // register eos token
     let tmProxy = await TokenManagerProxy.deployed();
     tmSc = await TokenManagerDelegate.at(tmProxy.address);
@@ -77,6 +82,28 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(result.reason, 'Not owner');
   })
 
+  it('[StoremanGroupProxy_upgradeTo] should fail in case invalid implementation address', async () => {
+    let result = {};
+    try {
+      await smgProxy.upgradeTo(ADDRESS_0, {from: owner});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Cannot upgrade to invalid address');
+  })
+
+  it('[StoremanGroupProxy_upgradeTo] should success', async () => {
+    let result = {};
+    try {
+      await smgProxy.upgradeTo(smgProxy.address, {from: owner}); // set self address temporarily
+      await smgProxy.upgradeTo(smgDelegate.address, {from: owner});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, undefined);
+    assert.equal(await smgProxy.implementation(), smgDelegate.address)
+  })
+
   it('[StoremanGroupProxy_upgradeTo] should fail in case duplicate upgrade', async () => {
     let result = {};
     try {
@@ -85,19 +112,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
       result = e;
     }
     assert.equal(result.reason, 'Cannot upgrade to the same implementation');
-  })
-
-  it('[StoremanGroupProxy_upgradeTo] should success', async () => {
-    let result = {};
-    try {
-      await smgProxy.upgradeTo(ADDRESS_0, {from: owner});
-      await smgProxy.upgradeTo(smgDelegate.address, {from: owner});
-    } catch (e) {
-      result = e;
-    }
-    assert.equal(result.reason, undefined);
-    assert.equal(await smgProxy._implementation.call(), smgDelegate.address)
-  })
+  })  
 
   // setDependence
   it('[StoremanGroupDelegate_setDependence] should fail in case invoked by not owner', async () => {
