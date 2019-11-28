@@ -1,6 +1,6 @@
 const encoder = require("../utils/encoder");
 const crossChainAccount = require('../utils/account/crossChainAccount');
-var BN = web3.utils.BN;
+const BN = web3.utils.BN;
 
 const TokenManagerProxy = artifacts.require('TokenManagerProxy');
 const TokenManagerDelegate = artifacts.require('TokenManagerDelegate');
