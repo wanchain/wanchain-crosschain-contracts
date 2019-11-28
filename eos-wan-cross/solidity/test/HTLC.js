@@ -111,7 +111,7 @@ let STATUS = {
   Revoked   :       3
 };
 contract('Test HTLC', async (accounts) => {
-  before("init...--> success", async() => {
+  before("init...   -> success", async() => {
     try{
       // get the instance
       let deploy;
@@ -155,7 +155,7 @@ contract('Test HTLC', async (accounts) => {
   init...
   ==========================================================================================
    */
-  it('init... --> should call from smg sc address', async() => {
+  it('init...   -> should call from smg sc address', async() => {
     try{
       await htlcInstProxy.addStoremanGroup(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
@@ -166,7 +166,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('init... --> Duplicate register', async() => {
+  it('init...   -> Duplicate register', async() => {
     try{
       // value must > minDesposit
       await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParams.tokenOrigAccount,
@@ -177,7 +177,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('init... --> Value must be greater than minDeposit', async() => {
+  it('init...   -> Value must be greater than minDeposit', async() => {
     try{
       // value must > minDesposit
       let addSmgParamsTemp = Object.assign({},addSmgParams);
@@ -194,7 +194,7 @@ contract('Test HTLC', async (accounts) => {
  EOS->WAN
  ==========================================================================================
   */
-  it('EOS->WAN inSmgLock->success', async() => {
+  it('EOS->WAN inSmgLock  ==>success', async() => {
     try{
       // accounts[1] is the wan address of the user.
       let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
@@ -211,7 +211,7 @@ contract('Test HTLC', async (accounts) => {
       assert.fail(err);
     }
   });
-  it('EOS->WAN inSmgLock->Quota is not enough', async() => {
+  it('EOS->WAN inSmgLock  ==>Quota is not enough', async() => {
     try{
       // accounts[1] is the wan address of the user.
       let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
@@ -231,7 +231,7 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(),"Quota is not enough");
     }
   });
-  it('EOS->WAN inUserRedeem --> redeem from not the receiver', async() => {
+  it('EOS->WAN inUserRedeem ==> redeem from not the receiver', async() => {
     try{
       // accounts[1] is the wan address of the user.
       //Msg sender is incorrect
@@ -243,7 +243,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('EOS->WAN inUserRedeem --> success', async() => {
+  it('EOS->WAN inUserRedeem ==> success', async() => {
     try{
       await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
         htlcUserRedeemParams.x, {from:accounts[1]});
@@ -261,7 +261,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('EOS->WAN inUserRedeem --> Redeem twice', async() => {
+  it('EOS->WAN inUserRedeem ==> Redeem twice', async() => {
     try{
       await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
         htlcUserRedeemParams.x, {from:accounts[1]});
@@ -270,8 +270,34 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('EOS->WAN inSmgRevoke', async() => {
+  it('EOS->WAN inSmgRevoke  ==>should wait for locked time', async() => {
+    try{
+      // accounts[1] is the wan address of the user.
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.value  = v2;
+      htlcSmgLockParamsTemp.xHash  = xHash5;
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
 
+      await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount,xHash5);
+    }catch(err){
+      assert.include(err.toString(), "Revoke is not permitted");
+    }
+  });
+
+  it('EOS->WAN inSmgRevoke  ==>success', async() => {
+    try{
+      await sleep(lockedTime);
+      await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount,xHash5);
+    }catch(err){
+      assert.fail(err);
+    }
   });
 
   /*
@@ -280,7 +306,7 @@ contract('Test HTLC', async (accounts) => {
   ==========================================================================================
  */
 
-  it('WAN->EOS outUserLock--> Account has no WEOS', async() => {
+  it('WAN->EOS outUserLock  ==> Account has no WEOS', async() => {
     let error = null;
     try{
       // account[0] has no WEOS
@@ -300,7 +326,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outUserLock--> Before lock, No approve', async() => {
+  it('WAN->EOS outUserLock  ==> Before lock, No approve', async() => {
     let error = null;
     try{
 
@@ -320,7 +346,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outUserLock--> success', async() => {
+  it('WAN->EOS outUserLock  ==> success', async() => {
     try{
       //  lock before approve
       let balanceBeforeLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
@@ -349,7 +375,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outSmgRedeem--> use wrong x', async() => {
+  it('WAN->EOS outSmgRedeem ==> use wrong x', async() => {
     try{
       htlcSmgRedeemParams.x = x1;
       await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.tokenOrigAccount,
@@ -361,7 +387,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outSmgRedeem--> Success', async() => {
+  it('WAN->EOS outSmgRedeem ==> Success', async() => {
     try{
 
       htlcSmgRedeemParams.x = x2;
@@ -375,7 +401,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outUserRevoke==>should wait 2*lockedTime,not wait lockedTime', async() => {
+  it('WAN->EOS outUserRevoke  ==>should wait 2*lockedTime,not wait lockedTime', async() => {
     let htlcUserLockParamsTemp;
     try{
       //  lock before approve
@@ -416,7 +442,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outUserRevoke==>should wait 2*lockedTime,now only wait lockedTime', async() => {
+  it('WAN->EOS outUserRevoke  ==>should wait 2*lockedTime,now only wait lockedTime', async() => {
     // revoke
     try{
       await sleep(lockedTime);
@@ -426,17 +452,14 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('WAN->EOS outUserRevoke==>success', async() => {
+  it('WAN->EOS outUserRevoke  ==>success', async() => {
     // revoke
     try{
       let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
       await sleep(2*lockedTime);
       await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount,xHash4);
       let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
-
-      console.log(balanceBeforeRevoke);
-      console.log(balanceAfterRevoke);
-
+      assert.equal(balanceAfterRevoke, balanceBeforeRevoke+v3,"The balance of revoked is not right!");
     }catch(err){
       assert.fail(err.toString());
     }
