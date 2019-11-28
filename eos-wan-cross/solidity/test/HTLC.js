@@ -13,12 +13,15 @@ const StoremanGroupProxy    = artifacts.require('StoremanGroupProxy');
 const StoremanGroupDelegate = artifacts.require('StoremanGroupDelegate');
 const WanToken              = artifacts.require("WanToken");
 
+var BN = web3.utils.BN;
+
 let smgInstProxy, htlcInstProxy,tmInstProxy;
 let smgInst, htlcInst,tmInst;
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
 let lockedTime      = 6*1000; //unit: ms
+let DEFAULT_PRECISE = 10000;
 
 // x and xhash
 const x1            = '0x0000000000000000000000000000000000000000000000000000000000000001';
@@ -46,7 +49,6 @@ const v3            = 5;
 const appproveValue = 10;
 
 const storemanPK1   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
-const quota1         = '100';
 const txFeeRatio1    = '20';
 
 const storemanPK2   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebba';
@@ -56,6 +58,9 @@ const txFeeRatio2   = '20';
 const R             = '0x042c73b8cbc70bb635922a60f5eb9e6dcae637bbb05869fa5a4134f0c5ec859c0462696cd577c419666045ec6310a85f6638532d8d23cdbc2006a60dc3fbbada7e';
 const s             = '0x0c595b48605562a1a6492540b875da4ff203946a9dd0e451cd33d06ef568626b';
 
+const ADDRESS_0     = '0x0000000000000000000000000000000000000000';
+const ADDRESS_TM     = '0x0000000000000000000000000000000000000001';
+const ADDRESS_SMGADMIN     = '0x0000000000000000000000000000000000000002';
 // token info.
 let tokenInfo = {
   tokenOrigAccount      : web3.utils.hexToBytes(web3.utils.asciiToHex('Eos contract address')),
@@ -100,7 +105,7 @@ let htlcSmgRedeemParams = {
 let addSmgParams = {
   tokenOrigAccount: tokenInfo.tokenOrigAccount,
   storemanGroupPK: storemanPK1,
-  quota:        quota1,
+  quota:        tokenInfo.minDeposit,
   txFeeRatio:   txFeeRatio1
 };
 
@@ -137,8 +142,6 @@ contract('Test HTLC', async (accounts) => {
         tokenInfo.symbol,
         tokenInfo.decimals);
 
-      let ret = await tmInstProxy.getTokenInfo(tokenInfo.tokenOrigAccount);
-
       // register storeman. the storeman delegate account is accounts[2]
       await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
@@ -150,11 +153,44 @@ contract('Test HTLC', async (accounts) => {
 
   });
 
-  /*
-  ==========================================================================================
-  init...
-  ==========================================================================================
-   */
+  //
+  // ==========================================================================================
+  // init...
+  // ==========================================================================================
+  //
+
+  it('init...   -> getStoremanFee success', async() => {
+    try{
+      let stmFee = await htlcInstProxy.getStoremanFee(addSmgParams.storemanGroupPK);
+      //console.log(new BN(stmFee).toString());
+      //console.log(new BN(addSmgParams.txFeeRatio).toString());
+      assert.equal(new BN(stmFee).eq(new BN(0)),true);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
+  it('init...   -> queryStoremanGroupQuota success', async() => {
+    try{
+      let ret = await htlcInstProxy.queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,
+        addSmgParams.storemanGroupPK);
+
+      let bnToken2WanRation = new BN(tokenInfo.token2WanRatio);
+      let bnUnitToken = (new BN(10)).pow(new BN(tokenInfo.decimals));
+      let bnUnitEth = (new BN(10)).pow(new BN(18));
+      let bnDefultPrecise = new BN(DEFAULT_PRECISE);
+      let value = new BN(addSmgParams.quota);
+      let quato = value.mul(bnDefultPrecise).mul(bnUnitToken).div(bnToken2WanRation).div(bnUnitEth);
+
+      // console.log(new BN(ret[0]).toString());
+      // console.log(quato.toString());
+
+      assert.equal(new BN(ret[0]).eq(new BN(quato)),true);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
   it('init...   -> should call from smg sc address', async() => {
     try{
       await htlcInstProxy.addStoremanGroup(addSmgParams.tokenOrigAccount,
@@ -189,11 +225,11 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(),"Value must be greater than minDeposit");
     }
   });
-  /*
- ==========================================================================================
- EOS->WAN
- ==========================================================================================
-  */
+  ///
+ ///==========================================================================================
+ ///EOS->WAN
+ ///==========================================================================================
+ ///
   it('EOS->WAN inSmgLock  ==>success', async() => {
     try{
       // accounts[1] is the wan address of the user.
@@ -300,11 +336,11 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  /*
-  ==========================================================================================
-  WAN->EOS
-  ==========================================================================================
- */
+ //
+ //  ==========================================================================================
+ //  WAN->EOS
+ //  ==========================================================================================
+ //
 
   it('WAN->EOS outUserLock  ==> Account has no WEOS', async() => {
     let error = null;
@@ -451,8 +487,7 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(), "Revoke is not permitted");
     }
   });
-
-  it('WAN->EOS outUserRevoke  ==>success', async() => {
+  it('Others outUserRevoke  ==>success', async() => {
     // revoke
     try{
       let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
@@ -465,8 +500,49 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-});
+  let tmAddress, smgAddress, precise;
+  it('WAN->EOS getEconomics  ==>The default value', async() => {
+    try{
+      let ret = await htlcInstProxy.getEconomics();
+      tmAddress = ret[0];
+      smgAddress = ret[1];
+      precise = ret[2];
+      assert.notEqual(ret[0], ADDRESS_0);
+      assert.notEqual(ret[1], ADDRESS_0);
+      assert.equal(ret[2].toNumber(), 0);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
 
+  it('WAN->EOS setEconomics  ==>set new value', async() => {
+    try{
+      await htlcInstProxy.setEconomics(ADDRESS_TM,ADDRESS_SMGADMIN,ratioPrecise);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
+  it('WAN->EOS getEconomics  ==>check new value', async() => {
+    try {
+      let ret = await htlcInstProxy.getEconomics();
+      assert.equal(ret[0], ADDRESS_TM);
+      assert.equal(ret[1], ADDRESS_SMGADMIN);
+      assert.equal(ret[2].toNumber(), ratioPrecise);
+    } catch (err) {
+      assert.fail(err.toString());
+    }
+  });
+
+    it('WAN->EOS setEconomics  ==>restore the saved address', async() => {
+      try{
+        await htlcInstProxy.setEconomics(tmAddress,smgAddress,precise);
+      }catch(err){
+        assert.fail(err.toString());
+      }
+  });
+
+});
 async function sleep(time){
   return new Promise(function(resolve, reject) {
     setTimeout(function() {
@@ -482,5 +558,4 @@ async function getValueFromContract(tokenOrigAccount, userAccountAddress){
   let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
   let balance = await wanTokenScInst.balanceOf(userAccountAddress);
   return balance.toNumber();
-}
-
+};
