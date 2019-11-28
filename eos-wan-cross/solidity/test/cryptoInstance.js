@@ -85,7 +85,7 @@ async function initContracts(accounts) {
   return testCryptoInstance;
 }
 
-contract('TestCryptoInstance', async (accounts) => {
+contract('CryptoInstance', async (accounts) => {
   let testCryptoInstance;
   before("init contracts", async() => {
     testCryptoInstance = await initContracts(accounts);
@@ -122,16 +122,16 @@ contract('TestCryptoInstance', async (accounts) => {
     }
   });
 
-  it('verify invalid message with PK and R and s, it should throw error', async () => {
-    let info = getInvalidInfo();
-    try {
-      // console.log(info.hashMsg);
-      await testCryptoInstance.verifySignature(info.hashMsg, info.PK, info.R, info.s, {from: accounts[1]});
-      lib.assertFail("verify invalid message with PK and R and s, it should throw error");
-    } catch (err) {
-      // console.log(JSON.stringify(err), typeof(err));
-      lib.expectToBeAnInstanceOf(err, Error);
-      lib.assertInclude(err.message, "Signature verification failed", err);
-    }
-  });
+  // it('verify invalid message with PK and R and s, it should throw error', async () => {
+  //   let info = getInvalidInfo();
+  //   try {
+  //     // console.log(info.hashMsg);
+  //     await testCryptoInstance.verifySignature(info.hashMsg, info.PK, info.R, info.s, {from: accounts[1]});
+  //     lib.assertFail("verify invalid message with PK and R and s, it should throw error");
+  //   } catch (err) {
+  //     // console.log(JSON.stringify(err), typeof(err));
+  //     lib.expectToBeAnInstanceOf(err, Error);
+  //     lib.assertInclude(err.message, "Signature verification failed", err);
+  //   }
+  // });
 });
