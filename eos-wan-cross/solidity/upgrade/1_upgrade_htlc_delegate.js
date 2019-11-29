@@ -21,7 +21,7 @@ module.exports = async (deployer) => {
   await deployer.deploy(HTLCDelegate);
   let htlcDelegate = await HTLCDelegate.deployed();
 
-  // update htlcProxy
+  // update htlcProxy dependence
   let htlcProxy = await HTLCProxy.deployed();
   await htlcProxy.upgradeTo(htlcDelegate.address);
- }
+}
