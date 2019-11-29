@@ -20,9 +20,9 @@
   },
   "scripts": {
     "eos": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c",
-    "test": "./solidity/test/beforeTest.sh && cd solidity && truffle test && ../solidity/test/afterTest.sh",
+    "test": "./solidity/test/beforeTest.sh && cd solidity && truffle test && ./solidity/test/afterTest.sh",
     "develop": "cd solidity && truffle develop",
     "compile": "cd solidity && truffle compile",
-    "coverage": "./solidity/test/beforeTest.sh  && cd solidity && npx solidity-coverage && ../solidity/test/afterTest.sh"
+    "coverage": "./solidity/test/beforeTest.sh  && cd solidity && npx solidity-coverage && ./solidity/test/afterTest.sh"
   }
 }

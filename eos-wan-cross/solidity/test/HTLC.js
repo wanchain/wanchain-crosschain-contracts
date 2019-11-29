@@ -20,7 +20,7 @@ let smgInst, htlcInst,tmInst;
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 6*1000; //unit: ms
+let lockedTime      = 2*1000; //unit: ms
 let DEFAULT_PRECISE = 10000;
 
 // x and xhash
@@ -43,6 +43,22 @@ const xHash5        = '0x96de8fc8c256fa1e1556d41af431cace7dca68707c78dd88c3acab8
 const x6            = '0x0000000000000000000000000000000000000000000000000000000000000006';
 const xHash6        = '0xd1ec675902ef1633427ca360b290b0b3045a0d9058ddb5e648b4c3c3224c5c68';
 
+const x7            = '0x0000000000000000000000000000000000000000000000000000000000000007';
+const xHash7        = '0x48428bdb7ddd829410d6bbb924fdeb3a3d7e88c2577bffae073b990c6f061d08';
+
+const x8            = '0x0000000000000000000000000000000000000000000000000000000000000008';
+const xHash8        = '0x38df1c1f64a24a77b23393bca50dff872e31edc4f3b5aa3b90ad0b82f4f089b6';
+
+const x9            = '0x0000000000000000000000000000000000000000000000000000000000000009';
+const xHash9        = '0x887bf140ce0b6a497ed8db5c7498a45454f0b2bd644b0313f7a82acc084d0027';
+
+const x10            = '0x000000000000000000000000000000000000000000000000000000000000000a';
+const xHash10        = '0x81b04ae4944e1704a65bc3a57b6fc3b06a6b923e3c558d611f6a854b5539ec13';
+
+const x11            = '0x000000000000000000000000000000000000000000000000000000000000000b';
+const xHash11        = '0xc09322c415a5ac9ffb1a6cde7e927f480cc1d8afaf22b39a47797966c08e9c4b';
+
+
 const v1            = 20;
 const v2            = 10;
 const v3            = 5;
@@ -54,6 +70,10 @@ const txFeeRatio1    = '20';
 const storemanPK2   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebba';
 const quota2        = '200';
 const txFeeRatio2   = '20';
+
+const srcDebtStoremanPK   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebbb';
+const dstDebtStoremanPK   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebbc';
+const srcDebtStoremanPK1   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebbd';
 
 const R             = '0x042c73b8cbc70bb635922a60f5eb9e6dcae637bbb05869fa5a4134f0c5ec859c0462696cd577c419666045ec6310a85f6638532d8d23cdbc2006a60dc3fbbada7e';
 const s             = '0x0c595b48605562a1a6492540b875da4ff203946a9dd0e451cd33d06ef568626b';
@@ -107,6 +127,23 @@ let addSmgParams = {
   storemanGroupPK: storemanPK1,
   quota:        tokenInfo.minDeposit,
   txFeeRatio:   txFeeRatio1
+};
+
+let htlcDebtLockParams = {
+  tokenOrigAccount: tokenInfo.tokenOrigAccount,
+  xHash:xHash6,
+  value:v1,
+  srcStoremanPK: srcDebtStoremanPK,
+  dstStoremanPK: dstDebtStoremanPK,
+  r:R,
+  s:s
+};
+
+let htlcDebtRedeemParams = {
+  tokenOrigAccount: tokenInfo.tokenOrigAccount,
+  r:R,
+  s:s,
+  x:x6
 };
 
 let STATUS = {
@@ -609,6 +646,195 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(),"Must wait until delay time");
     }
   });
+
+  it('Debt  ==>register two storeman group for debt', async() => {
+    try{
+      let addSmgParamsTemp = Object.assign({},addSmgParams);
+      addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK;
+      // source storman
+      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+        addSmgParamsTemp.storemanGroupPK,
+        addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
+
+      // destination storman
+      addSmgParamsTemp.storemanGroupPK = dstDebtStoremanPK;
+      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+        addSmgParamsTemp.storemanGroupPK,
+        addSmgParamsTemp.txFeeRatio, {from: accounts[6], value:tokenInfo.minDeposit});
+
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
+  it('Debt  ==>inDebtLock PK is active should deactive', async() => {
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      try{
+          await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+          htlcDebtLockParamsTemp.xHash,
+          htlcDebtLockParamsTemp.value,
+          htlcDebtLockParamsTemp.srcStoremanPK,
+          htlcDebtLockParamsTemp.dstStoremanPK,
+          htlcDebtLockParamsTemp.r,
+          htlcDebtLockParamsTemp.s);
+
+      }catch(err){
+        assert.include(err.toString(),"PK is active");
+      }
+
+  });
+
+  // it('Debt  ==>inDebtLock PK is not allowed to repay debt', async() => {
+  //   let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+  //   try{
+  //     await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+  //     await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+  //       htlcDebtLockParamsTemp.xHash,
+  //       htlcDebtLockParamsTemp.value,
+  //       htlcDebtLockParamsTemp.srcStoremanPK,
+  //       htlcDebtLockParamsTemp.dstStoremanPK,
+  //       htlcDebtLockParamsTemp.r,
+  //       htlcDebtLockParamsTemp.s);
+  //   }catch(err){
+  //     assert.include(err.toString(),"PK is not allowed to repay debt");
+  //   }
+  //
+  // });
+
+  it('Debt  ==>inDebtLock success', async() => {
+    let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+    try{
+
+      // accounts[1] is the wan address of the user.
+      // lock
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.xHash = xHash7;
+      htlcSmgLockParamsTemp.storemanGroupPK = srcDebtStoremanPK;
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
+
+      // redeem
+      let htlcUserRedeemParamsTemp = Object.assign({},htlcUserRedeemParams);
+      htlcUserRedeemParamsTemp.x = x7;
+      await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
+        htlcUserRedeemParamsTemp.x, {from:accounts[1]});
+
+      // deactive
+      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+
+      // debtLock
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+
+    }catch(err){
+      assert.fail(err.toString());
+    }
+
+  });
+
+  it('Debt  ==>inDebtRedeem', async() => {
+
+    let htlcDebtRedeemParamsTemp = Object.assign({},htlcDebtRedeemParams);
+    try{
+      await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
+        htlcDebtRedeemParamsTemp.x,
+        htlcDebtRedeemParamsTemp.r,
+        htlcDebtRedeemParamsTemp.s);
+
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
+  it('Debt  ==>inDebtRevoke Duplicate unregister', async() => {
+    try{
+
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      htlcDebtLockParamsTemp.xHash = xHash8;
+
+      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+
+      await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.xHash);
+
+    }catch(err){
+      assert.include(err.toString(),"Duplicate unregister");
+    }
+  });
+
+  it('Debt  ==>inDebtRevoke success', async() => {
+    try{
+
+      // register storeman
+      let addSmgParamsTemp = Object.assign({},addSmgParams);
+      addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
+      // source storman
+      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+        addSmgParamsTemp.storemanGroupPK,
+        addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
+
+      // accounts[1] is the wan address of the user.
+      // lock
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.xHash = xHash9;
+      htlcSmgLockParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
+
+      // redeem
+      let htlcUserRedeemParamsTemp = Object.assign({},htlcUserRedeemParams);
+      htlcUserRedeemParamsTemp.x = x9;
+      await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
+        htlcUserRedeemParamsTemp.x, {from:accounts[1]});
+
+      // deactive
+      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK1, {from: accounts[4]});
+
+      // debtLock
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      htlcDebtLockParamsTemp.srcStoremanPK = srcDebtStoremanPK1;
+      htlcDebtLockParamsTemp.xHash = xHash11;
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+      //
+      await sleep(2*lockedTime);
+      await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.xHash);
+
+    }catch(err){
+      assert.fail(err.toString());
+    }
+
+  });
+
 
 });
 async function sleep(time){

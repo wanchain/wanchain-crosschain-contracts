@@ -6,7 +6,7 @@ const HTLCLib = artifacts.require('HTLCLib');
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 6*1000; //unit: ms
+let lockedTime      = 2*1000; //unit: ms
 
 const x1            = '0x0000000000000000000000000000000000000000000000000000000000000001';
 const xHash1        = '0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5';
@@ -183,7 +183,6 @@ contract('Test HTLCLib', async (accounts) => {
     storemanPK = storemanPK1;
     //await debug(testHtlcLib.addUserTx(xHash, value, shadow, storemanPK));
     await testHtlcLib.addUserTx(xHash, value, shadow, storemanPK);
-    console.log("Waiting for invoke......");
     await sleep( 2*lockedTime );
     await testHtlcLib.revokeUserTx(xHash);
     let statusNew = await testHtlcLib.getUserTxStatus(xHash);
@@ -199,7 +198,6 @@ contract('Test HTLCLib', async (accounts) => {
     value               = v2;
     storemanPK          = storemanPK2;
     await testHtlcLib.addSmgTx(xHash, value, accounts[1], storemanPK);
-    console.log("Waiting for invoke......");
     await sleep(lockedTime );
     await testHtlcLib.revokeSmgTx(xHash);
     let statusNew = await testHtlcLib.getSmgTxStatus(xHash);
@@ -215,8 +213,6 @@ contract('Test HTLCLib', async (accounts) => {
     storemanPK          = storemanPK2;
     srcStoremanPK       = storemanPK1;
     await testHtlcLib.addDebtTx(xHash, value, srcStoremanPK, storemanPK);
-
-    console.log("Waiting for invoke......");
     await sleep(lockedTime);
     await testHtlcLib.revokeDebtTx(xHash);
     let statusNew = await testHtlcLib.getDebtTxStatus(xHash);
