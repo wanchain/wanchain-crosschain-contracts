@@ -1155,6 +1155,19 @@ contract('TokenManager', async (accounts) => {
     [delegateV2, delegate, proxy] = await initContracts(accounts);
   });
 
+  it('proxy upgradeTo with address address(0), it should be throw error', async () => {
+    let address0 = getAddress_0();
+    try {
+    // Initalize the proxy with address 0.
+    await proxy.upgradeTo(address0)
+    lib.assertFail("proxy upgradeTo with address address(0), it should be throw error");
+    } catch (err) {
+      lib.expectToBeAnInstanceOf(err, Error);
+      lib.assertExists(err.reason);
+      lib.assertCommonEqual(err.reason, "Cannot upgrade to invalid address");
+    }
+  })
+
   it('upgrade token manager delegate by others instead of owner, it should throw error', async () => {
     let sender = accounts[3];
 
