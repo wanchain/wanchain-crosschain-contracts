@@ -147,6 +147,10 @@ contract('Test HTLC', async (accounts) => {
         addSmgParams.storemanGroupPK,
         addSmgParams.txFeeRatio, {from: accounts[2], value:tokenInfo.minDeposit});
 
+      await smgInstProxy.smgAppendDepositByDelegate(addSmgParams.tokenOrigAccount,
+        addSmgParams.storemanGroupPK,
+        {from: accounts[2], value:tokenInfo.minDeposit});
+
     }catch (err){
       assert.fail(err);
     }
@@ -180,7 +184,7 @@ contract('Test HTLC', async (accounts) => {
       let bnUnitEth = (new BN(10)).pow(new BN(18));
       let bnDefultPrecise = new BN(DEFAULT_PRECISE);
       let value = new BN(addSmgParams.quota);
-      let quato = value.mul(bnDefultPrecise).mul(bnUnitToken).div(bnToken2WanRation).div(bnUnitEth);
+      let quato = value.mul(bnDefultPrecise).mul(bnUnitToken).div(bnToken2WanRation).div(bnUnitEth).mul(new BN(2));
 
       // console.log(new BN(ret[0]).toString());
       // console.log(quato.toString());
@@ -540,6 +544,70 @@ contract('Test HTLC', async (accounts) => {
       }catch(err){
         assert.fail(err.toString());
       }
+  });
+
+  it('Other deactivateStoremanGroup  ==>Only storeman group admin sc can call it', async() => {
+    try{
+      await htlcInstProxy.deactivateStoremanGroup(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Only storeman group admin sc can call it");
+    }
+  });
+
+  it('Other delStoremanGroup  ==>Only storeman group admin sc can call it', async() => {
+    try{
+      await htlcInstProxy.delStoremanGroup(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Only storeman group admin sc can call it");
+    }
+  });
+
+  it('Other deactivateStoremanGroup  ==>Sender must be initiator', async() => {
+    try{
+      await smgInst.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Sender must be initiator");
+    }
+  });
+
+  it('Other delStoremanGroup  ==>Sender must be initiator', async() => {
+    try{
+      await smgInst.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Sender must be initiator");
+    }
+  });
+
+  it('Other deactivateStoremanGroup  ==>success', async() => {
+    try{
+      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Sender must be initiator");
+    }
+  });
+
+  it('Other delStoremanGroup  ==>success', async() => {
+    try{
+      await smgInstProxy.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+    }catch(err){
+      assert.include(err.toString(),"Sender must be initiator");
+    }
+  });
+
+  it('Other deactivateStoremanGroup  ==> smgApplyUnregisterByDelegate success', async() => {
+    try{
+      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1, {from: accounts[2]});
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
+
+  it('Other delStoremanGroup  ==>smgWithdrawDepositByDelegate should wait time.', async() => {
+    try{
+      await smgInstProxy.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1,{from: accounts[2]});
+    }catch(err){
+      assert.include(err.toString(),"Must wait until delay time");
+    }
   });
 
 });
