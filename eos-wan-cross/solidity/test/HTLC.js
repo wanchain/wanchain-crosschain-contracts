@@ -835,6 +835,13 @@ contract('Test HTLC', async (accounts) => {
 
   });
 
+  it('Debt  ==>smgWithdrawFee success', async() => {
+    try{
+      await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,accounts[6],R,s);
+    }catch(err){
+      assert.fail(err.toString());
+    }
+  });
 
 });
 async function sleep(time){
