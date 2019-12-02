@@ -21,7 +21,7 @@ let smgInst, htlcInst,tmInst;
 
 let revokeFeeRatio  = 100;
 let ratioPrecise    = 10000;
-let lockedTime      = 2*1000; //unit: ms
+let lockedTime      = 6*1000; //unit: ms
 let DEFAULT_PRECISE = 10000;
 
 // x and xhash
@@ -686,7 +686,7 @@ contract('Test HTLC', async (accounts) => {
     try{
       let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
       await sleep(2*lockedTime);
-      await debug(htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount,xHash4));
+      await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount,xHash4);
       let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
       assert.equal(balanceAfterRevoke, (new BN(balanceBeforeRevoke)).add(v3),"The balance of revoked is not right!");
     }catch(err){
