@@ -51,8 +51,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     /// @param name                  WRC20 token name on wanchain mainnet
     /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal              WRC20 token decimals on wanchain mainnet
-    /// @param tokenWanAddr          a wanchain address of supported ERC20 token
+    /// @param decimal               WRC20 token decimals on wanchain mainnet
     event TokenAddedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
                            bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
 
@@ -64,7 +63,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
     /// @param name                  WRC20 token name on wanchain mainnet
     /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal              WRC20 token decimals on wanchain mainnet
+    /// @param decimal               WRC20 token decimals on wanchain mainnet
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     event TokenUpdatedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
                              bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
@@ -212,6 +211,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
 
     /// @notice                      mint WRC20 token for a supported ERC20 token
     /// @dev                         mint WRC20 token for a supported ERC20 token
+    /// @param tokenOrigAccount      token account of original chain
     /// @param recipient             account minted WRC20 for
     /// @param value                 minted WRC20 amount
     function mintToken(bytes tokenOrigAccount, address recipient, uint value)
@@ -228,6 +228,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
 
     /// @notice                      burn WRC20 token in HTLC for a supported ERC20 token
     /// @dev                         burn WRC20 token in HTLC for a supported ERC20 token
+    /// @param tokenOrigAccount      token account of original chain
     /// @param value                 burned WRC20 amount
     function burnToken(bytes tokenOrigAccount, uint value)
         external

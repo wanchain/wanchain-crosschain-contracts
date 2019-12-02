@@ -183,7 +183,7 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         notHalted
     {
-        StoremanGroup memory smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
+        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
         require(smg.initiator == msg.sender, "Sender must be initiator");
         uint withdrawDelayTime;
         (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
