@@ -61,12 +61,26 @@ const xHash10        = '0x81b04ae4944e1704a65bc3a57b6fc3b06a6b923e3c558d611f6a85
 const x11            = '0x000000000000000000000000000000000000000000000000000000000000000b';
 const xHash11        = '0xc09322c415a5ac9ffb1a6cde7e927f480cc1d8afaf22b39a47797966c08e9c4b';
 
+const x12            = '0x000000000000000000000000000000000000000000000000000000000000000c';
+const xHash12        = '0xa82872b96246dac512ddf0515f5da862a92ecebebcb92537b6e3e73199694c45';
+
+const x13            = '0x000000000000000000000000000000000000000000000000000000000000000d';
+const xHash13        = '0x2a3f128306951f1ded174b8803ee1f0df0c6404bbe92682be21fd84accf5d540';
+
+
+const x14            = '0x000000000000000000000000000000000000000000000000000000000000000e';
+const xHash14        = '0xe14f5be83831f7fefa669d5a84daaa56ec01477dafc6701a83f243bc2228bb11';
+
+const x15            = '0x000000000000000000000000000000000000000000000000000000000000000f';
+const xHash15        = '0x3ba2581d53fbf070be34b6d6a2382faf1b8e76a3ade45b31c0c7c90ea289874e';
+
 // token info.
 let tokenInfo = {
   decimals              : 18,
   tokenOrigAccount      : web3.utils.hexToBytes(web3.utils.asciiToHex('Eos contract address')),
   token2WanRatio        : 10000,                  // 1:1
-  minDeposit            : new BN(20).mul(new BN(10).pow(new BN(18))),
+  //minDeposit            : new BN(20).mul(new BN(10).pow(new BN(18))),
+  minDeposit            : new BN(40).mul(new BN(10).pow(new BN(18))),
   withdrawDelayTime     : 60 * 60 * 72,
   name                  : web3.utils.hexToBytes(web3.utils.asciiToHex('Eos')),
   symbol                : web3.utils.hexToBytes(web3.utils.asciiToHex('EOS'))
@@ -86,7 +100,10 @@ const v1            = new BN(20).mul(new BN(10).pow(new BN(tokenInfo.decimals)))
 const v2            = new BN(10).mul(new BN(10).pow(new BN(tokenInfo.decimals)));
 const v3            = new BN(5).mul(new BN(10).pow(new BN(tokenInfo.decimals)));
 const v4            = new BN(2).mul(new BN(10).pow(new BN(tokenInfo.decimals)));
+const v5            = new BN(1).mul(new BN(10).pow(new BN(tokenInfo.decimals)));
+
 const appproveValue = new BN(20).mul(new BN(10).pow(new BN(tokenInfo.decimals)));
+const valueZero     = 0;
 
 const storemanPK1   = '0x047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9';
 const txFeeRatio1    = '20';
@@ -311,6 +328,14 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('Others setEconomics  ==>Parameter is invalid', async() => {
+    try{
+      await htlcInstProxy.setEconomics(ADDRESS_0,ADDRESS_0,ratioPrecise);
+    }catch(err){
+      assert.include(err.toString(),"Parameter is invalid");
+    }
+  });
+
   it('Others setEconomics  ==>Ratio is invalid', async() => {
     try{
       await htlcInstProxy.setEconomics(ADDRESS_TM,ADDRESS_SMGADMIN,ratioPreciseInvld);
@@ -490,6 +515,42 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('EOS->WAN inSmgLock  ==>lock value is 0, Value is invalid', async() => {
+    try{
+      // accounts[1] is the wan address of the user.
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.value = valueZero;
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
+
+    }catch(err){
+    assert.include(err.toString(),"Value is invalid");
+    }
+  });
+
+  it('EOS->WAN inSmgLock  ==>Smg tx is exist', async() => {
+    try{
+      // accounts[1] is the wan address of the user.
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Smg tx is exist");
+    }
+  });
 
   it('EOS->WAN inSmgLock  ==>Quota is not enough', async() => {
     try{
@@ -578,6 +639,35 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('EOS->WAN inUserRedeem ==> Redeem timeout', async() => {
+    try{
+      // smg lock
+      // accounts[1] is the wan address of the user.
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.xHash   = xHash12;
+      htlcSmgLockParamsTemp.x       = x12;
+      //htlcSmgLockParamsTemp.value   = v5;
+      htlcSmgLockParamsTemp.value   = v2;
+
+      await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+        htlcSmgLockParamsTemp.xHash,
+        htlcSmgLockParamsTemp.wanAddr,
+        htlcSmgLockParamsTemp.value,
+        htlcSmgLockParamsTemp.storemanGroupPK,
+        htlcSmgLockParamsTemp.r,
+        htlcSmgLockParamsTemp.s);
+
+      // wait timeout
+      await sleep(lockedTime+1);
+      // check user redeem
+      await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
+        htlcSmgLockParamsTemp.x, {from:accounts[1]});
+    }catch(err){
+      assert.include(err.toString(),"Redeem timeout");
+    }
+  });
+
   it('EOS->WAN inSmgRevoke  ==>Smart contract is halted', async() => {
     await htlcInstProxy.setHalt(true);
     try{
@@ -631,6 +721,15 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('EOS->WAN inSmgRevoke  ==>Status is not locked', async() => {
+    try{
+      await sleep(lockedTime);
+      await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount,xHash5);
+    }catch(err){
+      assert.include(err.toString(),"Status is not locked");
+    }
+  });
+
   it('EOS->WAN inSmgRevoke  ==>Token manager is null', async() => {
     try{
       await sleep(lockedTime);
@@ -645,6 +744,31 @@ contract('Test HTLC', async (accounts) => {
  //  WAN->EOS
  //  ==========================================================================================
  //
+
+
+  // can not create msg.send != tx.orgin
+  // because in system, it uses delegate_call
+  // it('WAN->EOS outUserLock  ==> Contract sender is not allowed', async() => {
+  //
+  //   let error = null;
+  //   try{
+  //     let htlcUserLockParamsTemp = Object.assign({},htlcUserLockParams);
+  //     htlcUserLockParamsTemp.userOrigAccount = accounts[3];
+  //     await debug(htlcInstProxy.outUserLock(htlcUserLockParamsTemp.xHash,
+  //       htlcUserLockParamsTemp.value,
+  //       tokenInfo.tokenOrigAccount,
+  //       htlcUserLockParamsTemp.userOrigAccount,
+  //       htlcSmgLockParams.storemanGroupPK,{from:accounts[1],origin:accounts[3]}));
+  //
+  //   }catch(err){
+  //     assert.include(err.toString(),"Contract sender is not allowed");
+  //     error = err;
+  //   }
+  //   if(!error){
+  //     assert.fail("should catch a error!")
+  //   }
+  //
+  // });
 
   it('WAN->EOS outUserLock  ==> Token manager is null', async() => {
 
@@ -759,6 +883,7 @@ contract('Test HTLC', async (accounts) => {
       assert.fail("should catch a error!")
     }
   });
+
   it('WAN->EOS outUserLock  ==> Transferred fee is not enough', async() => {
 
     let result=null;
@@ -804,6 +929,7 @@ contract('Test HTLC', async (accounts) => {
       assert.fail("should Transferred fee is not enough")
     }
   });
+
   it('WAN->EOS outUserLock  ==> success', async() => {
     try{
       //  lock before approve
@@ -842,6 +968,82 @@ contract('Test HTLC', async (accounts) => {
       assert.equal(balanceAfterLock, (new BN(balanceBeforeLock)).sub(new BN(htlcUserLockParams.value)),"After lock, the balance is not right!")
     }catch(err){
       assert.fail(err);
+    }
+  });
+
+  it('WAN->EOS outUserLock  User tx is exist==> ', async() => {
+    try{
+      //  lock before approve
+      let balanceBeforeLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      let ret = await tmInstProxy.getTokenInfo(tokenInfo.tokenOrigAccount);
+      //check use has get the WEOS redeemed.
+      let wanTokenSCAddr = ret[3];
+      let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
+
+      await wanTokenScInst.approve(htlcInstProxy.address,0,{from:accounts[1]});
+      await wanTokenScInst.approve(htlcInstProxy.address,appproveValue,{from:accounts[1]});
+      let balanceAfterLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      assert.equal(balanceBeforeLock, balanceAfterLock,"Approve should not withdraw the token!");
+
+      let txFee = (new BN(htlcUserLockParams.value))
+        .div(new BN(10).pow(new BN(tokenInfo.decimals)))
+        .mul(new BN(10).pow(new BN(18)))
+        .mul(new BN(tokenInfo.token2WanRatio))
+        .mul(new BN(addSmgParams.txFeeRatio))
+        .div(new BN(DEFAULT_PRECISE))
+        .div(new BN(DEFAULT_PRECISE));
+
+      // console.log("After approved:"+balanceAfterLock);
+      // console.log("userLockValue:"+htlcUserLockParams.value.toString());
+      // console.log("txFee:"+txFee.toString());
+
+      htlcUserLockParams.userOrigAccount = accounts[3];
+      await htlcInstProxy.outUserLock(htlcUserLockParams.xHash,
+        htlcUserLockParams.value,
+        htlcUserLockParams.tokenOrigAccount,
+        htlcUserLockParams.userOrigAccount,
+        htlcSmgLockParams.storemanGroupPK, {from:accounts[1],value:htlcUserLockParams.value});
+    }catch(err){
+      assert.include(err.toString(),"User tx is exist");
+    }
+  });
+
+  it('WAN->EOS outUserLock lock value 0, Value is invalid', async() => {
+    try{
+      let htlcUserLockParamsTemp = Object.assign({},htlcUserLockParams);
+      //  lock before approve
+      let balanceBeforeLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      let ret = await tmInstProxy.getTokenInfo(tokenInfo.tokenOrigAccount);
+      //check use has get the WEOS redeemed.
+      let wanTokenSCAddr = ret[3];
+      let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
+
+      await wanTokenScInst.approve(htlcInstProxy.address,0,{from:accounts[1]});
+      await wanTokenScInst.approve(htlcInstProxy.address,appproveValue,{from:accounts[1]});
+      let balanceAfterLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      assert.equal(balanceBeforeLock, balanceAfterLock,"Approve should not withdraw the token!");
+
+      htlcUserLockParamsTemp.value = valueZero;
+      let txFee = (new BN(htlcUserLockParamsTemp.value))
+        .div(new BN(10).pow(new BN(tokenInfo.decimals)))
+        .mul(new BN(10).pow(new BN(18)))
+        .mul(new BN(tokenInfo.token2WanRatio))
+        .mul(new BN(addSmgParams.txFeeRatio))
+        .div(new BN(DEFAULT_PRECISE))
+        .div(new BN(DEFAULT_PRECISE));
+
+      // console.log("After approved:"+balanceAfterLock);
+      // console.log("userLockValue:"+htlcUserLockParams.value.toString());
+      // console.log("txFee:"+txFee.toString());
+
+      htlcUserLockParamsTemp.userOrigAccount = accounts[3];
+      await htlcInstProxy.outUserLock(htlcUserLockParamsTemp.xHash,
+        htlcUserLockParamsTemp.value,
+        htlcUserLockParamsTemp.tokenOrigAccount,
+        htlcUserLockParamsTemp.userOrigAccount,
+        htlcUserLockParamsTemp.storemanGroupPK, {from:accounts[1],value:htlcUserLockParamsTemp.value});
+    }catch(err){
+      assert.include(err.toString(),"Value is invalid");
     }
   });
 
@@ -896,6 +1098,20 @@ contract('Test HTLC', async (accounts) => {
 
     }catch(err){
       assert.fail(err);
+    }
+  });
+
+  it('WAN->EOS outSmgRedeem ==> redeem twice, Status is not locked', async() => {
+    try{
+
+      htlcSmgRedeemParams.x = x2;
+      await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.tokenOrigAccount,
+        htlcSmgRedeemParams.x,
+        htlcSmgRedeemParams.r,
+        htlcSmgRedeemParams.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Status is not locked");
     }
   });
 
@@ -985,6 +1201,19 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('Others outUserRevoke  ==>Status is not locked', async() => {
+    // revoke
+    try{
+      let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      await sleep(2*lockedTime);
+      await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount,xHash4);
+      let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      assert.equal(balanceAfterRevoke, (new BN(balanceBeforeRevoke)).add(v3),"The balance of revoked is not right!");
+    }catch(err){
+      assert.include(err.toString(),"Status is not locked");
+    }
+  });
+
   it('Other addStoremanGroup  ==>Only storeman group admin sc can call it', async() => {
     try{
       await htlcInstProxy.addStoremanGroup(tokenInfo.tokenOrigAccount,storemanPK1,quota2,txFeeRatio1);
@@ -1001,8 +1230,6 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(),"Only storeman group admin sc can call it");
     }
   });
-
-
 
   it('Other delStoremanGroup  ==>Only storeman group admin sc can call it', async() => {
     try{
@@ -1218,6 +1445,49 @@ contract('Test HTLC', async (accounts) => {
 
   });
 
+  it('Debt  ==>inDebtLock Debt tx is exist', async() => {
+    let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+    try{
+      let htlcSmgLockParamsTemp = Object.assign({},htlcSmgLockParams);
+      htlcSmgLockParamsTemp.wanAddr = accounts[1];
+      htlcSmgLockParamsTemp.xHash = xHash7;
+      // debtLock
+      htlcDebtLockParamsTemp.value = v4;
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(), "Debt tx is exist");
+    }
+
+  });
+
+  it('Debt  ==>inDebtLock lock value 0, Value is invalid', async() => {
+    let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+    try{
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      // debtLock
+      //htlcDebtLockParamsTemp.value = v4;
+      htlcDebtLockParamsTemp.value = valueZero;
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Value is invalid");
+    }
+
+  });
+
   it('Debt  ==>inDebtRedeem Smart contract is halted', async() => {
     await htlcInstProxy.setHalt(true);
     let htlcDebtRedeemParamsTemp = Object.assign({},htlcDebtRedeemParams);
@@ -1233,7 +1503,7 @@ contract('Test HTLC', async (accounts) => {
     await htlcInstProxy.setHalt(false);
   });
 
-  it('Debt  ==>inDebtRedeem', async() => {
+  it('Debt  ==>inDebtRedeem success', async() => {
 
     let htlcDebtRedeemParamsTemp = Object.assign({},htlcDebtRedeemParams);
     try{
@@ -1244,6 +1514,20 @@ contract('Test HTLC', async (accounts) => {
 
     }catch(err){
       assert.fail(err.toString());
+    }
+  });
+
+  it('Debt  ==>inDebtRedeem redeem twice Status is not locked', async() => {
+
+    let htlcDebtRedeemParamsTemp = Object.assign({},htlcDebtRedeemParams);
+    try{
+      await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
+        htlcDebtRedeemParamsTemp.x,
+        htlcDebtRedeemParamsTemp.r,
+        htlcDebtRedeemParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Status is not locked");
     }
   });
 
@@ -1321,9 +1605,8 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('Debt  ==>inDebtRevoke success', async() => {
+  it('Debt  ==>inDebtRevoke Revoke is not permitted', async() => {
     try{
-
       // register storeman
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
@@ -1339,6 +1622,7 @@ contract('Test HTLC', async (accounts) => {
       htlcSmgLockParamsTemp.xHash = xHash9;
       htlcSmgLockParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
       htlcSmgLockParamsTemp.value = v4;
+
       await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
         htlcSmgLockParamsTemp.xHash,
         htlcSmgLockParamsTemp.wanAddr,
@@ -1361,6 +1645,7 @@ contract('Test HTLC', async (accounts) => {
       htlcDebtLockParamsTemp.srcStoremanPK = srcDebtStoremanPK1;
       htlcDebtLockParamsTemp.xHash = xHash11;
       htlcDebtLockParamsTemp.value = v4;
+
       await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
         htlcDebtLockParamsTemp.xHash,
         htlcDebtLockParamsTemp.value,
@@ -1368,7 +1653,20 @@ contract('Test HTLC', async (accounts) => {
         htlcDebtLockParamsTemp.dstStoremanPK,
         htlcDebtLockParamsTemp.r,
         htlcDebtLockParamsTemp.s);
-      //
+
+      //await sleep(lockedTime);
+      await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.xHash);
+
+    }catch(err){
+      assert.include(err.toString(),"Revoke is not permitted");
+    }
+
+  });
+
+  it('Debt  ==>inDebtRevoke success', async() => {
+    try{
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      htlcDebtLockParamsTemp.xHash = xHash11;
       await sleep(2*lockedTime);
       await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.xHash);
 
@@ -1378,13 +1676,34 @@ contract('Test HTLC', async (accounts) => {
 
   });
 
-  it('Debt  ==>smgWithdrawFee success', async() => {
+  it('Debt  ==>inDebtRevoke Status is not locked', async() => {
+    try{
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+      htlcDebtLockParamsTemp.xHash = xHash11;
+      await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.xHash);
+
+    }catch(err){
+      assert.include(err.toString(),"Status is not locked");
+    }
+  });
+
+  it('Debt  ==>smgWithdrawFee', async() => {
     try{
       await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,accounts[6],R,s);
     }catch(err){
       assert.fail(err.toString());
     }
   });
+
+  // Lock token failed  is not coveraged, because IWRC20Protocol(instance).transferFrom only return true
+  // or revert. No valse value be returned.
+  // it('Lock token failed', async() => {
+  //   try{
+  //     await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,accounts[6],R,s);
+  //   }catch(err){
+  //     assert.fail(err.toString());
+  //   }
+  // });
 
 });
 async function sleep(time){
