@@ -16,7 +16,8 @@ const ADDRESS_0 = '0x0000000000000000000000000000000000000000';
 const storemanTxFeeRatio = 10; // 0.001
 const storemanDepositWan = 10;
 const storemanDeposit = web3.utils.toWei(storemanDepositWan.toString());
-const storeman = '0x042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619'; 
+const DEFAULT_PRECISE = 10000;
+const storeman = '0x042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619';
 
 // token
 const eosAccount = new crossChainAccount("eos", "ascii");
@@ -259,7 +260,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Account is null')
+    assert.equal(result.reason, 'Invalid tokenOrigAccount')
   })
 
   it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should fail in case invalid storeman group pk', async () => {
@@ -275,7 +276,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupDelegate_storemanGroupRegisterByDelegate] should fail in case invalid txFeeRatio', async () => {
     let result = {};
     try {
-      await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, 0, {from: delegate, value: storemanDeposit});
+      await smgSC.storemanGroupRegisterByDelegate(eosToken.origAddr, storeman, DEFAULT_PRECISE, {from: delegate, value: storemanDeposit});
     } catch (e) {
       result = e;
     }
@@ -497,7 +498,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Account is null')
+    assert.equal(result.reason, 'Sender must be initiator')
   })
 
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case invalid storeman group pk', async () => {
@@ -507,7 +508,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'PK is null')
+    assert.equal(result.reason, 'Sender must be initiator')
   })
 
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case not registered', async () => {
@@ -517,7 +518,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Not registered')
+    assert.equal(result.reason, 'Sender must be initiator')
   })
 
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case invoked by not initiator', async () => {
@@ -558,6 +559,17 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(event.storemanGroup, storeman)
     assert.equal(event.wanDeposit, storemanDeposit)
     assert.equal(event.quota.eq(eosToken.quota.mul(new BN(storemanDepositWan))), true)
+  })
+
+  it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case inactive', async () => {
+    let result = {};
+    try {
+      await smgSC.smgApplyUnregisterByDelegate(eosToken.origAddr, storeman, {from: delegate});
+      await smgSC.smgAppendDepositByDelegate(eosToken.origAddr, storeman, {from: delegate, value: storemanDeposit});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Inactive')
   })
 
   it('[StoremanGroupDelegate_smgAppendDepositByDelegate] should fail in case unsupported function', async () => {

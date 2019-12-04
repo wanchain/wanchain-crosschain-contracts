@@ -29,7 +29,7 @@ import "../lib/SafeMath.sol";
 import "../components/Halt.sol";
 import "./StoremanGroupStorage.sol";
 
-contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
+contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     using SafeMath for uint;
 
     /**
@@ -73,11 +73,6 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     event StoremanGroupAppendDepositLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
-
-    modifier onlyValidAccount(bytes account) {
-        require(account.length != 0, "Account is null");
-        _;
-    }
 
     modifier onlyValidPK(bytes pk) {
         require(pk.length != 0, "PK is null");
@@ -134,10 +129,9 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         payable
         notHalted
-        onlyValidAccount(tokenOrigAccount)
         onlyValidPK(storemanGroup)
     {
-        require(txFeeRatio > 0, "Invalid txFeeRatio");
+        require(tokenOrigAccount.length != 0, "Invalid tokenOrigAccount");
         require(storemanGroupMap[tokenOrigAccount][storemanGroup].deposit == 0, "Duplicate register");
 
         uint8 decimals;
@@ -147,6 +141,7 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(minDeposit > 0, "Token not exist");
         require(msg.value >= minDeposit, "Value must be greater than minDeposit");
+        require(txFeeRatio < defaultPricise, "Invalid txFeeRatio");
         if (isWhiteListEnabled) {
             require(mapSmgWhiteList[storemanGroup], "Not in white list");
         }
@@ -204,12 +199,10 @@ contract StoremanGroupDelegate is Halt, StoremanGroupStorage {
         external
         payable
         notHalted
-        onlyValidAccount(tokenOrigAccount)
-        onlyValidPK(storemanGroup)
     {
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(smg.deposit > 0, "Not registered");
         require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(smg.unregisterApplyTime == 0, "Inactive");
 
         uint8 decimals;
         uint token2WanRatio;

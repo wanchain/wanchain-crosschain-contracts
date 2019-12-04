@@ -30,7 +30,7 @@ import "../components/Halt.sol";
 import "./StoremanGroupStorage.sol";
 import "../components/Proxy.sol";
 
-contract StoremanGroupProxy is Halt, StoremanGroupStorage, Proxy {
+contract StoremanGroupProxy is StoremanGroupStorage, Halt, Proxy {
 
     function upgradeTo(address impl) public onlyOwner {
         require(impl != address(0), "Cannot upgrade to invalid address");
