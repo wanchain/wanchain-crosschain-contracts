@@ -1101,6 +1101,55 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
+  it('WAN->EOS outSmgRedeem ==> Redeem timeout', async() => {
+    try{
+      //  lock before approve
+      let balanceBeforeLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      let ret = await tmInstProxy.getTokenInfo(tokenInfo.tokenOrigAccount);
+      //check use has get the WEOS redeemed.
+      let wanTokenSCAddr = ret[3];
+      let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
+
+      // approve
+      await wanTokenScInst.approve(htlcInstProxy.address,0,{from:accounts[1]});
+      await wanTokenScInst.approve(htlcInstProxy.address,appproveValue,{from:accounts[1]});
+      let balanceAfterLock = await getValueFromContract(tokenInfo.tokenOrigAccount,accounts[1]);
+      assert.equal(balanceBeforeLock, balanceAfterLock,"Approve should not withdraw the token!");
+
+      let txFee = (new BN(htlcUserLockParams.value))
+        .div(new BN(10).pow(new BN(tokenInfo.decimals)))
+        .mul(new BN(10).pow(new BN(18)))
+        .mul(new BN(tokenInfo.token2WanRatio))
+        .mul(new BN(addSmgParams.txFeeRatio))
+        .div(new BN(DEFAULT_PRECISE))
+        .div(new BN(DEFAULT_PRECISE));
+
+      let htlcUserLockParamsTemp = Object.assign({},htlcUserLockParams);
+      htlcUserLockParamsTemp.userOrigAccount = accounts[3];
+      htlcUserLockParamsTemp.value = v5;
+      htlcUserLockParamsTemp.xHash = xHash13;
+      htlcUserLockParamsTemp.x = x13;
+
+      await htlcInstProxy.outUserLock(htlcUserLockParamsTemp.xHash,
+        htlcUserLockParamsTemp.value,
+        htlcUserLockParamsTemp.tokenOrigAccount,
+        htlcUserLockParamsTemp.userOrigAccount,
+        htlcUserLockParamsTemp.storemanGroupPK, {from:accounts[1],value:htlcUserLockParamsTemp.value});
+
+      await sleep(2*lockedTime+1);
+
+      let htlcSmgRedeemParamsTemp = Object.assign({},htlcSmgRedeemParams);
+      htlcSmgRedeemParamsTemp.x = x13;
+      await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.tokenOrigAccount,
+        htlcSmgRedeemParamsTemp.x,
+        htlcSmgRedeemParamsTemp.r,
+        htlcSmgRedeemParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Redeem timeout");
+    }
+  });
+
   it('WAN->EOS outSmgRedeem ==> redeem twice, Status is not locked', async() => {
     try{
 
@@ -1411,7 +1460,7 @@ contract('Test HTLC', async (accounts) => {
       htlcSmgLockParamsTemp.wanAddr = accounts[1];
       htlcSmgLockParamsTemp.xHash = xHash7;
       htlcSmgLockParamsTemp.storemanGroupPK = srcDebtStoremanPK;
-      htlcSmgLockParamsTemp.value = v4;
+      htlcSmgLockParamsTemp.value = v3;
       await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
         htlcSmgLockParamsTemp.xHash,
         htlcSmgLockParamsTemp.wanAddr,
@@ -1426,6 +1475,13 @@ contract('Test HTLC', async (accounts) => {
       await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
         htlcUserRedeemParamsTemp.x, {from:accounts[1]});
 
+      let srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.srcStoremanPK);
+      let dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.dstStoremanPK);
+
+      // console.log("=========");
+      // console.log(srcQuata);
+      // console.log(dstQuata);
+
       // deactive
       await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
 
@@ -1438,6 +1494,13 @@ contract('Test HTLC', async (accounts) => {
         htlcDebtLockParamsTemp.dstStoremanPK,
         htlcDebtLockParamsTemp.r,
         htlcDebtLockParamsTemp.s);
+
+      srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.srcStoremanPK);
+      dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.dstStoremanPK);
+
+      // console.log("=========");
+      // console.log(srcQuata);
+      // console.log(dstQuata);
 
     }catch(err){
       assert.fail(err.toString());
@@ -1514,6 +1577,52 @@ contract('Test HTLC', async (accounts) => {
 
     }catch(err){
       assert.fail(err.toString());
+    }
+  });
+
+  it('Debt  ==>inDebtRedeem Redeem timeout', async() => {
+    try{
+
+      let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
+
+      srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.srcStoremanPK);
+      dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.dstStoremanPK);
+
+      // console.log("=========");
+      // console.log(srcQuata);
+      // console.log(dstQuata);
+
+
+      // for redeem timeout
+      htlcDebtLockParamsTemp.value = v5;
+      htlcDebtLockParamsTemp.xHash = xHash14;
+      await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+        htlcDebtLockParamsTemp.xHash,
+        htlcDebtLockParamsTemp.value,
+        htlcDebtLockParamsTemp.srcStoremanPK,
+        htlcDebtLockParamsTemp.dstStoremanPK,
+        htlcDebtLockParamsTemp.r,
+        htlcDebtLockParamsTemp.s);
+
+      srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.srcStoremanPK);
+      dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,htlcDebtLockParamsTemp.dstStoremanPK);
+
+      // console.log("=========");
+      // console.log(srcQuata);
+      // console.log(dstQuata);
+
+
+      let htlcDebtRedeemParamsTemp = Object.assign({},htlcDebtRedeemParams);
+      htlcDebtRedeemParamsTemp.x = x14;
+
+      await sleep(lockedTime+1);
+      await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
+        htlcDebtRedeemParamsTemp.x,
+        htlcDebtRedeemParamsTemp.r,
+        htlcDebtRedeemParamsTemp.s);
+
+    }catch(err){
+      assert.include(err.toString(),"Redeem timeout");
     }
   });
 
@@ -1721,4 +1830,19 @@ async function getValueFromContract(tokenOrigAccount, userAccountAddress){
   let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
   let balance = await wanTokenScInst.balanceOf(userAccountAddress);
   return balance.toString();
+};
+
+async function queryStoremanGroupQuota(tokenOrigAccount, storemanGroupPK){
+  let ret = await htlcInstProxy.queryStoremanGroupQuota(tokenOrigAccount,
+    storemanGroupPK);
+  let result;
+  result = {
+    quota: ret[0].toString(),
+    inboundQuota:ret[1].toString(),
+    outboundQuota:ret[2].toString(),
+    receivable:ret[3].toString(),
+    payable:ret[4].toString(),
+    debt:ret[5].toString(),
+  };
+  return result;
 };
