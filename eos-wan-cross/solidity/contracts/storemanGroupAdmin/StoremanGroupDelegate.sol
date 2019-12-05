@@ -72,12 +72,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @param storemanGroup              storemanGroup PK
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
-    event StoremanGroupAppendDepositLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
-
-    modifier onlyValidPK(bytes pk) {
-        require(pk.length != 0, "PK is null");
-        _;
-    }
+    event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
     /// @notice              Set tokenManager, quotaLedger and signVerifier address
     /// @param tm            token manager instance address
@@ -107,8 +102,8 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     function setSmgWhiteList(bytes storemanGroup, bool isEnable)
         external
         onlyOwner
-        onlyValidPK(storemanGroup)
     {
+        require(storemanGroup.length != 0, "Invalid storemanGroup");
         require(isWhiteListEnabled, "White list is disabled");
         require(mapSmgWhiteList[storemanGroup] != isEnable, "Duplicate set");
         if (isEnable) {
@@ -125,13 +120,13 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @param tokenOrigAccount  token account of original chain
     /// @param storemanGroup     the storeman group PK address
     /// @param txFeeRatio        the transaction fee required by storeman group
-    function storemanGroupRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroup, uint txFeeRatio)
+    function smgRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroup, uint txFeeRatio)
         external
         payable
         notHalted
-        onlyValidPK(storemanGroup)
     {
         require(tokenOrigAccount.length != 0, "Invalid tokenOrigAccount");
+        require(storemanGroup.length != 0, "Invalid storemanGroup");
         require(storemanGroupMap[tokenOrigAccount][storemanGroup].deposit == 0, "Duplicate register");
 
         uint8 decimals;
@@ -148,7 +143,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
 
         uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
         quotaLedger.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
-        storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.value, 0, txFeeRatio, block.number, msg.sender);
+        storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.sender, msg.value, txFeeRatio, 0);
 
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota, txFeeRatio);
     }
@@ -200,6 +195,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         payable
         notHalted
     {
+        require(msg.value > 0, "Value too small");
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
         require(smg.initiator == msg.sender, "Sender must be initiator");
         require(smg.unregisterApplyTime == 0, "Inactive");
@@ -208,12 +204,25 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         uint token2WanRatio;
         uint defaultPricise;
         (,,decimals,,token2WanRatio,,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
-        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
-        require(quota > 0, "Value too small");
-        quotaLedger.smgAppendQuota(tokenOrigAccount, storemanGroup, quota);
+        uint deposit = smg.deposit.add(msg.value);
+        uint quota = deposit.mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
+        quotaLedger.updateStoremanGroup(tokenOrigAccount, storemanGroup, quota);
         // TODO: notify bonus contract
-        smg.deposit = smg.deposit.add(quota);
-        emit StoremanGroupAppendDepositLogger(tokenOrigAccount, storemanGroup, msg.value, quota);
+        smg.deposit = deposit;
+        emit StoremanGroupUpdateLogger(tokenOrigAccount, storemanGroup, deposit, quota);
+    }
+
+    /// @notice                           apply unregistration through a proxy
+    /// @dev                              apply unregistration through a proxy
+    /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanGroup              PK of storemanGroup
+    function getSmgInfo(bytes tokenOrigAccount, bytes storemanGroup)
+        external
+        view
+        returns(address, uint, uint, uint)
+    {
+        StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
+        return (smg.initiator, smg.deposit, smg.txFeeRatio, smg.unregisterApplyTime);
     }
 
     /// @notice fallback function

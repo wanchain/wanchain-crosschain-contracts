@@ -42,10 +42,9 @@ contract StoremanGroupStorage is BasicStorage {
     mapping(bytes=>bool) internal mapSmgWhiteList;
 
     struct StoremanGroup {
-        uint    deposit;                  /// the storeman group deposit in wan coins
-        uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
-        uint    txFeeRatio;               /// the fee ratio required by storeman group
-        uint    startBlockNumber;         /// the start block number for bonus calculation for storeman group
         address initiator;                /// the account for registering a storeman group which provides storeman group deposit
+        uint    deposit;                  /// the storeman group deposit in wan coins
+        uint    txFeeRatio;               /// the fee ratio required by storeman group
+        uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
     }
 }

@@ -254,11 +254,11 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
-    function smgAppendQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+    function updateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyStoremanGroupAdmin
     {
-        htlcStorageData.quotaData.smgAppendQuota(tokenOrigAccount, storemanGroupPK, quota);
+        htlcStorageData.quotaData.updateStoremanGroup(tokenOrigAccount, storemanGroupPK, quota);
     }
 
     function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {

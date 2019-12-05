@@ -103,14 +103,13 @@ library QuotaLib {
         delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
     }
 
-    function smgAppendQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
+    function updateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyMeaningfulValue(quota)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         require(isExist(self, tokenOrigAccount, storemanGroupPK), "PK doesn't exist");
-        uint newQuota = self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota.add(quota);
-        self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota = newQuota;
+        self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota = quota;
     }
 
     /// @notice                 frozen WRC token quota

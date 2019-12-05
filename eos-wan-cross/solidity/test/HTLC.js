@@ -216,7 +216,7 @@ contract('Test HTLC', async (accounts) => {
         tokenInfo.decimals);
 
       // register storeman. the storeman delegate account is accounts[2]
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParams.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
         addSmgParams.txFeeRatio, {from: accounts[2], value:tokenInfo.minDeposit});
 
@@ -276,7 +276,7 @@ contract('Test HTLC', async (accounts) => {
   it('init...   -> Duplicate register', async() => {
     try{
       // value must > minDesposit
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParams.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
         addSmgParams.txFeeRatio);
     }catch(err){
@@ -289,7 +289,7 @@ contract('Test HTLC', async (accounts) => {
       // value must > minDesposit
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = storemanPK2;
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio);
     }catch(err){
@@ -1290,7 +1290,7 @@ contract('Test HTLC', async (accounts) => {
 
   it('Other smgAppendQuota  ==>Only storeman group admin sc can call it', async() => {
     try{
-      await htlcInstProxy.smgAppendQuota(tokenInfo.tokenOrigAccount,storemanPK1,quota2);
+      await htlcInstProxy.updateStoremanGroup(tokenInfo.tokenOrigAccount,storemanPK1,quota2);
     }catch(err){
       assert.include(err.toString(),"Only storeman group admin sc can call it");
     }
@@ -1349,13 +1349,13 @@ contract('Test HTLC', async (accounts) => {
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK;
       // source storman
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
 
       // destination storman
       addSmgParamsTemp.storemanGroupPK = dstDebtStoremanPK;
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[6], value:tokenInfo.minDeposit});
 
@@ -1720,7 +1720,7 @@ contract('Test HTLC', async (accounts) => {
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
       // source storman
-      await smgInstProxy.storemanGroupRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
 
