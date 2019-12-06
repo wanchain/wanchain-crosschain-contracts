@@ -284,7 +284,7 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('init...   -> Value must be greater than minDeposit', async() => {
+  it('init...   -> At lease minDeposit', async() => {
     try{
       // value must > minDesposit
       let addSmgParamsTemp = Object.assign({},addSmgParams);
@@ -293,7 +293,7 @@ contract('Test HTLC', async (accounts) => {
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio);
     }catch(err){
-      assert.include(err.toString(),"Value must be greater than minDeposit");
+      assert.include(err.toString(),"At lease minDeposit");
     }
   });
 
@@ -1296,19 +1296,19 @@ contract('Test HTLC', async (accounts) => {
     }
   });
 
-  it('Other deactivateStoremanGroup  ==>Sender must be initiator', async() => {
+  it('Other deactivateStoremanGroup  ==>Sender must be delegate', async() => {
     try{
       await smgInst.storemanGroupUnregister(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
-      assert.include(err.toString(),"Sender must be initiator");
+      assert.include(err.toString(),"Sender must be delegate");
     }
   });
 
-  it('Other delStoremanGroup  ==>Sender must be initiator', async() => {
+  it('Other delStoremanGroup  ==>Sender must be delegate', async() => {
     try{
       await smgInst.storemanGroupWithdrawDeposit(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
-      assert.include(err.toString(),"Sender must be initiator");
+      assert.include(err.toString(),"Sender must be delegate");
     }
   });
 
@@ -1316,7 +1316,7 @@ contract('Test HTLC', async (accounts) => {
     try{
       await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
-      assert.include(err.toString(),"Sender must be initiator");
+      assert.include(err.toString(),"Sender must be delegate");
     }
   });
 
@@ -1324,7 +1324,7 @@ contract('Test HTLC', async (accounts) => {
     try{
       await smgInstProxy.storemanGroupWithdrawDeposit(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
-      assert.include(err.toString(),"Sender must be initiator");
+      assert.include(err.toString(),"Sender must be delegate");
     }
   });
 

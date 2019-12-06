@@ -42,7 +42,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              event for storeman register
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    /// @param wanDeposit                 deposit WAN amount
+    /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     /// @param txFeeRatio                 storeman fee ratio
     event StoremanGroupRegistrationLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota, uint txFeeRatio);
@@ -51,7 +51,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              event for storeman register
     /// @param storemanGroup              storemanGroup PK
     /// @param isEnable                   is enable or disable
-    event SmgEnableWhiteListLogger(bytes storemanGroup, bool isEnable);
+    event SetWhiteListLogger(bytes tokenOrigAccount, bytes storemanGroup, bool isEnable);
 
     /// @notice                           event for applying storeman group unregister
     /// @param tokenOrigAccount           token account of original chain
@@ -70,7 +70,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              event for storeman register
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    /// @param wanDeposit                 deposit WAN amount
+    /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
@@ -89,7 +89,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
 
     /// @notice                  enable or disable storeman group white list by owner
     /// @param isEnable          is enable
-    function enableSmgWhiteList(bool isEnable)
+    function enableWhiteList(bool isEnable)
         external
         onlyOwner
     {
@@ -97,22 +97,24 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     }
 
     /// @notice                  function for setting smg white list by owner
+    /// @param tokenOrigAccount  token account of original chain
     /// @param storemanGroup     storemanGroup PK for whitelist
-    /// @param isEnable          is enable
-    function setSmgWhiteList(bytes storemanGroup, bool isEnable)
+    /// @param isEnable          enable or disable
+    function setWhiteList(bytes tokenOrigAccount, bytes storemanGroup, bool isEnable)
         external
         onlyOwner
     {
+        require(tokenOrigAccount.length != 0, "Invalid tokenOrigAccount");
         require(storemanGroup.length != 0, "Invalid storemanGroup");
         require(isWhiteListEnabled, "White list is disabled");
-        require(mapSmgWhiteList[storemanGroup] != isEnable, "Duplicate set");
+        require(whiteListMap[tokenOrigAccount][storemanGroup] != isEnable, "Duplicate set");
         if (isEnable) {
-            mapSmgWhiteList[storemanGroup] = true;
+            whiteListMap[tokenOrigAccount][storemanGroup] = true;
         } else {
-            delete mapSmgWhiteList[storemanGroup];
+            delete whiteListMap[tokenOrigAccount][storemanGroup];
         }
 
-        emit SmgEnableWhiteListLogger(storemanGroup, isEnable);
+        emit SetWhiteListLogger(tokenOrigAccount, storemanGroup, isEnable);
     }
 
     /// @notice                  function for storeman register by sender this method should be
@@ -138,7 +140,8 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         require(msg.value >= minDeposit, "At lease minDeposit");
         require(txFeeRatio < defaultPrecise, "Invalid txFeeRatio");
         if (isWhiteListEnabled) {
-            require(mapSmgWhiteList[storemanGroup], "Not in white list");
+            require(whiteListMap[tokenOrigAccount][storemanGroup], "Not in white list");
+            delete whiteListMap[tokenOrigAccount][storemanGroup];
         }
 
         uint quota = (msg.value).mul(defaultPrecise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
@@ -157,7 +160,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         notHalted
     {
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(msg.sender == smg.delegate, "Sender must be delegate");
         require(smg.unregisterApplyTime == 0, "Duplicate unregister");
         smg.unregisterApplyTime = now;
         htlc.deactivateStoremanGroup(tokenOrigAccount, storemanGroup);
@@ -174,12 +177,12 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         notHalted
     {
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(msg.sender == smg.delegate, "Sender must be delegate");
         uint withdrawDelayTime;
         (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(now > smg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
         htlc.delStoremanGroup(tokenOrigAccount, storemanGroup);
-        smg.initiator.transfer(smg.deposit);
+        smg.delegate.transfer(smg.deposit);
 
         emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroup, smg.deposit, smg.deposit);
 
@@ -197,7 +200,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     {
         require(msg.value > 0, "Value too small");
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        require(smg.initiator == msg.sender, "Sender must be initiator");
+        require(msg.sender == smg.delegate, "Sender must be delegate");
         require(smg.unregisterApplyTime == 0, "Inactive");
 
         uint8 decimals;
@@ -222,7 +225,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         returns(address, uint, uint, uint)
     {
         StoremanGroup storage smg = storemanGroupMap[tokenOrigAccount][storemanGroup];
-        return (smg.initiator, smg.deposit, smg.txFeeRatio, smg.unregisterApplyTime);
+        return (smg.delegate, smg.deposit, smg.txFeeRatio, smg.unregisterApplyTime);
     }
 
     /// @notice fallback function

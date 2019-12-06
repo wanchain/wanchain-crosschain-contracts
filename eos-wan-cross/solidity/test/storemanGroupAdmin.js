@@ -117,24 +117,24 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(result.reason, 'Not owner');
   })
 
-  it('[StoremanGroupDelegate_setDependence] should fail: invalide tokenManager address', async () => {
+  it('[StoremanGroupDelegate_setDependence] should fail: invalid tokenManager address', async () => {
     let result = {};
     try {
       await smgSC.setDependence(ADDRESS_0, htlcSc.address, {from: owner});
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Invalide tokenManager address');
+    assert.equal(result.reason, 'Invalid tokenManager address');
   })
   
-  it('[StoremanGroupDelegate_setDependence] should fail: invalide htlc address', async () => {
+  it('[StoremanGroupDelegate_setDependence] should fail: invalid htlc address', async () => {
     let result = {};
     try {
       await smgSC.setDependence(tmSc.address, ADDRESS_0, {from: owner});
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Invalide htlc address');
+    assert.equal(result.reason, 'Invalid htlc address');
   })
 
   it('[StoremanGroupDelegate_setDependence] should success', async () => {
@@ -149,21 +149,21 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(await smgSC.htlc.call(), htlcSc.address);
   })  
 
-  // enableSmgWhiteList
-  it('[StoremanGroupDelegate_enableSmgWhiteList] should fail: not owner', async () => {
+  // enableWhiteList
+  it('[StoremanGroupDelegate_enableWhiteList] should fail: not owner', async () => {
     let result = {};
     try {
-      await smgSC.enableSmgWhiteList(true, {from: someone});
+      await smgSC.enableWhiteList(true, {from: someone});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, 'Not owner');
   })
 
-  it('[StoremanGroupDelegate_enableSmgWhiteList] should success', async () => {
+  it('[StoremanGroupDelegate_enableWhiteList] should success', async () => {
     let result = {};
     try {
-      await smgSC.enableSmgWhiteList(true, {from: owner});
+      await smgSC.enableWhiteList(true, {from: owner});
     } catch (e) {
       result = e;
     }
@@ -171,68 +171,90 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(await smgSC.isWhiteListEnabled.call(), true);
   })  
 
-  // setSmgWhiteList
-  it('[StoremanGroupDelegate_setSmgWhiteList] should fail: not owner', async () => {
+  // setWhiteList
+  it('[StoremanGroupDelegate_setWhiteList] should fail: not owner', async () => {
     let result = {};
     try {
-      await smgSC.setSmgWhiteList(storeman, true, {from: someone});
+      await smgSC.setWhiteList(eosToken.origAddr, storeman, true, {from: someone});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, 'Not owner');
   })
 
-  it('[StoremanGroupDelegate_setSmgWhiteList] should fail: invalid storemanGroup', async () => {
+  it('[StoremanGroupDelegate_setWhiteList] should fail: invalid tokenOrigAccount', async () => {
     let result = {};
     try {
-      await smgSC.setSmgWhiteList('0x', true, {from: owner});
+      await smgSC.setWhiteList('0x', storeman, true, {from: owner});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Invalid tokenOrigAccount')
+  })
+
+  it('[StoremanGroupDelegate_setWhiteList] should fail: invalid storemanGroup', async () => {
+    let result = {};
+    try {
+      await smgSC.setWhiteList(eosToken.origAddr, '0x', true, {from: owner});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, 'Invalid storemanGroup')
   })
 
-  it('[StoremanGroupDelegate_setSmgWhiteList_true] should success', async () => {
+  it('[StoremanGroupDelegate_setWhiteList_true] should success', async () => {
     let result = {};
     try {
-      result = await smgSC.setSmgWhiteList(storeman, true, {from: owner});
+      result = await smgSC.setWhiteList(eosToken.origAddr, storeman, true, {from: owner});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined);
     let event = result.logs[0].args;
+    assert.equal(event.tokenOrigAccount, eosToken.origAddr)
     assert.equal(event.storemanGroup, storeman)
     assert.equal(event.isEnable, true)
   })
 
-  it('[StoremanGroupDelegate_setSmgWhiteList_false] should success', async () => {
+  it('[StoremanGroupDelegate_setWhiteList_true] should fail: duplicate set', async () => {
     let result = {};
     try {
-      result = await smgSC.setSmgWhiteList(storeman, false, {from: owner});
-    } catch (e) {
-      result = e;
-    }
-    assert.equal(result.reason, undefined);
-    let event = result.logs[0].args;
-    assert.equal(event.storemanGroup, storeman)
-    assert.equal(event.isEnable, false)
-  })
-  
-  it('[StoremanGroupDelegate_setSmgWhiteList_duplicate] should fail: duplicate set', async () => {
-    let result = {};
-    try {
-      await smgSC.setSmgWhiteList(storeman, false, {from: owner});
+      result = await smgSC.setWhiteList(eosToken.origAddr, storeman, true, {from: owner});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, 'Duplicate set');
   })
 
-  it('[StoremanGroupDelegate_setSmgWhiteList] should fail: WhiteList is disabled', async () => {
+  it('[StoremanGroupDelegate_setWhiteList_false] should success', async () => {
     let result = {};
     try {
-      await smgSC.enableSmgWhiteList(false, {from: owner});
-      await smgSC.setSmgWhiteList(storeman, true, {from: owner});
+      result = await smgSC.setWhiteList(eosToken.origAddr, storeman, false, {from: owner});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, undefined);
+    let event = result.logs[0].args;
+    assert.equal(event.tokenOrigAccount, eosToken.origAddr)
+    assert.equal(event.storemanGroup, storeman)
+    assert.equal(event.isEnable, false)
+  })
+  
+  it('[StoremanGroupDelegate_setWhiteList_false] should fail: duplicate set', async () => {
+    let result = {};
+    try {
+      await smgSC.setWhiteList(eosToken.origAddr, storeman, false, {from: owner});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Duplicate set');
+  })
+
+  it('[StoremanGroupDelegate_setWhiteList] should fail: WhiteList is disabled', async () => {
+    let result = {};
+    try {
+      await smgSC.enableWhiteList(false, {from: owner});
+      await smgSC.setWhiteList(eosToken.origAddr, storeman, true, {from: owner});
     } catch (e) {
       result = e;
     }
@@ -306,7 +328,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupDelegate_storemanGroupRegister] should fail: not in WhiteList', async () => {
     let result = {};
     try {
-      await smgSC.enableSmgWhiteList(true, {from: owner});
+      await smgSC.enableWhiteList(true, {from: owner});
       await smgSC.storemanGroupRegister(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
     } catch (e) {
       result = e;
@@ -319,7 +341,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     let beforeBalance = 0, afterBalance = 0;
     try {
       beforeBalance = await web3.eth.getBalance(smgSC.address);
-      await smgSC.setSmgWhiteList(storeman, true, {from: owner});
+      await smgSC.setWhiteList(eosToken.origAddr, storeman, true, {from: owner});
       result = await smgSC.storemanGroupRegister(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
       afterBalance = await web3.eth.getBalance(smgSC.address);
     } catch (e) {
@@ -346,13 +368,25 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(new BN(htlc[0]).eq(expectedQuota), true)
   })
 
+  it('[StoremanGroupDelegate_storemanGroupRegister] should fail: attempt to register another token not in WhiteList', async () => {
+    let result = {};
+    try {
+      let fakeToken = eosAccount.encodeAccount('fake_token');
+      await tmSc.addToken(fakeToken, eosToken.ratio, eosToken.minDeposit, eosToken.withdrawDelayTime, eosToken.name, eosToken.symbol, eosToken.decimals);
+      await smgSC.storemanGroupRegister(fakeToken, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Not in white list')
+  })
+
   it('[StoremanGroupDelegate_storemanGroupRegister] should success: WhiteList is disabled', async () => {
     let result = {};
     let beforeBalance = 0, afterBalance = 0;
     let fakeSmg = encoder.str2hex('fake_storeman');
     try {
       beforeBalance = await web3.eth.getBalance(smgSC.address);
-      await smgSC.enableSmgWhiteList(false, {from: owner});
+      await smgSC.enableWhiteList(false, {from: owner});
       result = await smgSC.storemanGroupRegister(eosToken.origAddr, fakeSmg, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
       afterBalance = await web3.eth.getBalance(smgSC.address);
     } catch (e) {
@@ -397,7 +431,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(result.reason, 'Smart contract is halted')
   })
 
-  it('[StoremanGroupDelegate_storemanGroupUnregister] should fail: not initiator', async () => {
+  it('[StoremanGroupDelegate_storemanGroupUnregister] should fail: not delegate', async () => {
     let result = {};
     try {
       await smgSC.setHalt(false, {from: owner});
@@ -405,7 +439,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
 
   it('[StoremanGroupDelegate_storemanGroupUnregister] should success', async () => {
@@ -451,7 +485,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     assert.equal(result.reason, 'Smart contract is halted')
   })
 
-  it('[StoremanGroupDelegate_storemanGroupWithdrawDeposit] should fail: not initiator', async () => {
+  it('[StoremanGroupDelegate_storemanGroupWithdrawDeposit] should fail: not delegate', async () => {
     let result = {};
     try {
       await smgSC.setHalt(false, {from: owner});
@@ -459,7 +493,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
  
   it('[StoremanGroupDelegate_storemanGroupWithdrawDeposit] should fail: in delay time', async () => {
@@ -506,7 +540,19 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator') // dunplicate withdraw
+    assert.equal(result.reason, 'Sender must be delegate') // dunplicate withdraw
+  })
+
+  // storemanGroupRegister - additional
+  it('[StoremanGroupDelegate_storemanGroupRegister] should fail: re-register before set white list', async () => {
+    let result = {};
+    try {
+      await smgSC.enableWhiteList(true, {from: owner});
+      await smgSC.storemanGroupRegister(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
+    } catch (e) {
+      result = e;
+    }
+    assert.equal(result.reason, 'Not in white list')
   })
 
   // storemanGroupAppendDeposit
@@ -529,7 +575,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
 
   it('[StoremanGroupDelegate_storemanGroupAppendDeposit] should fail: invalid storemanGroup', async () => {
@@ -539,7 +585,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
 
   it('[StoremanGroupDelegate_storemanGroupAppendDeposit] should fail: not registered', async () => {
@@ -549,18 +595,19 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
 
-  it('[StoremanGroupDelegate_storemanGroupAppendDeposit] should fail: not initiator', async () => {
+  it('[StoremanGroupDelegate_storemanGroupAppendDeposit] should fail: not delegate', async () => {
     let result = {};
     try {
+      await smgSC.enableWhiteList(false, {from: owner});
       await smgSC.storemanGroupRegister(eosToken.origAddr, storeman, storemanTxFeeRatio, {from: delegate, value: storemanDeposit});
       await smgSC.storemanGroupAppendDeposit(eosToken.origAddr, storeman, {from: someone, value: storemanDeposit});
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Sender must be initiator')
+    assert.equal(result.reason, 'Sender must be delegate')
   })
 
   it('[StoremanGroupDelegate_storemanGroupAppendDeposit] should fail: Value too small', async () => {

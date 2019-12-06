@@ -38,11 +38,11 @@ contract StoremanGroupStorage is BasicStorage {
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)
     mapping(bytes=>mapping(bytes => StoremanGroup)) internal storemanGroupMap;
-    /// storemanPK->isEnabled
-    mapping(bytes=>bool) internal mapSmgWhiteList;
+    /// tokenOrigAddr->storemanPK->isEnabled
+    mapping(bytes=>mapping(bytes => bool)) internal whiteListMap;
 
     struct StoremanGroup {
-        address initiator;                /// the account for registering a storeman group which provides storeman group deposit
+        address delegate;                 /// the account for registering a storeman group which provides storeman group deposit
         uint    deposit;                  /// the storeman group deposit in wan coins
         uint    txFeeRatio;               /// the fee ratio required by storeman group
         uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
