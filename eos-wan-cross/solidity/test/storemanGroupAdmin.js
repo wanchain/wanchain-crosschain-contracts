@@ -624,6 +624,3 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   })
   
 })
-
-
-
