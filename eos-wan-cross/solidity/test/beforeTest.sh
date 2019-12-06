@@ -1,4 +1,4 @@
-curPath=$(readlink -f "$(dirname "$0")")
+curPath=$(dirname "$0")
 cd $curPath
 
 if [ ! -f "../contracts/htlc/lib/HTLCLib.sol.org" ];then
