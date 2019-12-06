@@ -32,8 +32,8 @@ import "../interfaces/IHTLC.sol";
 contract StoremanGroupStorage is BasicStorage {
     /// token manager instance address
     ITokenManager public tokenManager;
-    /// quotaLedger(HTLC) instance address
-    IHTLC public quotaLedger;
+    /// HTLC instance address
+    IHTLC public htlc;
     bool public isWhiteListEnabled;
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)

@@ -74,17 +74,17 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @param quota                      corresponding token quota
     event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
-    /// @notice              Set tokenManager, quotaLedger and signVerifier address
-    /// @param tm            token manager instance address
-    /// @param htlc          htlc(including quotaLedger) instance address
-    function setDependence(address tm, address htlc)
+    /// @notice              Set tokenManager and htlc
+    /// @param tmAddr        token manager instance address
+    /// @param htlcAddr      htlc instance address
+    function setDependence(address tmAddr, address htlcAddr)
         external
         onlyOwner
     {
-        require(tm != address(0), "Invalide tokenManager address");
-        require(htlc != address(0), "Invalide htlc address");
-        tokenManager = ITokenManager(tm);
-        quotaLedger = IHTLC(htlc);
+        require(tmAddr != address(0), "Invalide tokenManager address");
+        require(htlcAddr != address(0), "Invalide htlc address");
+        tokenManager = ITokenManager(tmAddr);
+        htlc = IHTLC(htlcAddr);
     }
 
     /// @notice                  enable or disable storeman group white list by owner
@@ -142,7 +142,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         }
 
         uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
-        quotaLedger.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
+        htlc.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
         storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.sender, msg.value, txFeeRatio, 0);
 
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota, txFeeRatio);
@@ -160,7 +160,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         require(smg.initiator == msg.sender, "Sender must be initiator");
         require(smg.unregisterApplyTime == 0, "Duplicate unregister");
         smg.unregisterApplyTime = now;
-        quotaLedger.deactivateStoremanGroup(tokenOrigAccount, storemanGroup);
+        htlc.deactivateStoremanGroup(tokenOrigAccount, storemanGroup);
 
         emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAccount, storemanGroup, now);
     }
@@ -178,7 +178,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         uint withdrawDelayTime;
         (,,,,,,withdrawDelayTime,) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(now > smg.unregisterApplyTime.add(withdrawDelayTime), "Must wait until delay time");
-        quotaLedger.delStoremanGroup(tokenOrigAccount, storemanGroup);
+        htlc.delStoremanGroup(tokenOrigAccount, storemanGroup);
         smg.initiator.transfer(smg.deposit);
 
         emit StoremanGroupWithdrawLogger(tokenOrigAccount, storemanGroup, smg.deposit, smg.deposit);
@@ -206,7 +206,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         (,,decimals,,token2WanRatio,,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
         uint deposit = smg.deposit.add(msg.value);
         uint quota = deposit.mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
-        quotaLedger.updateStoremanGroup(tokenOrigAccount, storemanGroup, quota);
+        htlc.updateStoremanGroup(tokenOrigAccount, storemanGroup, quota);
         // TODO: notify bonus contract
         smg.deposit = deposit;
         emit StoremanGroupUpdateLogger(tokenOrigAccount, storemanGroup, deposit, quota);

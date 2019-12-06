@@ -35,7 +35,7 @@ const eosToken = {
   quota: new BN(Math.pow(10, 8) / 2), // (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether)
 }
 
-let tmSc, smgProxy, smgDelegate, smgSC, htlcSc, qlSc;
+let tmSc, smgProxy, smgDelegate, smgSC, htlcSc;
 
 function sleep(seconds) {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000))
@@ -61,7 +61,6 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     // other sc
     let htlcProxy = await HTLCProxy.deployed();
     htlcSc = await HTLCDelegate.at(htlcProxy.address);
-    qlSc = htlcSc; // quotaLedger act as a lib of htlc
   })
 
   // upgradeTo
@@ -111,7 +110,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupDelegate_setDependence] should fail: not owner', async () => {
     let result = {};
     try {
-      await smgSC.setDependence(tmSc.address, qlSc.address, {from: someone});
+      await smgSC.setDependence(tmSc.address, htlcSc.address, {from: someone});
     } catch (e) {
       result = e;
     }
@@ -121,7 +120,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupDelegate_setDependence] should fail: invalide tokenManager address', async () => {
     let result = {};
     try {
-      await smgSC.setDependence(ADDRESS_0, qlSc.address, {from: owner});
+      await smgSC.setDependence(ADDRESS_0, htlcSc.address, {from: owner});
     } catch (e) {
       result = e;
     }
@@ -141,13 +140,13 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
   it('[StoremanGroupDelegate_setDependence] should success', async () => {
     let result = {};
     try {
-      await smgSC.setDependence(tmSc.address, qlSc.address, {from: owner});
+      await smgSC.setDependence(tmSc.address, htlcSc.address, {from: owner});
     } catch (e) {
       result = e;
     }
     assert.equal(result.reason, undefined);
     assert.equal(await smgSC.tokenManager.call(), tmSc.address);
-    assert.equal(await smgSC.quotaLedger.call(), qlSc.address);
+    assert.equal(await smgSC.htlc.call(), htlcSc.address);
   })  
 
   // enableSmgWhiteList
