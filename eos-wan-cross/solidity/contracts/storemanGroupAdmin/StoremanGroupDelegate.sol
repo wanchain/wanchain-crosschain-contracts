@@ -120,7 +120,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @param tokenOrigAccount  token account of original chain
     /// @param storemanGroup     the storeman group PK address
     /// @param txFeeRatio        the transaction fee required by storeman group
-    function smgRegisterByDelegate(bytes tokenOrigAccount, bytes storemanGroup, uint txFeeRatio)
+    function storemanGroupRegister(bytes tokenOrigAccount, bytes storemanGroup, uint txFeeRatio)
         external
         payable
         notHalted
@@ -152,7 +152,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              apply unregistration through a proxy
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              PK of storemanGroup
-    function smgApplyUnregisterByDelegate(bytes tokenOrigAccount, bytes storemanGroup)
+    function storemanGroupUnregister(bytes tokenOrigAccount, bytes storemanGroup)
         external
         notHalted
     {
@@ -169,7 +169,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              withdraw deposit through a proxy
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    function smgWithdrawDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroup)
+    function storemanGroupWithdrawDeposit(bytes tokenOrigAccount, bytes storemanGroup)
         external
         notHalted
     {
@@ -190,7 +190,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              append deposit through a proxy
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    function smgAppendDepositByDelegate(bytes tokenOrigAccount, bytes storemanGroup)
+    function storemanGroupAppendDeposit(bytes tokenOrigAccount, bytes storemanGroup)
         external
         payable
         notHalted
@@ -216,7 +216,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              apply unregistration through a proxy
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              PK of storemanGroup
-    function getSmgInfo(bytes tokenOrigAccount, bytes storemanGroup)
+    function getStoremanGroupInfo(bytes tokenOrigAccount, bytes storemanGroup)
         external
         view
         returns(address, uint, uint, uint)

@@ -216,11 +216,11 @@ contract('Test HTLC', async (accounts) => {
         tokenInfo.decimals);
 
       // register storeman. the storeman delegate account is accounts[2]
-      await smgInstProxy.smgRegisterByDelegate(addSmgParams.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
         addSmgParams.txFeeRatio, {from: accounts[2], value:tokenInfo.minDeposit});
 
-      await smgInstProxy.smgAppendDepositByDelegate(addSmgParams.tokenOrigAccount,
+      await smgInstProxy.storemanGroupAppendDeposit(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
         {from: accounts[2], value:tokenInfo.minDeposit});
 
@@ -276,7 +276,7 @@ contract('Test HTLC', async (accounts) => {
   it('init...   -> Duplicate register', async() => {
     try{
       // value must > minDesposit
-      await smgInstProxy.smgRegisterByDelegate(addSmgParams.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParams.tokenOrigAccount,
         addSmgParams.storemanGroupPK,
         addSmgParams.txFeeRatio);
     }catch(err){
@@ -289,7 +289,7 @@ contract('Test HTLC', async (accounts) => {
       // value must > minDesposit
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = storemanPK2;
-      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio);
     }catch(err){
@@ -1298,7 +1298,7 @@ contract('Test HTLC', async (accounts) => {
 
   it('Other deactivateStoremanGroup  ==>Sender must be initiator', async() => {
     try{
-      await smgInst.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+      await smgInst.storemanGroupUnregister(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
       assert.include(err.toString(),"Sender must be initiator");
     }
@@ -1306,7 +1306,7 @@ contract('Test HTLC', async (accounts) => {
 
   it('Other delStoremanGroup  ==>Sender must be initiator', async() => {
     try{
-      await smgInst.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+      await smgInst.storemanGroupWithdrawDeposit(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
       assert.include(err.toString(),"Sender must be initiator");
     }
@@ -1314,7 +1314,7 @@ contract('Test HTLC', async (accounts) => {
 
   it('Other deactivateStoremanGroup  ==>success', async() => {
     try{
-      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+      await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
       assert.include(err.toString(),"Sender must be initiator");
     }
@@ -1322,23 +1322,23 @@ contract('Test HTLC', async (accounts) => {
 
   it('Other delStoremanGroup  ==>success', async() => {
     try{
-      await smgInstProxy.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1);
+      await smgInstProxy.storemanGroupWithdrawDeposit(tokenInfo.tokenOrigAccount,storemanPK1);
     }catch(err){
       assert.include(err.toString(),"Sender must be initiator");
     }
   });
 
-  it('Other deactivateStoremanGroup  ==> smgApplyUnregisterByDelegate success', async() => {
+  it('Other deactivateStoremanGroup  ==> storemanGroupUnregister success', async() => {
     try{
-      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,storemanPK1, {from: accounts[2]});
+      await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,storemanPK1, {from: accounts[2]});
     }catch(err){
       assert.fail(err.toString());
     }
   });
 
-  it('Other delStoremanGroup  ==>smgWithdrawDepositByDelegate should wait time.', async() => {
+  it('Other delStoremanGroup  ==>storemanGroupWithdrawDeposit should wait time.', async() => {
     try{
-      await smgInstProxy.smgWithdrawDepositByDelegate(tokenInfo.tokenOrigAccount,storemanPK1,{from: accounts[2]});
+      await smgInstProxy.storemanGroupWithdrawDeposit(tokenInfo.tokenOrigAccount,storemanPK1,{from: accounts[2]});
     }catch(err){
       assert.include(err.toString(),"Must wait until delay time");
     }
@@ -1349,13 +1349,13 @@ contract('Test HTLC', async (accounts) => {
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK;
       // source storman
-      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
 
       // destination storman
       addSmgParamsTemp.storemanGroupPK = dstDebtStoremanPK;
-      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[6], value:tokenInfo.minDeposit});
 
@@ -1436,7 +1436,7 @@ contract('Test HTLC', async (accounts) => {
   // it('Debt  ==>inDebtLock PK is not allowed to repay debt', async() => {
   //   let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
   //   try{
-  //     await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+  //     await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
   //     await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
   //       htlcDebtLockParamsTemp.xHash,
   //       htlcDebtLockParamsTemp.value,
@@ -1483,7 +1483,7 @@ contract('Test HTLC', async (accounts) => {
       // console.log(dstQuata);
 
       // deactive
-      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+      await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
 
       // debtLock
       htlcDebtLockParamsTemp.value = v4;
@@ -1697,7 +1697,7 @@ contract('Test HTLC', async (accounts) => {
       let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
       htlcDebtLockParamsTemp.xHash = xHash8;
 
-      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
+      await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,srcDebtStoremanPK, {from: accounts[4]});
 
       await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
         htlcDebtLockParamsTemp.xHash,
@@ -1720,7 +1720,7 @@ contract('Test HTLC', async (accounts) => {
       let addSmgParamsTemp = Object.assign({},addSmgParams);
       addSmgParamsTemp.storemanGroupPK = srcDebtStoremanPK1;
       // source storman
-      await smgInstProxy.smgRegisterByDelegate(addSmgParamsTemp.tokenOrigAccount,
+      await smgInstProxy.storemanGroupRegister(addSmgParamsTemp.tokenOrigAccount,
         addSmgParamsTemp.storemanGroupPK,
         addSmgParamsTemp.txFeeRatio, {from: accounts[4], value:tokenInfo.minDeposit});
 
@@ -1747,7 +1747,7 @@ contract('Test HTLC', async (accounts) => {
         htlcUserRedeemParamsTemp.x, {from:accounts[1]});
 
       // deactive
-      await smgInstProxy.smgApplyUnregisterByDelegate(tokenInfo.tokenOrigAccount,srcDebtStoremanPK1, {from: accounts[4]});
+      await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount,srcDebtStoremanPK1, {from: accounts[4]});
 
       // debtLock
       let htlcDebtLockParamsTemp = Object.assign({},htlcDebtLockParams);
