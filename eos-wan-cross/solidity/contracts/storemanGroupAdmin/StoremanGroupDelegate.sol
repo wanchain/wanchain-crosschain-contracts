@@ -135,7 +135,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         uint defaultPricise;
         (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(minDeposit > 0, "Token not exist");
-        require(msg.value >= minDeposit, "Value must be greater than minDeposit");
+        require(msg.value >= minDeposit, "At lease minDeposit");
         require(txFeeRatio < defaultPricise, "Invalid txFeeRatio");
         if (isWhiteListEnabled) {
             require(mapSmgWhiteList[storemanGroup], "Not in white list");
