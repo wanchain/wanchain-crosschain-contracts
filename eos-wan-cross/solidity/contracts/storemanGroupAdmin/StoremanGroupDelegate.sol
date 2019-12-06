@@ -42,7 +42,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              event for storeman register
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    /// @param wanDeposit                 deposit wancoin number
+    /// @param wanDeposit                 deposit WAN amount
     /// @param quota                      corresponding token quota
     /// @param txFeeRatio                 storeman fee ratio
     event StoremanGroupRegistrationLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota, uint txFeeRatio);
@@ -70,7 +70,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @dev                              event for storeman register
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storemanGroup PK
-    /// @param wanDeposit                 deposit wancoin number
+    /// @param wanDeposit                 deposit WAN amount
     /// @param quota                      corresponding token quota
     event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
@@ -81,8 +81,8 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         external
         onlyOwner
     {
-        require(tmAddr != address(0), "Invalide tokenManager address");
-        require(htlcAddr != address(0), "Invalide htlc address");
+        require(tmAddr != address(0), "Invalid tokenManager address");
+        require(htlcAddr != address(0), "Invalid htlc address");
         tokenManager = ITokenManager(tmAddr);
         htlc = IHTLC(htlcAddr);
     }
@@ -132,24 +132,24 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         uint8 decimals;
         uint token2WanRatio;
         uint minDeposit;
-        uint defaultPricise;
-        (,,decimals,,token2WanRatio,minDeposit,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        uint defaultPrecise;
+        (,,decimals,,token2WanRatio,minDeposit,,defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
         require(minDeposit > 0, "Token not exist");
         require(msg.value >= minDeposit, "At lease minDeposit");
-        require(txFeeRatio < defaultPricise, "Invalid txFeeRatio");
+        require(txFeeRatio < defaultPrecise, "Invalid txFeeRatio");
         if (isWhiteListEnabled) {
             require(mapSmgWhiteList[storemanGroup], "Not in white list");
         }
 
-        uint quota = (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
+        uint quota = (msg.value).mul(defaultPrecise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
         htlc.addStoremanGroup(tokenOrigAccount, storemanGroup, quota, txFeeRatio);
         storemanGroupMap[tokenOrigAccount][storemanGroup] = StoremanGroup(msg.sender, msg.value, txFeeRatio, 0);
 
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota, txFeeRatio);
     }
 
-    /// @notice                           apply unregistration through a proxy
-    /// @dev                              apply unregistration through a proxy
+    /// @notice                           apply unregistration
+    /// @dev                              apply unregistration
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              PK of storemanGroup
     function storemanGroupUnregister(bytes tokenOrigAccount, bytes storemanGroup)
@@ -202,10 +202,10 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
 
         uint8 decimals;
         uint token2WanRatio;
-        uint defaultPricise;
-        (,,decimals,,token2WanRatio,,,defaultPricise) = tokenManager.getTokenInfo(tokenOrigAccount);
+        uint defaultPrecise;
+        (,,decimals,,token2WanRatio,,,defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
         uint deposit = smg.deposit.add(msg.value);
-        uint quota = deposit.mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
+        uint quota = deposit.mul(defaultPrecise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether);
         htlc.updateStoremanGroup(tokenOrigAccount, storemanGroup, quota);
         // TODO: notify bonus contract
         smg.deposit = deposit;

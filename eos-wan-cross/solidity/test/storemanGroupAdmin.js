@@ -32,7 +32,7 @@ const eosToken = {
   symbol: encoder.str2hex('EOS'),
   decimals: 4,
   // for test
-  quota: new BN(Math.pow(10, 8) / 2), // (msg.value).mul(defaultPricise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether)
+  quota: new BN(Math.pow(10, 8) / 2), // (msg.value).mul(defaultPrecise).div(token2WanRatio).mul(10**uint(decimals)).div(1 ether)
 }
 
 let tmSc, smgProxy, smgDelegate, smgSC, htlcSc;
