@@ -5,7 +5,7 @@ if [ ! -f "../contracts/htlc/lib/HTLCLib.sol.org" ];then
 	cp ../contracts/htlc/lib/HTLCLib.sol ../contracts/htlc/lib/HTLCLib.sol.org
 fi
 
-perl -pi -e 's/DEF_LOCKED_TIME[ \t]*=.*/DEF_LOCKED_TIME = 6/' ../contracts/htlc/lib/HTLCLib.sol
+perl -pi -e 's/DEF_LOCKED_TIME[ \t]*=.*/DEF_LOCKED_TIME = 6;/' ../contracts/htlc/lib/HTLCLib.sol
 
 if [ ! -f "../contracts/htlc/lib/commonLib.sol.org" ];then
 	cp ../contracts/htlc/lib/commonLib.sol ../contracts/htlc/lib/commonLib.sol.org
