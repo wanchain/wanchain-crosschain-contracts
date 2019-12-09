@@ -265,7 +265,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);
     }
 
-    function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr, uint ratio) external {
+    function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr, uint ratio)
+        external
+        onlyOwner
+    {
         require(tokenManagerAddr != address(0) && storemanGroupAdminAddr != address(0), "Parameter is invalid");
         require(ratio <= HTLCTypes.getRatioPrecise(), "Ratio is invalid");
 
@@ -281,7 +284,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     function queryStoremanGroupQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
-        returns (uint, uint, uint, uint, uint, uint)
+        returns(uint, uint, uint, uint, uint, uint)
     {
         return htlcStorageData.quotaData.queryQuotaInfo(tokenOrigAccount, storemanGroupPK);
     }

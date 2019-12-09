@@ -145,6 +145,7 @@ library HTLCSmgLib {
     {
         commonLib.verifySignature(sha256(abi.encode(receiver)), storemanGroupPK, r, s);
         receiver.transfer(htlcStorageData.mapStoremanFee[storemanGroupPK]);
+        delete htlcStorageData.mapStoremanFee[storemanGroupPK];
     }
 
 }

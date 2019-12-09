@@ -85,7 +85,7 @@ library HTLCDebtLib {
     function inDebtLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCDebtLockParams memory params)
         public
     {
-        bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.srcStoremanPK, params.dstStoremanPK));
+        bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.srcStoremanPK, params.dstStoremanPK, params.value));
         commonLib.verifySignature(mHash, params.dstStoremanPK, params.r, params.s);
 
         htlcStorageData.htlcData.addDebtTx(params.xHash, params.value, params.srcStoremanPK, params.dstStoremanPK);

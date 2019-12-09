@@ -87,7 +87,6 @@ library QuotaLib {
 
     function deactivateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
-        returns (bool)
     {
         require(tokenOrigAccount.length != 0 && storemanGroupPK.length != 0, "Parameter is invalid");
         require(isActive(self, tokenOrigAccount, storemanGroupPK), "Storeman group is active");
@@ -98,7 +97,7 @@ library QuotaLib {
         external
     {
         require(notActive(self, tokenOrigAccount, storemanGroupPK), "storeman group is active");
-        require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off it's debt");
+        require(isDebtPaidOff(self, tokenOrigAccount, storemanGroupPK), "Storeman should pay off its debt");
 
         delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
     }

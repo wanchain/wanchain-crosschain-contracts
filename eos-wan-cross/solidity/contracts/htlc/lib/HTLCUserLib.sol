@@ -30,7 +30,6 @@ pragma experimental ABIEncoderV2;
 
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
-import "./commonLib.sol";
 import "./HTLCTypes.sol";
 import "../../interfaces/ITokenManager.sol";
 import "../../interfaces/IWRC20Protocol.sol";
@@ -94,7 +93,6 @@ library HTLCUserLib {
     {
         // check withdraw fee
         uint fee = getOutboundFee(htlcStorageData, params.tokenOrigAccount, params.storemanGroupPK, params.value);
-        require(msg.value >= fee, "Transferred fee is not enough");
 
         uint left = (msg.value).sub(fee);
         if (left != 0) {
@@ -146,8 +144,6 @@ library HTLCUserLib {
 
         (,,,instance,,,,) = params.tokenManager.getTokenInfo(params.tokenOrigAccount);
         require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
-
-        (source, , , storemanGroupPK) = htlcStorageData.htlcData.getUserTx(params.xHash);
 
         uint revokeFeeRatio = htlcStorageData.revokeFeeRatio;
         uint ratioPrecise = HTLCTypes.getRatioPrecise();
