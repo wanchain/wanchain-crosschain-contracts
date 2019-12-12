@@ -51,9 +51,9 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     /// @param name                  WRC20 token name on wanchain mainnet
     /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal               WRC20 token decimals on wanchain mainnet
+    /// @param decimals              WRC20 token decimals on wanchain mainnet
     event TokenAddedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
-                           bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
+                           bytes name, bytes symbol, uint8 decimals, address tokenWanAddr);
 
     /// @notice                      event for token registration update
     /// @dev                         event for token registration update
@@ -63,10 +63,10 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
     /// @param name                  WRC20 token name on wanchain mainnet
     /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal               WRC20 token decimals on wanchain mainnet
+    /// @param decimals              WRC20 token decimals on wanchain mainnet
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     event TokenUpdatedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
-                             bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
+                             bytes name, bytes symbol, uint8 decimals, address tokenWanAddr);
 
     event TokenRemovedLogger(bytes tokenOrigAccount);
 
