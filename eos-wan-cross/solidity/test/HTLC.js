@@ -278,6 +278,21 @@ contract('Test HTLC', async (accounts) => {
         }
     });
 
+    it('init...   -> queryStoremanGroupQuota store man not exist', async () => {
+        try {
+            let ret = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount,
+                srcDebtStoremanPK);
+            assert.equal(ret.quota, '0');
+            assert.equal(ret.inboundQuota, '0');
+            assert.equal(ret.outboundQuota, '0');
+            assert.equal(ret.receivable, '0');
+            assert.equal(ret.payable, '0');
+            assert.equal(ret.debt, '0');
+        } catch (err) {
+            assert.fail(err.toString());
+        }
+    });
+
     it('init...   -> should call from smg sc address', async () => {
         try {
             await htlcInstProxy.addStoremanGroup(addSmgParams.tokenOrigAccount,
@@ -1038,17 +1053,42 @@ contract('Test HTLC', async (accounts) => {
                 .div(new BN(DEFAULT_PRECISE))
                 .div(new BN(DEFAULT_PRECISE));
 
+            //console.log("txFee:"+txFee.toString());
             let htlcUserLockParamsTemp = Object.assign({}, htlcUserLockParams);
             htlcUserLockParamsTemp.userOrigAccount = accounts[3];
-            await htlcInstProxy.outUserLock(htlcUserLockParamsTemp.xHash,
+
+            let beforeCoin = await web3.eth.getBalance(accounts[1]);
+            //console.log("beforeCoin:"+beforeCoin);
+
+            let txLockRpt = await htlcInstProxy.outUserLock(htlcUserLockParamsTemp.xHash,
                 htlcUserLockParamsTemp.value,
                 htlcUserLockParamsTemp.tokenOrigAccount,
                 htlcUserLockParamsTemp.userOrigAccount,
                 htlcUserLockParamsTemp.storemanGroupPK, {from: accounts[1], value: htlcUserLockParams.value});
 
+            //console.log(txLockRpt);
+            let txLock = await web3.eth.getTransaction(txLockRpt.tx);
+            //console.log(txLock);
+
+            //console.log("gasUsed:"+txLockRpt.receipt.gasUsed);
+            //console.log("gasPrice:"+txLock.gasPrice);
+            let AfterCoin = await web3.eth.getBalance(accounts[1]);
+            //console.log("AfterCoin:"+AfterCoin);
+
+            // beforeCoin-AfterCoin = txFee + gasUsed*gasPrice
+            // check coin
+            let bnGasCoin = new BN(txLockRpt.receipt.gasUsed).mul(new BN(txLock.gasPrice));
+            let bnCoinUsed = bnGasCoin.add(txFee);
+
             balanceAfterLock = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
-            // The WEOS value changed, not include the fee. Fee is subtracted from the value of the transaction. unit is WAN.
-            assert.equal(balanceAfterLock, (new BN(balanceBeforeLock)).sub(new BN(htlcUserLockParams.value)), "After lock, the balance is not right!")
+
+            assert.equal((new BN(beforeCoin).sub(new BN(AfterCoin))).toString(),
+                bnCoinUsed.toString(),
+                "After lock, the balance of coin is not right!");
+            // check token
+            assert.equal(balanceAfterLock,
+                (new BN(balanceBeforeLock).sub(new BN(htlcUserLockParams.value))).toString(),
+                "After lock, the balance of token is not right!")
         } catch (err) {
             assert.fail(err);
         }
@@ -1324,11 +1364,53 @@ contract('Test HTLC', async (accounts) => {
     it('Others outUserRevoke  ==>success', async () => {
         // revoke
         try {
+            let ret = await htlcInstProxy.getEconomics();
+            //console.log("revokeRatio[org]:"+ret[2].toString());
+            await htlcInstProxy.setEconomics(ret[0],ret[1],revokeFeeRatio);
+            //console.log("revokeRatio[new]:"+revokeFeeRatio.toString());
+
             await sleep(2 * lockedTime);
             let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
-            await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            let beforeCoin = await web3.eth.getBalance(accounts[1]);
+            //console.log("beforeCoin:"+beforeCoin.toString());
+
+            //let txRevokeRpt = await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            let txRevokeRpt = await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4, {from:accounts[1]});
+            let txRevoke = await web3.eth.getTransaction(txRevokeRpt.tx);
+
             let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
+            let afterCoin = await web3.eth.getBalance(accounts[1]);
+            //console.log("afterCoin:"+afterCoin.toString());
+
+            //check token
             assert.equal(balanceAfterRevoke, (new BN(balanceBeforeRevoke)).add(v3), "The balance of revoked is not right!");
+
+
+            let txLockFee = (new BN(v3))
+                .div(new BN(10).pow(new BN(tokenInfo.decimals)))
+                .mul(new BN(10).pow(new BN(18)))
+                .mul(new BN(tokenInfo.token2WanRatio))
+                .mul(new BN(addSmgParams.txFeeRatio))
+                .div(new BN(DEFAULT_PRECISE))
+                .div(new BN(DEFAULT_PRECISE));
+
+            let txRevokeFee = txLockFee.mul(new BN(revokeFeeRatio)).div(new BN(DEFAULT_PRECISE));
+            let returnCoin = txLockFee.sub(txRevokeFee);
+
+            //console.log("txRevokeFee:"+txRevokeFee.toString());
+            //console.log("returnCoin:"+returnCoin.toString());
+
+            //console.log("gasUsed:"+txRevokeRpt.receipt.gasUsed);
+            //console.log("gasPrice:"+txRevoke.gasPrice);
+            // check coin
+            let bnGasCoin = new BN(txRevokeRpt.receipt.gasUsed).mul(new BN(txRevoke.gasPrice));
+
+            //console.log("bnCoinUsed:"+bnGasCoin.toString());
+            let afterCoinExpect = new BN(beforeCoin).add(returnCoin).sub(bnGasCoin);
+
+            assert.equal(afterCoin.toString(),
+                afterCoinExpect.toString(),
+                "After lock, the balance of coin is not right!");
         } catch (err) {
             assert.fail(err.toString());
         }
