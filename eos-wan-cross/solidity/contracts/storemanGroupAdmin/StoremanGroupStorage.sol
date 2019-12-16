@@ -1,6 +1,6 @@
 /*
 
-  Copyright 2018 Wanchain Foundation.
+  Copyright 2019 Wanchain Foundation.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 //   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
 //    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
 //
+//  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
 pragma solidity ^0.4.24;
 
@@ -34,6 +35,7 @@ contract StoremanGroupStorage is BasicStorage {
     ITokenManager public tokenManager;
     /// HTLC instance address
     IHTLC public htlc;
+    /// is white list is enabled, if false, any storeman group can register
     bool public isWhiteListEnabled;
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)

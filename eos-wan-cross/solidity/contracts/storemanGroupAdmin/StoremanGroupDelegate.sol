@@ -1,6 +1,6 @@
 /*
 
-  Copyright 2018 Wanchain Foundation.
+  Copyright 2019 Wanchain Foundation.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 //   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
 //    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
 //
+//  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
 pragma solidity ^0.4.24;
 
@@ -39,44 +40,47 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
      */
 
     /// @notice                           event for storeman register
-    /// @dev                              event for storeman register
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     /// @param txFeeRatio                 storeman fee ratio
     event StoremanGroupRegistrationLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota, uint txFeeRatio);
 
     /// @notice                           event for storeman register
-    /// @dev                              event for storeman register
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     /// @param isEnable                   is enable or disable
     event SetWhiteListLogger(bytes tokenOrigAccount, bytes storemanGroup, bool isEnable);
 
     /// @notice                           event for applying storeman group unregister
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup address
+    /// @param storemanGroup              storeman group address
     /// @param applyTime                  the time for storeman applying unregister
     event StoremanGroupApplyUnRegistrationLogger(bytes tokenOrigAccount, bytes storemanGroup, uint applyTime);
 
     /// @notice                           event for storeman group withdraw deposit
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     /// @param actualReturn               the time for storeman applying unregister
     /// @param deposit                    deposit in the first place
     event StoremanGroupWithdrawLogger(bytes tokenOrigAccount, bytes storemanGroup, uint actualReturn, uint deposit);
 
-    /// @notice                           event for storeman register
-    /// @dev                              event for storeman register
+    /// @notice                           event for storeman group update deposit
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
     event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
 
-    /// @notice              Set tokenManager and htlc
-    /// @param tmAddr        token manager instance address
-    /// @param htlcAddr      htlc instance address
+    /**
+    *
+    * MANIPULATIONS
+    *
+    */
+
+    /// @notice                           function for owner set token manager and htlc contract address
+    /// @param tmAddr                     token manager contract address
+    /// @param htlcAddr                   htlc contract address
     function setDependence(address tmAddr, address htlcAddr)
         external
         onlyOwner
@@ -87,8 +91,8 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         htlc = IHTLC(htlcAddr);
     }
 
-    /// @notice                  enable or disable storeman group white list by owner
-    /// @param isEnable          is enable
+    /// @notice                           function for owner enable or disable storeman group white list feature
+    /// @param isEnable                   enable(true) or disable(false)
     function enableWhiteList(bool isEnable)
         external
         onlyOwner
@@ -96,10 +100,10 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         isWhiteListEnabled = isEnable;
     }
 
-    /// @notice                  function for setting smg white list by owner
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroup     storemanGroup PK for whitelist
-    /// @param isEnable          enable or disable
+    /// @notice                           function for owner set storeman group in white list
+    /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanGroup              storeman group PK
+    /// @param isEnable                   enable(true) or disable(false)
     function setWhiteList(bytes tokenOrigAccount, bytes storemanGroup, bool isEnable)
         external
         onlyOwner
@@ -117,11 +121,11 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         emit SetWhiteListLogger(tokenOrigAccount, storemanGroup, isEnable);
     }
 
-    /// @notice                  function for storeman register by sender this method should be
-    ///                          invoked by a storemanGroup registration proxy or wanchain foundation
-    /// @param tokenOrigAccount  token account of original chain
-    /// @param storemanGroup     the storeman group PK address
-    /// @param txFeeRatio        the transaction fee required by storeman group
+    /// @notice                           function for storeman group register, this method should be
+    ///                                   invoked by a storeman group registration delegate or wanchain foundation
+    /// @param tokenOrigAccount           token account of original chain
+    /// @param storemanGroup              storeman group PK
+    /// @param txFeeRatio                 transaction fee ratio required by storeman group
     function storemanGroupRegister(bytes tokenOrigAccount, bytes storemanGroup, uint txFeeRatio)
         external
         payable
@@ -151,10 +155,9 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         emit StoremanGroupRegistrationLogger(tokenOrigAccount, storemanGroup, msg.value, quota, txFeeRatio);
     }
 
-    /// @notice                           apply unregistration
-    /// @dev                              apply unregistration
+    /// @notice                           function for storeman group apply unregistration through the delegate
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              PK of storemanGroup
+    /// @param storemanGroup              storeman group PK
     function storemanGroupUnregister(bytes tokenOrigAccount, bytes storemanGroup)
         external
         notHalted
@@ -168,10 +171,9 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         emit StoremanGroupApplyUnRegistrationLogger(tokenOrigAccount, storemanGroup, now);
     }
 
-    /// @notice                           withdraw deposit through a proxy
-    /// @dev                              withdraw deposit through a proxy
+    /// @notice                           function for storeman group withdraw deposit through the delegate
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     function storemanGroupWithdrawDeposit(bytes tokenOrigAccount, bytes storemanGroup)
         external
         notHalted
@@ -189,10 +191,9 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         delete storemanGroupMap[tokenOrigAccount][storemanGroup];
     }
 
-    /// @notice                           append deposit through a proxy
-    /// @dev                              append deposit through a proxy
+    /// @notice                           function for storeman group append deposit through the delegate
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              storemanGroup PK
+    /// @param storemanGroup              storeman group PK
     function storemanGroupAppendDeposit(bytes tokenOrigAccount, bytes storemanGroup)
         external
         payable
@@ -215,10 +216,9 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         emit StoremanGroupUpdateLogger(tokenOrigAccount, storemanGroup, deposit, quota);
     }
 
-    /// @notice                           apply unregistration through a proxy
-    /// @dev                              apply unregistration through a proxy
+    /// @notice                           function for getting storeman group information
     /// @param tokenOrigAccount           token account of original chain
-    /// @param storemanGroup              PK of storemanGroup
+    /// @param storemanGroup              storeman group PK
     function getStoremanGroupInfo(bytes tokenOrigAccount, bytes storemanGroup)
         external
         view

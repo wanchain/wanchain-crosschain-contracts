@@ -22,7 +22,7 @@
 //   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
 //    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
 //
-//
+//  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
 pragma solidity ^0.4.24;
 
@@ -31,7 +31,14 @@ import "./StoremanGroupStorage.sol";
 import "../components/Proxy.sol";
 
 contract StoremanGroupProxy is StoremanGroupStorage, Halt, Proxy {
+    /**
+    *
+    * MANIPULATIONS
+    *
+    */
 
+    /// @notice                           function for setting or upgrading StoremanGroupDelegate address by owner
+    /// @param impl                       StoremanGroupDelegate contract address
     function upgradeTo(address impl) public onlyOwner {
         require(impl != address(0), "Cannot upgrade to invalid address");
         require(impl != _implementation, "Cannot upgrade to the same implementation");
