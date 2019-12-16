@@ -53,12 +53,11 @@ contract TokenManagerStorage is BasicStorage {
     address public htlcAddr;
 
     struct TokenInfo {
-        // bytes              tokenOrigAddr;       /// token account on original chain
-        bytes              name;                /// WRC20 token name on wanchain mainnet
-        bytes              symbol;              /// WRC20 token symbol on wanchain mainnet
-        uint8              decimals;            /// WRC20 token decimals on wanchain mainnet
-        address            tokenWanAddr;        /// a wanchain address of supported ERC20 token
-        uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
+        bytes              name;                /// token name on wanchain mainnet
+        bytes              symbol;              /// token symbol on wanchain mainnet
+        uint8              decimals;            /// token decimals on wanchain mainnet
+        address            tokenWanAddr;        /// a wanchain address of supported token
+        uint               token2WanRatio;      /// 1 token valuated in wan coins
         uint               minDeposit;          /// the minimum deposit for a valid storeman group
         uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied un-registration
     }
