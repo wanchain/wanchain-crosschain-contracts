@@ -42,7 +42,7 @@ contract TokenManagerStorage is BasicStorage {
     /// default precision
     uint public constant DEFAULT_PRECISE = 10000;
     /// a time period after which a storeman group could confirm unregister
-    uint public constant MIN_WITHDRAW_WINDOW = 60 * 60 * 72;
+    uint public constant MIN_WITHDRAW_WINDOW = 10;
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
 

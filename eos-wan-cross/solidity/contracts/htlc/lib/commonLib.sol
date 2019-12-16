@@ -43,7 +43,7 @@ library commonLib {
     }
 
     /// @notice             verify signature
-    /// @param  message        message to be verified
+    /// @param  message     message to be verified
     /// @param  r           Signature info r
     /// @param  s           Signature info s
     /// @return             true/false

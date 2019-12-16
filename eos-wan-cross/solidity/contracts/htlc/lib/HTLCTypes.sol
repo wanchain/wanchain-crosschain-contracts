@@ -36,8 +36,18 @@ library HTLCTypes {
     /// @notice for example: revokeFeeRatio is 3, meaning that the revoking fee ratio is 3/10000
     uint constant RATIO_PRECISE = 10000;
 
+    /**
+     *
+     * STRUCTURES
+     *
+     */
+
     struct HTLCStorageData {
+
+        /// quota data of storeman group
         QuotaLib.Data quotaData;
+
+        /// map of the transaction info
         HTLCLib.Data htlcData;
 
         /// token manager instance interface
@@ -56,6 +66,7 @@ library HTLCTypes {
         mapping(bytes => uint) mapStoremanFee;
     }
 
+    /// @notice get the const value RATIO_PRECISE
     function getRatioPrecise() internal pure returns(uint) {
       return RATIO_PRECISE;
     }

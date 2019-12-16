@@ -40,7 +40,7 @@ library QuotaLib {
         uint _receivable;
         /// amount of WAN token to be burnt
         uint _payable;
-        /// amount of original token received, equals to amount of WAN token been minted
+        /// amount of original token has been exchanged to the wanchain
         uint _debt;
         /// is active
         bool _active;
@@ -51,17 +51,17 @@ library QuotaLib {
         mapping(bytes => mapping(bytes => Quota)) mapQuota;
     }
 
-    /// @notice                 test if a value provided is meaningless
-    /// @dev                    test if a value provided is meaningless
-    /// @param value            given value to be handled
+    /// @notice                                 check if a value provided is meaningless
+    /// @dev                                    check if a value provided is meaningless
+    /// @param value                            given value to be handled
     modifier onlyMeaningfulValue(uint value) {
         require(value > 0, "Value is null");
         _;
     }
 
-    /// @notice                 function for get quota
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup PK
+    /// @notice                                 function for get quota
+    /// @param tokenOrigAccount                 token account of original chain
+    /// @param storemanGroupPK                  storemanGroup PK
     function getQuota(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
@@ -72,10 +72,11 @@ library QuotaLib {
     }
 
 
-    /// @notice                 set storeman group's quota
-    /// @param tokenOrigAccount token account of original chain
-    /// @param storemanGroupPK  storemanGroup PK
-    /// @param quota            a storemanGroup's quota
+    /// @notice                                 set storeman group's quota
+    /// @param tokenOrigAccount                 token account of original chain
+    /// @param storemanGroupPK                  storemanGroup PK
+    /// @param quota                            a storemanGroup's quota
+    /// @param txFeeRatio                       transaction fee ratio, the denominator is DEFAULT_PRECISE
     function addStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
         external
         onlyMeaningfulValue(quota)
@@ -85,6 +86,9 @@ library QuotaLib {
         self.mapQuota[tokenOrigAccount][storemanGroupPK] = Quota(quota, txFeeRatio, 0, 0, 0, true);
     }
 
+    /// @notice                                 deactivated the storeman group
+    /// @param tokenOrigAccount                 token account of original chain
+    /// @param storemanGroupPK                  storemanGroup PK
     function deactivateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
     {
@@ -93,6 +97,9 @@ library QuotaLib {
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._active = false;
     }
 
+    /// @notice                                 quit the storeman group
+    /// @param tokenOrigAccount                 token account of original chain
+    /// @param storemanGroupPK                  storemanGroup PK
     function delStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
     {
@@ -102,6 +109,10 @@ library QuotaLib {
         delete self.mapQuota[tokenOrigAccount][storemanGroupPK];
     }
 
+    /// @notice                                 update the storeman group
+    /// @param tokenOrigAccount                 token account of original chain
+    /// @param storemanGroupPK                  storemanGroup PK
+    /// @param quota                            new quota will overwrite the old one
     function updateStoremanGroup(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyMeaningfulValue(quota)
@@ -111,12 +122,10 @@ library QuotaLib {
         self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota = quota;
     }
 
-    /// @notice                 frozen WRC token quota
-    /// @dev                    frozen WRC token quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
-    /// @param value            amount of WRC20 quota to be frozen
-    /// @return                 true if successful
+    /// @notice                                 inbound, user lock token, update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function inLock(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
@@ -132,12 +141,10 @@ library QuotaLib {
         quotaInfo._receivable = quotaInfo._receivable.add(value);
     }
 
-    /// @notice                 revoke WRC20 quota
-    /// @dev                    revoke WRC20 quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
-    /// @param value            amount of WRC20 quota to be locked
-    /// @return                 true if successful
+    /// @notice                                 inbound, storeman revoke the transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function inRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
@@ -151,12 +158,10 @@ library QuotaLib {
         quota._receivable = quota._receivable.sub(value);
     }
 
-    /// @notice                 mint WRC token or payoff storemanGroup debt
-    /// @dev                    mint WRC20 token or payoff storemanGroup debt
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  handler PK
-    /// @param value            amount of WRC20 token to be minted
-    /// @return                 success of token mint
+    /// @notice                                 inbound, user redeem the transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function inRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
@@ -171,12 +176,10 @@ library QuotaLib {
         _q._debt = _q._debt.add(value);
     }
 
-    /// @notice                 lock WRC20 token and initiate an outbound transaction
-    /// @dev                    lock WRC20 token and initiate an outbound transaction
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  outbound storemanGroup handler PK
-    /// @param value            amount of WRC20 token to be locked
-    /// @return                 success of token locking
+    /// @notice                                 outbound, user lock the transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function outLock(Data storage self, uint value, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyMeaningfulValue(value)
@@ -193,12 +196,10 @@ library QuotaLib {
         quota._payable = quota._payable.add(value);
     }
 
-    /// @notice                 unlock WRC20 token
-    /// @dev                    unlock WRC20 token
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  storemanGroup handler PK
-    /// @param value            amount of token to be unlocked
-    /// @return                 success of token unlocking
+    /// @notice                                 outbound, user revoke the transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function outRevoke(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
@@ -212,12 +213,10 @@ library QuotaLib {
         quotaInfo._payable = quotaInfo._payable.sub(value);
     }
 
-    /// @notice                 burn WRC20 token
-    /// @dev                    burn WRC20 token
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK
-    /// @param value            amount of WRC20 token to be burnt
-    /// @return                 success of burn token
+    /// @notice                                 outbound, storeman redeem the transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  handler PK
+    /// @param value                            amount of exchange token
     function outRedeem(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         external
         onlyMeaningfulValue(value)
@@ -230,13 +229,11 @@ library QuotaLib {
         quotaInfo._payable = quotaInfo._payable.sub(value);
     }
 
-    /// @notice                 transfer debt from src to dst
-    /// @dev                    frozen WRC-20 token quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param srcStoremanGroupPK  src handler PK
-    /// @param dstStoremanGroupPK  dst handler PK
-    /// @param value            amount of debt to be frozen
-    /// @return                 true if successful
+    /// @notice                                 source storeman group lock the debt transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param value                            amount of exchange token
+    /// @param srcStoremanGroupPK               PK of source storeman group
+    /// @param dstStoremanGroupPK               PK of destination storeman group
     function debtLock(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanGroupPK, bytes dstStoremanGroupPK)
         external
         onlyMeaningfulValue(value)
@@ -257,12 +254,11 @@ library QuotaLib {
         src._payable = src._payable.add(value);
     }
 
-    /// @notice                 mint WRC-20 token or payoff storemanGroup debt
-    /// @dev                    mint WRC-20 token or payoff storemanGroup debt
-    /// @param tokenOrigAccount account of token supported
-    /// @param dstStoremanPK    dst PK
-    /// @param srcStoremanPK    src PK
-    /// @param value            amount of WRC-20 token to be minted
+    /// @notice                                 destination storeman group redeem the debt transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param value                            amount of exchange token
+    /// @param srcStoremanPK                    PK of source storeman group
+    /// @param dstStoremanPK                    PK of destination storeman group
     function debtRedeem(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanPK, bytes dstStoremanPK)
         external
         onlyMeaningfulValue(value)
@@ -282,12 +278,11 @@ library QuotaLib {
         src._debt = src._debt.sub(value);
     }
 
-    /// @notice                 revoke WRC-20 quota
-    /// @dev                    revoke WRC-20 quota
-    /// @param tokenOrigAccount account of token supported
-    /// @param dstStoremanPK    dst PK
-    /// @param srcStoremanPK    src PK
-    /// @param value            amount of WRC-20 quota to be locked
+    /// @notice                                 source storeman group revoke the debt transaction,update the detailed quota info. of the storeman group
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param value                            amount of exchange token
+    /// @param srcStoremanPK                    PK of source storeman group
+    /// @param dstStoremanPK                    PK of destination storeman group
     function debtRevoke(Data storage self, bytes tokenOrigAccount, uint value, bytes srcStoremanPK, bytes dstStoremanPK)
         external
         onlyMeaningfulValue(value)
@@ -304,8 +299,10 @@ library QuotaLib {
         src._payable = src._payable.sub(value);
     }
 
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK
+    /// @notice                                 check the storeman group existing or not
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  PK of storeman group
+    /// @return bool                           true/false
     function isExist(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
         view
@@ -314,8 +311,10 @@ library QuotaLib {
         return self.mapQuota[tokenOrigAccount][storemanGroupPK]._quota != uint(0);
     }
 
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK
+    /// @notice                                 check the storeman group active or not
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  PK of storeman group
+    /// @return bool                           true/false
     function isActive(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
         view
@@ -325,8 +324,10 @@ library QuotaLib {
         return q._quota != uint(0) && q._active;
     }
 
-    /// @param tokenOrigAccount account of token supported
-    /// @param storemanGroupPK  cross-chain transaction handler PK
+    /// @notice                                 check the storeman group active or not
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  PK of storeman group
+    /// @return bool                           true: not active false: active
     function notActive(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
         view
@@ -336,16 +337,15 @@ library QuotaLib {
         return q._quota != uint(0) && !q._active;
     }
 
-    /// @notice                 query storemanGroup quota detail
-    /// @dev                    query storemanGroup detail
-    /// @param  tokenOrigAccount  account of token supported
-    /// @param  storemanGroupPK Pk of storemanGroup to be queried
-    /// @return quota           total quota of this storemanGroup in ETH/WRC20
-    /// @return inboundQuota    inbound cross-chain transaction quota of this storemanGroup in ETH/WRC20
-    /// @return outboundQuota   outbound cross-chain transaction quota of this storemanGroup in ETH/WRC20
-    /// @return receivable      amount of WRC20 to be minted through this storemanGroup
-    /// @return payable         amount of WRC20 to be burnt through this storemanGroup
-    /// @return debt            amount of WRC20 been minted through this storemanGroup
+    /// @notice                                 get the detailed quota info. of this storeman group
+    /// @param tokenOrigAccount                 account of original chain token
+    /// @param storemanGroupPK                  PK of storemanGroup
+    /// @return _quota                         storemanGroup's total quota
+    /// @return inboundQuota                   inbound, the amount which storeman group can handle
+    /// @return outboundQuota                  outbound, the amount which storeman group can handle
+    /// @return _receivable                    amount of original token to be received, equals to amount of WAN token to be minted
+    /// @return _payable                       amount of WAN token to be burnt
+    /// @return _debt                          amount of original token has been exchanged to the wanchain
     function queryQuotaInfo(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
@@ -363,11 +363,10 @@ library QuotaLib {
         return (quotaInfo._quota, inboundQuota, outboundQuota, quotaInfo._receivable, quotaInfo._payable, quotaInfo._debt);
     }
 
-    /// @notice                 check if a specified storemanGroup has paid off its debt
-    /// @dev                    check if a specified storemanGroup has paid off its debt
-    /// @param  tokenOrigAccount  account of token supported
-    /// @param  storemanGroupPK   the PK of storemanGroup to be checked
-    /// @return                 result of debt status check
+    /// @notice                                 check the storeman group'debt paid off or not
+    /// @param tokenOrigAccount                 account of token supported
+    /// @param storemanGroupPK                  PK of storeman group
+    /// @return bool                           true: debt paid off false: debt NOT paid off
     function isDebtPaidOff(Data storage self, bytes tokenOrigAccount, bytes storemanGroupPK)
         private
         view
