@@ -12,8 +12,9 @@
 #include <eosio/crypto.hpp>
 
 #define _DEBUG_HTLC
-// #define _DEBUG_PRINT
-// #define _DEBUG_API
+#define _DEBUG_PRINT
+#define _DEBUG_API
+// #define _SIGN_MSG_DETAIL
 
 namespace htlc {
     // if time_t is defined in namespace hash, using hTime::time_t in eosio contract table,
@@ -32,8 +33,8 @@ namespace htlc {
         typedef struct level_t {
             /* should less than 12 charapters */
             static constexpr eosio::name active = eosio::name("active");
-            static constexpr eosio::name sign = eosio::name("sign");
             static constexpr eosio::name token = eosio::name("token");
+            static constexpr eosio::name sign = eosio::name("sign");
         } level;
     };
 
@@ -53,7 +54,8 @@ namespace htlc {
         constexpr uint64_t ratioPrecise = 10000;
 
         #ifdef _DEBUG_HTLC
-        constexpr time_t lockedTime = time_t(3600);
+        constexpr time_t lockedTime = time_t(60);
+        // constexpr time_t lockedTime = time_t(3600);
         #else
         constexpr time_t lockedTime = time_t(3600 * 36);
         #endif
@@ -94,20 +96,14 @@ namespace htlc {
 
         typedef struct key_t {
             /* should less than 12 charapters */
-            static constexpr eosio::name sym = eosio::name("sym");
             static constexpr eosio::name pid = eosio::name("pid");
             static constexpr eosio::name npid = eosio::name("npid");
             static constexpr eosio::name pkHash = eosio::name("pkhash");
-            // static constexpr eosio::name user = eosio::name("user");
             static constexpr eosio::name xHash = eosio::name("xhash");
-            static constexpr eosio::name sym_pid = eosio::name("sym.pid");
-            static constexpr eosio::name sym_status = eosio::name("sym.status");
             static constexpr eosio::name acct = eosio::name("acct");
             static constexpr eosio::name sym_acct = eosio::name("sym.acct");
             static constexpr eosio::name pid_acct = eosio::name("pid.acct");
             static constexpr eosio::name npid_acct = eosio::name("npid.acct");
-            static constexpr eosio::name sym_acct_pid = eosio::name("sym.acct.pid");
-            static constexpr eosio::name action = eosio::name("action");
             static constexpr eosio::name ratio = eosio::name("ratio");
         } key;
     };
@@ -116,55 +112,46 @@ namespace htlc {
         typedef struct error_t {
             static constexpr std::string_view NOT_FOUND_RECORD = "not found valid record";
             static constexpr std::string_view NOT_FOUND_PK_RECORD = "not found the pk record";
-            static constexpr std::string_view REDUPLICATIVE_PK_RECORD = "reduplicative pk";
-            static constexpr std::string_view EXIST_SIGNATURE_RECORD = "the signature record already exists";
             static constexpr std::string_view NOT_FOUND_SIGNATURE_RECORD = "not found the signature record";
-            static constexpr std::string_view EXIST_TOKEN_ACCOUNT_RECORD = "the token account record already exists";
             static constexpr std::string_view NOT_FOUND_TOKEN_ACCOUNT_RECORD = "not found the token account record";
-            static constexpr std::string_view EXIST_TOKEN_RECORD = "the token record already exists";
             static constexpr std::string_view NOT_FOUND_TOKEN_RECORD = "not found the token record";
 
-            static constexpr std::string_view NOT_EXIST_ACCOUNT = "the account does not exist";
-            static constexpr std::string_view INVALID_ACCOUNT = "invalid account";
             static constexpr std::string_view INVALID_HTLC_ACCOUNT = "invalid htlc account";
             static constexpr std::string_view INVALID_SG_ACCOUNT = "invalid storeman account";
             static constexpr std::string_view INVALID_USER_ACCOUNT = "invalid user account";
             static constexpr std::string_view INVALID_TOKEN_ACCOUNT = "invalid token account";
-            static constexpr std::string_view SG_NOT_USER = "storeman should not be a user";
 
+            #ifdef _DEBUG_API
             static constexpr std::string_view INVALID_TABLE = "invalid table";
+            #endif
 
             static constexpr std::string_view INVALID_MEMO = "invalid memo";
-            static constexpr std::string_view INVALID_SIG_MEMO = "invalid memo, it should be one of [inredeem, outlock, outrevoke, lockdebt, redeemdebt, revokedebt, updatepk, removepk]";
 
             static constexpr std::string_view REDEEM_TIMEOUT = "redeem timeout, only can redeem in lockedTime";
             static constexpr std::string_view REVOKE_TIMEOUT = "only can revoke after lockedTime";
 
             static constexpr std::string_view INVALID_X = "invalid x";
             static constexpr std::string_view INVALID_XHASH = "invalid xHash";
-            static constexpr std::string_view INVALID_WAN_ADDR = "invalid WAN address";
-            static constexpr std::string_view INVALID_PK = "invalid pk";
-            static constexpr std::string_view INVALID_X_OR_XHASH_SIZE = "x or xHash should be a fixed size";
+            // static constexpr std::string_view INVALID_WAN_ADDR = "invalid WAN address";
+            // static constexpr std::string_view INVALID_PK = "invalid pk";
+
+            static constexpr std::string_view REDUPLICATIVE_RECORD = "reduplicative record";
             static constexpr std::string_view REDUPLICATIVE_XHASH = "reduplicative xHash";
 
+            static constexpr std::string_view INVALID_PARAM = "Invalid parameter";
             static constexpr std::string_view INVALID_QUANTITY = "invalid quantity";
+            static constexpr std::string_view INVALID_HEX_CHAR = "Invalid hex character";
+
             static constexpr std::string_view NOE_ENOUGH_QUANTITY = "not enough quantity";
             static constexpr std::string_view FEE_OVERFLOW = "asset fee overflow";
             static constexpr std::string_view LEFT_OVERFLOW = "asset left overflow";
 
-            static constexpr std::string_view INVALID_STATUS = "invalid status";
-            static constexpr std::string_view INVALID_ACTION_FILTER = "invalid action filter";
             static constexpr std::string_view SYSTEM_ERROR = "onerror occured before htlc";
 
-            static constexpr std::string_view INVALID_HEX_CHAR = "Invalid hex character";
-            static constexpr std::string_view INVALID_PARAM = "Invalid parameter";
-
-            static constexpr std::string_view NOT_HANDLED_RECORD = "unhandled transaction exists";
-            static constexpr std::string_view DEBT_RECORD = "debt exists";
             static constexpr std::string_view EXIST_FEE_RECORD = "fee exists";
+            static constexpr std::string_view EXIST_ASSET_RECORD = "asset exists";
             static constexpr std::string_view BUSY_PK = "pk is busy";
 
-            static constexpr std::string_view REDUPLICATIVE_RECORD = "reduplicative record";
         } error;
     };
 
@@ -183,69 +170,89 @@ namespace htlc {
         } inlock;
 
         typedef struct inredeem_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int x = 1;
+            #endif
             static constexpr int total = 2;
         } inredeem;
 
         typedef struct inrevoke_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int status = 0;
             static constexpr int xHash = 1;
             static constexpr int account = 2;
+            #endif
             static constexpr int total = 3;
         } inrevoke;
 
         typedef struct outlock_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int user = 1;
             static constexpr int account = 2;
             static constexpr int quantity = 3;
             static constexpr int xHash = 4;
+            #endif
             static constexpr int total = 5;
         } outlock;
 
         typedef struct outredeem_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int status = 0;
             static constexpr int x = 1;
             static constexpr int account = 2;
+            #endif
             static constexpr int total = 3;
         } outredeem;
 
         typedef struct lockDebt_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int account = 1;
             static constexpr int quantity = 2;
             static constexpr int pk = 3;
             static constexpr int xHash = 4;
+            #endif
             static constexpr int total = 5;
         } lockDebt;
 
         typedef struct redeemDebt_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int x = 1;
+            #endif
             static constexpr int total = 2;
         } redeemDebt;
 
         typedef struct revokeDebt_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int xHash = 0;
+            #endif
             static constexpr int total = 1;
         } revokeDebt;
 
         typedef struct withdraw_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int account = 1;
             static constexpr int sym = 2;
+            #endif
             static constexpr int total = 3;
         } withdraw;
 
         typedef struct updatePk_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
             static constexpr int pk = 1;
+            #endif
             static constexpr int total = 2;
         } updatePk;
 
         typedef struct removePk_t {
+            #ifdef _SIGN_MSG_DETAIL
             static constexpr int storeman = 0;
+            #endif
             static constexpr int total = 1;
         } removePk;
 
@@ -380,6 +387,26 @@ namespace htlc {
         constexpr std::string_view strEOF = "";
 
         /* arguments end with empty string ""*/
+        template<typename Type>
+        inline void join(char *buf, char sep, Type msg, va_list &args) {
+            Type tmp;
+
+            // va_list args;
+            // va_start(args, msg);
+            strncpy(buf, msg->data(), msg->size());
+            
+            while(1) {
+                tmp = va_arg(args, Type);
+                if (tmp->empty()) {
+                    break;
+                } else {
+                    *(buf + strlen(buf)) = sep;
+                    strncpy((buf + strlen(buf)), tmp->data(), tmp->size());
+                }
+            }
+            // va_end(args);
+        }
+
         inline void join(char *buf, char sep, const std::string_view *str, ...) {
             std::string_view *tmp;
 
@@ -584,7 +611,6 @@ namespace htlc {
             eosio::name                  action;
 
             uint64_t primary_key() const { return code.value; }
-            uint64_t action_key() const { return action.value; }
         };
         inline bool existTokenAccount(uint64_t code);
         inline bool getTokenAccountInfo(eosio::name code, void *tokenAccountInfo);
@@ -697,17 +723,16 @@ namespace htlc {
             uint64_t                     id;
             uint64_t                     pid;
             uint64_t                     npid;
-            eosio::asset                 quantity;
-            time_t                       lockedTime;
-            eosio::time_point_sec        beginTime;
-            std::string                  status;
-            eosio::checksum256           xHash;
             eosio::name                  account;
+            eosio::asset                 quantity;
+            eosio::time_point_sec        beginTime;
+            time_t                       lockedTime;
+            eosio::checksum256           xHash;
+            std::string                  status;
 
             uint64_t primary_key() const { return id; }
             uint64_t pid_key() const { return pid; }
             uint64_t npid_key() const { return npid; }
-            uint64_t sym_key() const { return quantity.symbol.raw(); }
             uint128_t sym_pid_key() const { 
                 /* unique */
                 return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | static_cast<uint128_t>(pid);
@@ -746,10 +771,7 @@ namespace htlc {
 
         typedef eosio::multi_index<hTable::table::longlongs, num64_t> longlongs;
 
-        typedef eosio::multi_index<hTable::table::accounts, account_t
-            , eosio::indexed_by<hTable::key::action, \
-                eosio::const_mem_fun<account_t, uint64_t, &account_t::action_key>>
-        > accounts;
+        typedef eosio::multi_index<hTable::table::accounts, account_t> accounts;
 
         typedef eosio::multi_index<hTable::table::tokens, token_t> tokens;
 
@@ -775,10 +797,6 @@ namespace htlc {
                 eosio::const_mem_fun<transfer_t, eosio::checksum256, &transfer_t::xhash_key>>
             , eosio::indexed_by<hTable::key::pid, \
                 eosio::const_mem_fun<transfer_t, uint64_t, &transfer_t::pid_key>>
-            , eosio::indexed_by<hTable::key::sym_pid, \
-                eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::sym_pid_key>>
-            , eosio::indexed_by<hTable::key::sym_status, \
-                eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::sym_status_key>>
             , eosio::indexed_by<hTable::key::pid_acct, \
                 eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::pid_acct_key>>
         > transfers;
@@ -786,14 +804,10 @@ namespace htlc {
         typedef eosio::multi_index<hTable::table::debts, debt_t
             , eosio::indexed_by<hTable::key::xHash, \
                 eosio::const_mem_fun<debt_t, eosio::checksum256, &debt_t::xhash_key>>
-            , eosio::indexed_by<hTable::key::sym, \
-                eosio::const_mem_fun<debt_t, uint64_t, &debt_t::sym_key>>
             , eosio::indexed_by<hTable::key::pid, \
                 eosio::const_mem_fun<debt_t, uint64_t, &debt_t::pid_key>>
             , eosio::indexed_by<hTable::key::npid, \
                 eosio::const_mem_fun<debt_t, uint64_t, &debt_t::npid_key>>
-            , eosio::indexed_by<hTable::key::sym_pid, \
-                eosio::const_mem_fun<debt_t, uint128_t, &debt_t::sym_pid_key>>
             , eosio::indexed_by<hTable::key::pid_acct, \
                 eosio::const_mem_fun<debt_t, uint128_t, &debt_t::pid_acct_key>>
             , eosio::indexed_by<hTable::key::npid_acct, \
@@ -830,7 +844,7 @@ namespace htlc {
         bool isNPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
         void verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-            uint64_t size, const std::string_view *msg, ...);
+            uint64_t size, std::string_view *msg, ...);
 
         void addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
         void subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
@@ -839,15 +853,17 @@ namespace htlc {
         void getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
         void getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity, std::string_view status);
         void getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+        bool existAsset(uint64_t pid);
+        bool existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
         bool existFee(uint64_t pid);
         bool existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
         void addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee);
         void issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView, std::string_view memo);
 
-        void inlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+        void inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
             const eosio::checksum256 &xHashValue, std::string_view wanAddrView);
-        void outlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+        void outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
             const eosio::checksum256 &xHashValue);
         void lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
             const eosio::checksum256 &xHashValue);

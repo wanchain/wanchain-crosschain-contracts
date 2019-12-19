@@ -57,28 +57,28 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "quantity",
-                    "type": "asset"
+                    "name": "account",
+                    "type": "name"
                 },
                 {
-                    "name": "lockedTime",
-                    "type": "time_t"
+                    "name": "quantity",
+                    "type": "asset"
                 },
                 {
                     "name": "beginTime",
                     "type": "time_point_sec"
                 },
                 {
-                    "name": "status",
-                    "type": "string"
+                    "name": "lockedTime",
+                    "type": "time_t"
                 },
                 {
                     "name": "xHash",
                     "type": "checksum256"
                 },
                 {
-                    "name": "account",
-                    "type": "name"
+                    "name": "status",
+                    "type": "string"
                 }
             ]
         },
@@ -97,6 +97,16 @@
                 {
                     "name": "account",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "gethash",
+            "base": "",
+            "fields": [
+                {
+                    "name": "value",
+                    "type": "string"
                 }
             ]
         },
@@ -148,6 +158,20 @@
             "name": "inrevoke",
             "base": "",
             "fields": [
+                {
+                    "name": "xHash",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "leftlocktime",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table",
+                    "type": "name"
+                },
                 {
                     "name": "xHash",
                     "type": "string"
@@ -285,6 +309,11 @@
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "printratio",
+            "base": "",
+            "fields": []
         },
         {
             "name": "redeemdebt",
@@ -471,6 +500,20 @@
             ]
         },
         {
+            "name": "truncate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "unregaccnt",
             "base": "",
             "fields": [
@@ -627,6 +670,11 @@
     ],
     "actions": [
         {
+            "name": "gethash",
+            "type": "gethash",
+            "ricardian_contract": ""
+        },
+        {
             "name": "inlock",
             "type": "inlock",
             "ricardian_contract": ""
@@ -639,6 +687,11 @@
         {
             "name": "inrevoke",
             "type": "inrevoke",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "leftlocktime",
+            "type": "leftlocktime",
             "ricardian_contract": ""
         },
         {
@@ -659,6 +712,11 @@
         {
             "name": "outrevoke",
             "type": "outrevoke",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "printratio",
+            "type": "printratio",
             "ricardian_contract": ""
         },
         {
@@ -694,6 +752,11 @@
         {
             "name": "setratio",
             "type": "setratio",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "truncate",
+            "type": "truncate",
             "ricardian_contract": ""
         },
         {

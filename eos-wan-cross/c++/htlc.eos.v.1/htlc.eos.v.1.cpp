@@ -143,7 +143,7 @@ ACTION htlc::regsig(eosio::name code, eosio::name action) {
     #endif
     signer sig_table(get_self(), get_self().value);
     auto dItr = sig_table.find(code.value);
-    eosio::check(dItr == sig_table.end(), hError::error::EXIST_SIGNATURE_RECORD.data());
+    eosio::check(dItr == sig_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
     sig_table.emplace(get_self(), [&](auto &s) {
         s.code = code;
@@ -189,7 +189,7 @@ ACTION htlc::regacct(eosio::name code, eosio::name action) {
     #endif
     accounts account_table(get_self(), get_self().value);
     auto aItr = account_table.find(code.value);
-    eosio::check(aItr == account_table.end(), hError::error::EXIST_TOKEN_ACCOUNT_RECORD.data());
+    eosio::check(aItr == account_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
     account_table.emplace(get_self(), [&](auto &s) {
         s.code = code;
@@ -237,7 +237,7 @@ ACTION htlc::regtoken(eosio::name code, eosio::symbol sym) {
 
     tokens token_table(get_self(), code.value);
     auto tItr = token_table.find(sym.raw());
-    eosio::check(tItr == token_table.end(), hError::error::EXIST_TOKEN_RECORD.data());
+    eosio::check(tItr == token_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
     token_table.emplace(get_self(), [&](auto &s) {
         s.sym = sym;
@@ -256,7 +256,7 @@ ACTION htlc::regtoken(eosio::name code, eosio::symbol sym) {
 //     tokens token_table(get_self(), code.value);
 //     std::for_each(syms.begin(), syms.end(), [](eosio::symbol *pSym) {
 //         auto tItr = token_table.find((*pSym).value);
-//         eosio::check(tItr == token_table.end(), hError::error::EXIST_TOKEN_RECORD.data());
+//         eosio::check(tItr == token_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
 //         token_table.emplace(get_self(), [&](auto &s) {
 //             s.sym = *pSym;
@@ -327,7 +327,7 @@ ACTION htlc::updatepk(eosio::name storeman, std::string npk, std::string pk, std
         /* check unique pk */
         eosio::checksum256 npkHash = hashMsg(npk);
         auto npItr = pkHashTable.find(npkHash);
-        eosio::check(npItr == pkHashTable.end(), hError::error::REDUPLICATIVE_PK_RECORD.data());
+        eosio::check(npItr == pkHashTable.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
         pkHashTable.modify(pItr, get_self(), [&](auto &s) {
             s.pk = npk;
@@ -343,40 +343,14 @@ ACTION htlc::updatepk(eosio::name storeman, std::string npk, std::string pk, std
     {
         std::string_view storemanView = storeman.to_string();
         std::string_view npkView = npk;
-
-        // make action data
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = storemanView.size() + npkView.size() + tMemo::updatePk::total - 1;
-        actionData.resize(maxSize);
-
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &npkView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[updatepk => base64 Data: ", actionData, "]\t");
-        #endif
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[updatepk => origin Data: ", actionData, "]\t");
-        eosio::print("\t[updatepk => decode Data: ", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        // call signature contract to check mpc signature
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pk, encodedActionData, static_cast<std::string>(hStatus::status::updatepk))).send();
+        verifySignature(hStatus::status::updatepk, pk, r, s, maxSize, &storemanView, &npkView, &common::strEOF);
     }
 }
 
 ACTION htlc::removepk(eosio::name storeman, std::string pk, std::string r, std::string s) {
 
-    eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_ACCOUNT.data());
+    eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
     eosio::require_auth(storeman);
 
     /* remove PK */
@@ -400,6 +374,7 @@ ACTION htlc::removepk(eosio::name storeman, std::string pk, std::string r, std::
         eosio::print("\t[removepk => pk => id:", pItr->id, ", pk:", pItr->pk, ", pkHash:", pItr->pkHash, "]\t");
         #endif
 
+        eosio::check(!existAsset(pItr->id), hError::error::EXIST_ASSET_RECORD.data());
         eosio::check(!existFee(pItr->id), hError::error::EXIST_FEE_RECORD.data());
 
         pItr = pkHashTable.erase(pItr);
@@ -409,31 +384,8 @@ ACTION htlc::removepk(eosio::name storeman, std::string pk, std::string r, std::
     /* signature verification */
     {
         std::string_view storemanView = storeman.to_string();
-        // make action data
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = storemanView.size() + tMemo::removePk::total - 1;
-        actionData.resize(maxSize);
-
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[removepk => base64 Data: ", actionData, "]\t");
-        #endif
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[removepk => origin Data: ", actionData, "]\t");
-        eosio::print("\t[removepk => decode Data: ", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pk, encodedActionData, static_cast<std::string>(hStatus::status::removepk))).send();
+        verifySignature(hStatus::status::removepk, pk, r, s, maxSize, &storemanView, &common::strEOF);
     }
 }
 
@@ -504,44 +456,10 @@ ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
         std::string_view qView = quantity.to_string();
         std::string_view npkView = npk;
         std::string_view xHashView = xHash;
-        std::string_view pkView = pk;
 
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[lockdebt => storemanView: ", static_cast<std::string>(storemanView), \
-            ", acctView:", static_cast<std::string>(acctView), \
-            ", qView:", static_cast<std::string>(qView), \
-            ", npkView:", static_cast<std::string>(npkView), \
-            ", xHashView:", static_cast<std::string>(xHashView), "]\t");
-        #endif
-
-        /* make action data */
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = storemanView.size() + acctView.size() + qView.size() + npkView.size() + xHashView.size() + tMemo::lockDebt::total - 1;
-        actionData.resize(maxSize);
-
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &acctView, \
-            &qView, &npkView, &xHashView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[lockdebt => base64 Data: ", actionData, "]\t");
-        #endif
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[lockdebt => origin Data: ", actionData, "]\t");
-        eosio::print("\t[lockdebt => decode Data: ", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        /* wdr will get parameters by signature verify, so it should be decoded */
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pk, encodedActionData, static_cast<std::string>(hStatus::status::lockdebt))).send();
+        verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &storemanView, &acctView, &qView, \
+            &npkView, &xHashView, &common::strEOF);
     }
 }
 
@@ -587,7 +505,6 @@ ACTION htlc::redeemdebt(eosio::name storeman, std::string x, std::string r, std:
         /* check pks table */
         eosio::check(hasPK(dItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
         eosio::check(findPK(dItr->npid, &npkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-        eosio::check(!existFee(dItr->pid, dItr->account, dItr->quantity.symbol), hError::error::EXIST_FEE_RECORD.data());
 
         #ifdef _DEBUG_PRINT
         eosio::print("\t[redeemdebt => find pk id:", npkInfo.id, ", pk:", npkInfo.pk, ", pkHash:", npkInfo.pkHash, "]\t");
@@ -609,31 +526,9 @@ ACTION htlc::redeemdebt(eosio::name storeman, std::string x, std::string r, std:
     {
         std::string_view storemanView = storeman.to_string();
         std::string_view xView = x;
-
-        // make action data
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = storemanView.size() + xView.size() + tMemo::redeemDebt::total - 1;
-        actionData.resize(maxSize);
 
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &xView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[redeemdebt => origin Data:", actionData, "]\t");
-        eosio::print("\t[redeemdebt => decode Data:", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        // call signature contract to check mpc signature
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, npkInfo.pk, encodedActionData, static_cast<std::string>(hStatus::status::redeemdebt))).send();
+        verifySignature(hStatus::status::redeemdebt, npkInfo.pk, r, s, maxSize, &storemanView, &xView, &common::strEOF);
     }
 }
 
@@ -675,29 +570,9 @@ ACTION htlc::revokedebt(std::string xHash, std::string r, std::string s) {
     /* signature verification */
     {
         std::string_view xHashView = xHash;
- 
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = + xHashView.size() + tMemo::revokeDebt::total - 1;
-        actionData.resize(maxSize);
 
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &xHashView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[revokedebt => origin Data: ", actionData, "]\t");
-        eosio::print("\t[revokedebt => decode Data: ", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pkInfo.pk, encodedActionData, static_cast<std::string>(hStatus::status::revokedebt))).send();
+        verifySignature(hStatus::status::revokedebt, pkInfo.pk, r, s, maxSize, &xHashView, &common::strEOF);
     }
 }
 
@@ -718,14 +593,10 @@ ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym
 
     /* signature verification */
     {
-        std::string_view symView = sym;
-        std::string_view acctView = account;
         std::string_view storemanView = storeman.to_string();
-        // make action data
-        std::string actionData;
-        std::string encodedActionData;
+        std::string_view acctView = account;
+        std::string_view symView = sym;
         int32_t maxSize = storemanView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
-
         // check sym and fee
         if (acctView.empty() || symView.empty()) {
             if (acctView.empty()) {
@@ -734,26 +605,8 @@ ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym
                 --maxSize;
             }
         }
-        actionData.resize(maxSize);
 
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &symView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[withdraw => origin Data:", actionData, "]\t");
-        eosio::print("\t[withdraw => decode Data:", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        // call signature contract to check mpc signature
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pk, encodedActionData, static_cast<std::string>(hStatus::status::withdraw))).send();
+        verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &storemanView, &acctView, &symView, &common::strEOF);
     }
 }
 
@@ -814,7 +667,7 @@ ACTION htlc::inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, s
     #ifdef _DEBUG_PRINT
     eosio::print("\t [inlock => parseXHash:", xHashValue, "]\t");
     #endif
-    inlockTx(pkInfo.id, account, user, quantity, xHashValue, wanAddrView);
+    inlockTx(pkInfo.id, user, account, quantity, xHashValue, wanAddrView);
 }
 
 /// @notice               type        comment
@@ -868,33 +721,11 @@ ACTION htlc::inredeem(eosio::name storeman, std::string x, std::string r, std::s
 
     /* signature verification */
     {
-        // make action data
         std::string_view storemanView = storeman.to_string();
         std::string_view xView = x;
-
-        std::string actionData;
-        std::string encodedActionData;
         int32_t maxSize = storemanView.size() + xView.size() + tMemo::inredeem::total - 1;
-        actionData.resize(maxSize);
 
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &xView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[inredeem => origin Data:", actionData, "]\t");
-        eosio::print("\t[inredeem => decode Data:", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        // call signature contract to check mpc signature
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pkInfo.pk, encodedActionData, static_cast<std::string>(hStatus::status::inredeem))).send();
+        verifySignature(hStatus::status::inredeem, pkInfo.pk, r, s, maxSize, &storemanView, &xView, &common::strEOF);
     }
 }
 
@@ -927,14 +758,14 @@ ACTION htlc::inrevoke(std::string xHash) {
     #endif
 
     eosio::asset fee = (tItr->quantity * revokeRatio) / hLimit::ratioPrecise;
+    eosio::check(fee.is_valid() and fee.amount >= 0 and fee <= tItr->quantity , hError::error::FEE_OVERFLOW.data());
     eosio::asset left = tItr->quantity - fee;
+    eosio::check(left.is_valid() and left.amount >= 0 and left <= tItr->quantity, hError::error::LEFT_OVERFLOW.data());
     #ifdef _DEBUG_PRINT
     eosio::print("\t[inrevoke => fee:", fee, ", left:", left, "]\t");
     #endif
 
-    eosio::check(left.is_valid() and left <= tItr->quantity, hError::error::LEFT_OVERFLOW.data());
-    eosio::check(fee.is_valid() and fee <= tItr->quantity , hError::error::FEE_OVERFLOW.data());
-
+    // if revokeRatio != 0 and quantity too small cause fee == 0, all quantity will be treated as fee
     if (revokeRatio != 0 and fee.amount == 0) {
         fee += left;
         left -= left;
@@ -942,7 +773,7 @@ ACTION htlc::inrevoke(std::string xHash) {
 
     if (left.amount > 0) {
         /* find from pks table by pk id */
-        eosio::check(hasPK(tItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
+        // eosio::check(hasPK(tItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
 
         std::string memo;
         std::string_view xHashView = xHash;
@@ -1049,16 +880,13 @@ ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::name account
         #endif
         eosio::check(totalAsset >= (outPendAsset + quantity), hError::error::NOE_ENOUGH_QUANTITY.data());
 
-        outlockTx(pkInfo.id, account, user, quantity, xHashValue);
+        outlockTx(pkInfo.id, user, account, quantity, xHashValue);
 
         eosio::require_recipient(user, storeman);
     }
 
     /* signature verification */
     {
-        // make aciton data
-        std::string actionData;
-        std::string encodedActionData;
         std::string_view storemanView = storeman.to_string();
         std::string_view userView = user.to_string();
         std::string_view acctView = account.to_string();
@@ -1066,28 +894,9 @@ ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::name account
         std::string_view xHashView = xHash;
 
         int32_t maxSize = storemanView.size() + userView.size() + acctView.size() + qView.size() + xHashView.size() + tMemo::outlock::total - 1;
-        actionData.resize(maxSize);
 
-        /* storeman:user:quantity:xHash:tokenAddr:pk */
-        common::join(const_cast<char *>(actionData.data()), tMemo::separator, &storemanView, &userView, \
+        verifySignature(hStatus::status::outlock, pk, r, s, maxSize, &storemanView, &userView, \
             &acctView, &qView, &xHashView, &common::strEOF);
-        crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-        /* for debug */
-        #ifdef _DEBUG_PRINT
-        std::string decodedActionData;
-        crypto::base64::decode(encodedActionData, decodedActionData);
-        eosio::print("\t[outlock => origin Data: ", actionData, "]\t");
-        eosio::print("\t[outlock => decode Data: ", decodedActionData, "]\t");
-        #endif
-        /* for debug end */
-
-        // call signature contract to check mpc signature
-        signature_t sigInfo;
-        eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
-            std::make_tuple(this->get_self(), r, s, pk, encodedActionData, static_cast<std::string>(hStatus::status::outlock))).send();
     }
 }
 
@@ -1469,8 +1278,7 @@ bool htlc::hasPK(uint64_t pid) {
 }
 
 void htlc::cleanPk(uint64_t pid) {
-    assets asset_table(get_self(), pid);
-    if (asset_table.begin() != asset_table.end()) {
+    if (existAsset(pid) or existFee(pid) or isPkInHtlc(pid) or isPkDebt(pid) or isNPkDebt(pid)) {
         return;
     }
 
@@ -1637,7 +1445,7 @@ bool htlc::isNPkDebt(std::string_view pkView, const eosio::name &account, const 
 }
 
 void htlc::verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-    uint64_t size, const std::string_view *msg, ...) {
+    uint64_t size, std::string_view *msg, ...) {
 
     /* signature verification */
     // make action data
@@ -1645,7 +1453,11 @@ void htlc::verifySignature(std::string_view statusView, std::string &pk, std::st
     std::string encodedActionData;
     actionData.resize(size);
 
-    common::join(const_cast<char *>(actionData.data()), tMemo::separator, msg, &common::strEOF);
+    va_list args;
+    va_start(args, msg);
+    common::join<std::string_view *>(const_cast<char *>(actionData.data()), tMemo::separator, msg, args);
+    va_end(args);
+
     crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
     #ifdef _DEBUG_PRINT
     eosio::print("\t[verifySignature => base64 Data: ", actionData, "]\t");
@@ -1666,7 +1478,6 @@ void htlc::verifySignature(std::string_view statusView, std::string &pk, std::st
 
     eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code, sigInfo.action,
         std::make_tuple(this->get_self(), r, s, pk, encodedActionData,static_cast<std::string>(statusView))).send();
-        // std::tuple(this->get_self(), r, s, pk, encodedActionData, hStatus::status::updatepk)).send();
 }
 
 void htlc::addAssetTo(uint64_t pid, const eosio::name &account,const eosio::asset &quantity) {
@@ -1799,6 +1610,21 @@ void htlc::getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio:
     }
 }
 
+bool htlc::existAsset(uint64_t pid) {
+    /* check if asset exists */
+    assets asset_table(get_self(), pid);
+    return (asset_table.begin() != asset_table.end());
+}
+
+bool htlc::existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
+    /* check if asset exists */
+    assets asset_table(get_self(), pid);
+    uint128_t symAcctKey = common::makeU128(sym.raw(), account.value);
+    auto aSymAcctIndex = asset_table.get_index<hTable::key::sym_acct>();
+    auto aItr = aSymAcctIndex.find(symAcctKey);
+    return (aItr != aSymAcctIndex.end());
+}
+
 bool htlc::existFee(uint64_t pid) {
     /* check if fees exists */
     fees fee_table(get_self(), pid);
@@ -1904,7 +1730,7 @@ void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView,
     }
 }
 
-void htlc::inlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+void htlc::inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue, std::string_view wanAddrView) {
 
     transfers transfers_table(get_self(), get_self().value);
@@ -1933,7 +1759,7 @@ void htlc::inlockTx(uint64_t pid, const eosio::name &account, const eosio::name 
     });
 }
 
-void htlc::outlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+void htlc::outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue) {
 
     transfers transfers_table(get_self(), get_self().value);
