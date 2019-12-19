@@ -5,17 +5,15 @@
 #include <string_view>
 #include <string>
 #include <vector>
-#include <map>
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/time.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/time.hpp>
+#include <eosio/crypto.hpp>
 
-// #define _DEBUG
-// #define _DEBUG_LEVEL_1
-// #define _DEBUG_LEVEL_2
-// #define _DEBUG_LEVEL_3
-// #define USING_LISTENER
+#define _DEBUG_HTLC
+// #define _DEBUG_PRINT
+// #define _DEBUG_API
 
 namespace htlc {
     // if time_t is defined in namespace hash, using hTime::time_t in eosio contract table,
@@ -24,22 +22,43 @@ namespace htlc {
     // typedef unsigned long long time_t;
     typedef uint32_t time_t;
 
+    namespace internal {
+        typedef struct Uint256_t {
+            uint8_t data[32];
+        } Uint256_t;
+    };
+
+    namespace hPermission {
+        typedef struct level_t {
+            /* should less than 12 charapters */
+            static constexpr eosio::name active = eosio::name("active");
+            static constexpr eosio::name sign = eosio::name("sign");
+            static constexpr eosio::name token = eosio::name("token");
+        } level;
+    };
+
     namespace sysLimit {
-        typedef struct account_size_t {
+        typedef struct account_t {
             static constexpr int32_t min = 1;
             static constexpr int32_t max = 12;
-        } accountSize;
+        } account;
     };
 
-    namespace hTime {
-        constexpr time_t lockedTime = time_t(3600 * 36);
-        constexpr time_t doubleLockedTime = lockedTime * 2;
-    };
+    namespace hLimit {
+        static constexpr int xHash = 64;
+        static constexpr int wanAddr = 40; // wan address without '0x'
+        static constexpr int pk = 130; // pk
+        static constexpr int status = 6; // inlock
 
-    namespace hFee {
         constexpr uint64_t ratioPrecise = 10000;
-        constexpr uint64_t revokeRatio = 3;
-    };
+
+        #ifdef _DEBUG_HTLC
+        constexpr time_t lockedTime = time_t(3600);
+        #else
+        constexpr time_t lockedTime = time_t(3600 * 36);
+        #endif
+        constexpr time_t doubleLockedTime = lockedTime * 2;
+    }
 
     // htlc status description
     namespace hStatus {
@@ -60,48 +79,57 @@ namespace htlc {
         } status;
     };
 
-    // htlc status description
-    namespace hIndex {
-        typedef struct index_t {
-            /* should less than 12 charapters */
-            static constexpr std::string_view sym = "sym";
-            static constexpr std::string_view pid = "pid";
-            static constexpr std::string_view npid = "npid";
-            static constexpr std::string_view pkHash = "pkhash";
-            static constexpr std::string_view user = "user";
-            static constexpr std::string_view xHash = "xhash";
-            static constexpr std::string_view sym_pid = "sym.pid";
-            static constexpr std::string_view sym_status = "sym.status";
-            static constexpr std::string_view action = "action";
-        } index;
-    };
-
     namespace hTable {
-        typedef struct status_t {
-            static constexpr std::string_view transfers = "transfers";
-            static constexpr std::string_view pks = "pks";
-            static constexpr std::string_view fees = "fees";
-            static constexpr std::string_view assets = "assets";
-            static constexpr std::string_view signer = "signer";
-            static constexpr std::string_view debts = "debts";
-            #ifdef USING_LISTENER
-            static constexpr std::string_view listens = "listens";
-            #endif
+        typedef struct table_t {
+            static constexpr eosio::name transfers = eosio::name("transfers");
+            static constexpr eosio::name pks = eosio::name("pks");
+            static constexpr eosio::name assets = eosio::name("assets");
+            static constexpr eosio::name fees = eosio::name("fees");
+            static constexpr eosio::name debts = eosio::name("debts");
+            static constexpr eosio::name signer = eosio::name("signer");
+            static constexpr eosio::name accounts = eosio::name("accounts");
+            static constexpr eosio::name tokens = eosio::name("tokens");
+            static constexpr eosio::name longlongs = eosio::name("longlongs");
         } table;
+
+        typedef struct key_t {
+            /* should less than 12 charapters */
+            static constexpr eosio::name sym = eosio::name("sym");
+            static constexpr eosio::name pid = eosio::name("pid");
+            static constexpr eosio::name npid = eosio::name("npid");
+            static constexpr eosio::name pkHash = eosio::name("pkhash");
+            // static constexpr eosio::name user = eosio::name("user");
+            static constexpr eosio::name xHash = eosio::name("xhash");
+            static constexpr eosio::name sym_pid = eosio::name("sym.pid");
+            static constexpr eosio::name sym_status = eosio::name("sym.status");
+            static constexpr eosio::name acct = eosio::name("acct");
+            static constexpr eosio::name sym_acct = eosio::name("sym.acct");
+            static constexpr eosio::name pid_acct = eosio::name("pid.acct");
+            static constexpr eosio::name npid_acct = eosio::name("npid.acct");
+            static constexpr eosio::name sym_acct_pid = eosio::name("sym.acct.pid");
+            static constexpr eosio::name action = eosio::name("action");
+            static constexpr eosio::name ratio = eosio::name("ratio");
+        } key;
     };
 
     namespace hError {
         typedef struct error_t {
             static constexpr std::string_view NOT_FOUND_RECORD = "not found valid record";
+            static constexpr std::string_view NOT_FOUND_PK_RECORD = "not found the pk record";
             static constexpr std::string_view REDUPLICATIVE_PK_RECORD = "reduplicative pk";
             static constexpr std::string_view EXIST_SIGNATURE_RECORD = "the signature record already exists";
             static constexpr std::string_view NOT_FOUND_SIGNATURE_RECORD = "not found the signature record";
+            static constexpr std::string_view EXIST_TOKEN_ACCOUNT_RECORD = "the token account record already exists";
+            static constexpr std::string_view NOT_FOUND_TOKEN_ACCOUNT_RECORD = "not found the token account record";
+            static constexpr std::string_view EXIST_TOKEN_RECORD = "the token record already exists";
+            static constexpr std::string_view NOT_FOUND_TOKEN_RECORD = "not found the token record";
 
             static constexpr std::string_view NOT_EXIST_ACCOUNT = "the account does not exist";
             static constexpr std::string_view INVALID_ACCOUNT = "invalid account";
             static constexpr std::string_view INVALID_HTLC_ACCOUNT = "invalid htlc account";
             static constexpr std::string_view INVALID_SG_ACCOUNT = "invalid storeman account";
             static constexpr std::string_view INVALID_USER_ACCOUNT = "invalid user account";
+            static constexpr std::string_view INVALID_TOKEN_ACCOUNT = "invalid token account";
             static constexpr std::string_view SG_NOT_USER = "storeman should not be a user";
 
             static constexpr std::string_view INVALID_TABLE = "invalid table";
@@ -114,6 +142,8 @@ namespace htlc {
 
             static constexpr std::string_view INVALID_X = "invalid x";
             static constexpr std::string_view INVALID_XHASH = "invalid xHash";
+            static constexpr std::string_view INVALID_WAN_ADDR = "invalid WAN address";
+            static constexpr std::string_view INVALID_PK = "invalid pk";
             static constexpr std::string_view INVALID_X_OR_XHASH_SIZE = "x or xHash should be a fixed size";
             static constexpr std::string_view REDUPLICATIVE_XHASH = "reduplicative xHash";
 
@@ -131,99 +161,126 @@ namespace htlc {
 
             static constexpr std::string_view NOT_HANDLED_RECORD = "unhandled transaction exists";
             static constexpr std::string_view DEBT_RECORD = "debt exists";
-            static constexpr std::string_view FEE_RECORD = "fee exists";
+            static constexpr std::string_view EXIST_FEE_RECORD = "fee exists";
             static constexpr std::string_view BUSY_PK = "pk is busy";
+
+            static constexpr std::string_view REDUPLICATIVE_RECORD = "reduplicative record";
         } error;
     };
 
     // eosio.token transfer memo description
     namespace tMemo {
         constexpr char separator = ':';
-        constexpr char outsep = '-';
+        constexpr char outSeparator = '-';
 
-        typedef struct memo_index_t {
+        typedef struct inlock_t {
             static constexpr int status = 0;
             static constexpr int xHash = 1;
             static constexpr int wanAddr = 2;
             static constexpr int pk = 3;
-            static constexpr int total = 4;
-        } index;
+            static constexpr int account = 4;
+            static constexpr int total = 5;
+        } inlock;
 
-        typedef struct memo_size_t {
-            static constexpr int xHash = 64;
-            static constexpr int wanAddr = 40; // wan address without '0x'
-            static constexpr int pk = 130; // pk
-            static constexpr int status = 6; // inlock
-            static constexpr int min = 3 + memo_size_t::xHash + memo_size_t::wanAddr + memo_size_t::pk + sysLimit::accountSize::min;
-            static constexpr int max = 3 + memo_size_t::xHash + memo_size_t::wanAddr + memo_size_t::pk + sysLimit::accountSize::max;
-        } mSize;
-
-    };
-
-    namespace hSig {
-
-        typedef struct sigDdata_t {
-            eosio::name            from;
-            std::string            r;
-            std::string            s;
-            std::string            pk;
-            std::string            msg;
-            std::string            memo;
-        } sigDdata;
-
-        typedef struct redeemMsgIndex {
+        typedef struct inredeem_t {
             static constexpr int storeman = 0;
             static constexpr int x = 1;
             static constexpr int total = 2;
-        } redeemIndex;
+        } inredeem;
 
-        typedef struct lockMsgIndex {
+        typedef struct inrevoke_t {
+            static constexpr int status = 0;
+            static constexpr int xHash = 1;
+            static constexpr int account = 2;
+            static constexpr int total = 3;
+        } inrevoke;
+
+        typedef struct outlock_t {
             static constexpr int storeman = 0;
             static constexpr int user = 1;
-            static constexpr int quantity = 2;
-            static constexpr int xHash = 3;
-            static constexpr int wanAddr = 4;
+            static constexpr int account = 2;
+            static constexpr int quantity = 3;
+            static constexpr int xHash = 4;
             static constexpr int total = 5;
-        } lockIndex;
+        } outlock;
 
-        typedef struct revokeMsgIndex {
+        typedef struct outredeem_t {
+            static constexpr int status = 0;
+            static constexpr int x = 1;
+            static constexpr int account = 2;
+            static constexpr int total = 3;
+        } outredeem;
+
+        typedef struct lockDebt_t {
             static constexpr int storeman = 0;
-            static constexpr int xHash = 1;
-            static constexpr int total = 2;
-        } revokeIndex;
+            static constexpr int account = 1;
+            static constexpr int quantity = 2;
+            static constexpr int pk = 3;
+            static constexpr int xHash = 4;
+            static constexpr int total = 5;
+        } lockDebt;
 
-        typedef struct withdrawMsgIndex {
+        typedef struct redeemDebt_t {
             static constexpr int storeman = 0;
-            static constexpr int sym = 1;
+            static constexpr int x = 1;
             static constexpr int total = 2;
-        } withdrawIndex;
+        } redeemDebt;
 
-        typedef struct updatePkMsgIndex {
+        typedef struct revokeDebt_t {
+            static constexpr int xHash = 0;
+            static constexpr int total = 1;
+        } revokeDebt;
+
+        typedef struct withdraw_t {
+            static constexpr int storeman = 0;
+            static constexpr int account = 1;
+            static constexpr int sym = 2;
+            static constexpr int total = 3;
+        } withdraw;
+
+        typedef struct updatePk_t {
             static constexpr int storeman = 0;
             static constexpr int pk = 1;
             static constexpr int total = 2;
-        } updatePkIndex;
+        } updatePk;
 
-        typedef struct removePkMsgIndex {
+        typedef struct removePk_t {
             static constexpr int storeman = 0;
             static constexpr int total = 1;
-        } removePkIndex;
+        } removePk;
 
-        typedef struct lockDebtMsgIndex {
-            static constexpr int storeman = 0;
-            static constexpr int quantity = 1;
-            static constexpr int pk = 2;
-            static constexpr int xHash = 3;
-            static constexpr int total = 4;
-        } lockDebtIndex;
-
-        typedef struct redeemDebtMsgIndex {
-            static constexpr int storeman = 0;
-            static constexpr int xHash = 1;
-            static constexpr int x = 2;
-            static constexpr int total = 3;
-        } redeemDebtIndex;
+        typedef struct memo_size_t {
+            struct inlock {
+                static constexpr int min = 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::min + sysLimit::account::min;
+                static constexpr int max = 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::max + sysLimit::account::max;
+            };
+        } size;
     };
+
+    namespace hSymbol {
+        constexpr char separator = ',';
+        typedef struct item_t {
+            static constexpr int precision = 0;
+            static constexpr int symCode = 1;
+            static constexpr int total = 2;
+        } item;
+    }
+
+    namespace hAsset {
+        constexpr char separator = ' ';
+        constexpr char dot = '.';
+        typedef struct item_t {
+            static constexpr int value = 0;
+            static constexpr int symCode = 1;
+            static constexpr int total = 2;
+        } item;
+
+        typedef struct amount_t {
+            static constexpr int integer = 0;
+            static constexpr int decimal = 1;
+            static constexpr int total = 2;
+        } amount;
+    }
 
     namespace crypto {
         namespace base64 {
@@ -358,7 +415,7 @@ namespace htlc {
             } while (j != std::string_view::npos);
         }
 
-        inline void split(std::string_view str, char separator,std::string_view::size_type index, std::string &outStr) {
+        inline void split(std::string_view str, char separator, std::string_view::size_type index, std::string &outStr) {
             std::string_view::size_type foundCount = 0;
             std::string_view::size_type startPos = 0;
             std::string_view::size_type endPos = 0;
@@ -382,7 +439,7 @@ namespace htlc {
             if (c >= '0' && c <= '9') return c - '0';
             if (c >= 'a' && c <= 'f') return c - 'a' + 10;
             if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-            eosio_assert(false, hError::error::INVALID_HEX_CHAR.data());
+            eosio::check(false, hError::error::INVALID_HEX_CHAR.data());
             return 0;
         }
 
@@ -422,17 +479,17 @@ namespace htlc {
     public:
         using contract::contract;
 
-        struct transfer_data {
-            eosio::name            from;
-            eosio::name            to;
-            eosio::asset           quantity;
-            std::string            memo;
-        };
+        #ifdef _DEBUG_API
+        ACTION gethash(std::string value);
+        ACTION truncate(eosio::name table, std::string scope);
+        ACTION leftlocktime(eosio::name table, std::string xHash);
+        #endif
 
         /// @notice                    type        comment
         /// @param user                name        account name of user initiated the Tx
         /// @param quantity            asset       exchange quantity
-        /// @param memo                string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
+        /// @param memo                string      status(6):xHash(64):wanAddr(40):pk(130):eosTokenAccount(12) => 256 bytes
+        // / @param memo                string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
         /// @param xHash               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
         /// @param wanAddr             string      origin chain address(42)
         /// @param pk                  string      storemanAgent pk
@@ -447,12 +504,12 @@ namespace htlc {
         /// @param xHash          string      hash of HTLC random number
         /// @param x              string      HTLC random number
         ACTION inredeem(eosio::name storeman, std::string x, std::string r, std::string s);
-        ACTION inrdm(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
 
         /// @notice               type        comment
         /// @param user           name        account name of user initiated the Tx
         /// @param xHash          string      hash of HTLC random number
-        ACTION inrevoke(eosio::name user, std::string xHash);
+        /// memo                  string      status(8):xHash(64):pk(130):eosTokenAccount(12) => 256 bytes
+        ACTION inrevoke(std::string xHash);
 
         /// @notice               type        comment
         /// @param user           name        account name of user initiated the Tx
@@ -461,10 +518,8 @@ namespace htlc {
         /// @param memo           string      xHash:wanAddr:user:status
         /// TOKEN locked in htlc
         /// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
-        ACTION outlock(eosio::name storeman, eosio::name user, eosio::asset quantity, std::string xHash, \
-                    std::string wanAddr, std::string pk, std::string r, std::string s);
-        ACTION outlk(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, \
-                    std::string memo);
+        ACTION outlock(eosio::name storeman, eosio::name user, eosio::name account, eosio::asset quantity, \
+                    std::string xHash, std::string pk, std::string r, std::string s);
 
         /// @notice               type        comment
         /// @param user           name        account name of user initiated the Tx
@@ -474,56 +529,66 @@ namespace htlc {
         ACTION outredeem(eosio::name user, std::string x);
 
         /// @notice               type        comment
-        /// @param storeman  name        storeman account name
         /// @param xHash          string      hash of HTLC random number
-        ACTION outrevoke(eosio::name storeman, std::string xHash, std::string r, std::string s);
-        ACTION outrvk(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
+        ACTION outrevoke(std::string xHash);
 
-        /// @notice               type        comment
-        /// @param xHash          string      hash of HTLC random number
-        ACTION leftlocktime(eosio::name from, eosio::name table, std::string xHash);
 
-        ACTION truncate(eosio::name table, std::string scope);
-
-        ACTION withdraw(eosio::name storeman, std::string sym, std::string pk, std::string r, std::string s);
-        ACTION wdr(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
+        /// @param sym          string      precision,symbol_code
+        ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r, std::string s);
 
         /* signature contract */
-        ACTION regsig(eosio::name htlc, eosio::name code, eosio::name action);
-        ACTION updatesig(eosio::name htlc, eosio::name code, eosio::name nCode, eosio::name nAction);
-        ACTION unregsig(eosio::name htlc, eosio::name code);
+        ACTION regsig(eosio::name code, eosio::name action);
+        ACTION updatesig(eosio::name code, eosio::name nCode, eosio::name nAction);
+        ACTION unregsig(eosio::name code);
 
         /* updatePK */
         ACTION updatepk(eosio::name storeman, std::string npk, std::string pk, std::string r, std::string s);
-        ACTION updtpk(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
 
         ACTION removepk(eosio::name storeman, std::string pk, std::string r, std::string s);
-        ACTION rmpk(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
 
         /* debt storeman like inlock */
-        ACTION lockdebt(eosio::name storeman, eosio::asset quantity, std::string npk, std::string xHash, std::string pk, std::string r, std::string s);
-        ACTION lkdebt(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
+        /// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
+        ACTION lockdebt(eosio::name storeman, eosio::name account, eosio::asset quantity, std::string npk, std::string xHash, std::string pk, std::string r, std::string s);
 
         ACTION redeemdebt(eosio::name storeman, std::string x, std::string r, std::string s);
-        ACTION rdmdebt(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
 
-        ACTION revokedebt(eosio::name storeman, std::string xHash, std::string r, std::string s);
-        ACTION rvkdebt(eosio::name htlc, std::string r, std::string s, std::string pk, std::string msg, std::string memo);
+        ACTION revokedebt(std::string xHash, std::string r, std::string s);
 
-        ACTION kk(std::string x);
+        /* token contract */
+        ACTION regacct(eosio::name code, eosio::name action);
+        ACTION updateacct(eosio::name code, eosio::name nCode, eosio::name nAction);
+        ACTION unregaccnt(eosio::name code);
+        // ACTION regtoken(eosio::name code, const vector<eosio::name>& syms);
+        // ACTION updatetoken(eosio::name code, eosio::name sym, eosio::name nSym);
+        // ACTION unregtoken(eosio::name code, const vector<eosio::name>& syms);
+        ACTION regtoken(eosio::name code, eosio::symbol sym);
+        ACTION updatetoken(eosio::name code, eosio::symbol sym, eosio::symbol nSym);
+        ACTION unregtoken(eosio::name code, eosio::symbol sym);
 
-        #ifdef USING_LISTENER
+        ACTION setratio(uint64_t ratio);
+        ACTION updateratio(uint64_t ratio);
+        #ifdef _DEBUG_API
+        ACTION printratio();
+        #endif
+
+        struct transfer_data {
+            eosio::name            from;
+            eosio::name            to;
+            eosio::asset           quantity;
+            std::string            memo;
+        };
+
         /* listen TOKEN the issue contract transfer */
-        TABLE listen_t {
+        TABLE account_t {
             eosio::name                  code;
             eosio::name                  action;
 
             uint64_t primary_key() const { return code.value; }
             uint64_t action_key() const { return action.value; }
         };
-        bool getListenInfo(uint64_t code, void *listenInfo);
-        bool getListenInfo(std::vector<listen_t *> &v);
-        #endif
+        inline bool existTokenAccount(uint64_t code);
+        inline bool getTokenAccountInfo(eosio::name code, void *tokenAccountInfo);
+        inline bool getTokenAccountInfo(std::vector<account_t *> &v);
 
         /* only one record */
         TABLE signature_t {
@@ -532,13 +597,13 @@ namespace htlc {
 
             uint64_t primary_key() const { return code.value; }
         };
-        bool getSignature(void *sigInfo);
+        inline bool getSignature(void *sigInfo);
 
     private:
 
         /*****************************************TABLE*****************************************/
         /* TABLE transfers
-		** one record for an cross-tx, and the record will be clean while InBound/OutBound
+        ** one record for an cross-tx, and the record will be clean while InBound/OutBound
         ** eg
         ** inlock   -> TABLE transfers add item (status is inlock, its unique index is xHash)
         ** inredeem -> TABLE transfers remove item (status is inlock, its unique index is xHash)
@@ -553,17 +618,31 @@ namespace htlc {
             std::string                  status;
             eosio::checksum256           xHash;
             std::string                  wanAddr;
+            eosio::name                  account;
 
             uint64_t primary_key() const { return id; }
             eosio::checksum256 xhash_key() const { return xHash; /* unique */ }
             uint64_t pid_key() const { return pid; }
             uint128_t sym_pid_key() const { 
-                return static_cast<uint128_t>(quantity.symbol.code().raw()) << 64 | static_cast<uint128_t>(pid);
+                return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | static_cast<uint128_t>(pid);
             }
             uint128_t sym_status_key() const { 
-                return static_cast<uint128_t>(quantity.symbol.code().raw()) << 64 | \
+                return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | \
                     static_cast<uint128_t>(eosio::name(status).value);
             }
+            uint128_t sym_acct_key() const { 
+                return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | \
+                    static_cast<uint128_t>(account.value);
+            }
+            uint128_t pid_acct_key() const { 
+                return static_cast<uint128_t>(pid) << 64 | \
+                    static_cast<uint128_t>(account.value);
+            }
+            // eosio::checksum256 sym_acct_pid_key() const { 
+            //     // sym_acct_pid
+            //     return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | \
+            //         static_cast<uint128_t>(account.value);
+            // }
         };
 
         /* TABLE pks
@@ -581,20 +660,35 @@ namespace htlc {
         ** scope pk id from TABLE pks
         */
         TABLE asset_t {
+            uint64_t                     id;
+            eosio::name                  account;
             eosio::asset                 balance;
-            uint64_t primary_key() const { return balance.symbol.code().raw(); }
+
+            uint64_t primary_key() const { return id; }
+            uint64_t acct_key() const { return account.value; }
+            uint64_t sym_key() const { return balance.symbol.raw(); }
+            uint128_t sym_acct_key() const { 
+                return static_cast<uint128_t>(balance.symbol.raw()) << 64 | static_cast<uint128_t>(account.value);
+            }
         };
 
         /* TABLE fees
         ** scope pk id from TABLE pks
         */
         TABLE fee_t {
+            uint64_t                     id;
             eosio::asset                 fee;
-            uint64_t primary_key() const { return fee.symbol.code().raw(); }
+            eosio::name                  account;
+            uint64_t primary_key() const { return id; }
+            uint64_t acct_key() const { return account.value; }
+            uint64_t sym_key() const { return fee.symbol.raw(); }
+            uint128_t sym_acct_key() const { 
+                return static_cast<uint128_t>(fee.symbol.raw()) << 64 | static_cast<uint128_t>(account.value);
+            }
         };
 
         /* TABLE debts
-		** one record for an cross-debt-tx, and the record will be clean while redeemdebt/revokedebt
+        ** one record for an cross-debt-tx, and the record will be clean while redeemdebt/revokedebt
         ** eg
         ** lockdebt   -> TABLE debts add item (status is lockdebt, its unique index is xHash)
         ** redeemdebt -> TABLE debts remove item (status is lockdebt, its unique index is xHash)
@@ -608,109 +702,227 @@ namespace htlc {
             eosio::time_point_sec        beginTime;
             std::string                  status;
             eosio::checksum256           xHash;
+            eosio::name                  account;
 
             uint64_t primary_key() const { return id; }
             uint64_t pid_key() const { return pid; }
             uint64_t npid_key() const { return npid; }
-            uint64_t sym_key() const { return quantity.symbol.code().raw(); }
+            uint64_t sym_key() const { return quantity.symbol.raw(); }
             uint128_t sym_pid_key() const { 
                 /* unique */
-                return static_cast<uint128_t>(quantity.symbol.code().raw()) << 64 | static_cast<uint128_t>(pid);
+                return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | static_cast<uint128_t>(pid);
+            }
+            uint128_t npid_acct_key() const { 
+                return static_cast<uint128_t>(npid) << 64 | \
+                    static_cast<uint128_t>(account.value);
+            }
+            uint128_t pid_acct_key() const { 
+                return static_cast<uint128_t>(pid) << 64 | \
+                    static_cast<uint128_t>(account.value);
             }
             eosio::checksum256 xhash_key() const { return xHash; /* unique */ }
         };
 
-        typedef eosio::multi_index<eosio::name(hTable::table::signer), signature_t> signer;
-        #ifdef USING_LISTENER
-        typedef eosio::multi_index<eosio::name(hTable::table::listens), listen_t
-            , eosio::indexed_by<eosio::name(hIndex::index::action), \
-                eosio::const_mem_fun<listen_t, uint64_t, &listen_t::action_key>>
-        > listens;
-        #endif
+        /* TABLE tokens
+        ** scope code.value from TABLE accounts
+        */
+        TABLE token_t {
+            eosio::symbol                sym;
 
-        typedef eosio::multi_index<eosio::name(hTable::table::fees), fee_t> fees;
-        typedef eosio::multi_index<eosio::name(hTable::table::assets), asset_t> assets;
+            uint64_t primary_key() const { return sym.raw(); }
+        };
 
-        typedef eosio::multi_index<eosio::name(hTable::table::pks), pk_t
-            , eosio::indexed_by<eosio::name(hIndex::index::pkHash), \
+        /* TABLE tokens
+        ** scope code.value from TABLE accounts
+        */
+        TABLE num64_t {
+            eosio::name             flag;
+            uint64_t                value;
+
+            uint64_t primary_key() const { return flag.value; }
+        };
+
+        typedef eosio::multi_index<hTable::table::signer, signature_t> signer;
+
+        typedef eosio::multi_index<hTable::table::longlongs, num64_t> longlongs;
+
+        typedef eosio::multi_index<hTable::table::accounts, account_t
+            , eosio::indexed_by<hTable::key::action, \
+                eosio::const_mem_fun<account_t, uint64_t, &account_t::action_key>>
+        > accounts;
+
+        typedef eosio::multi_index<hTable::table::tokens, token_t> tokens;
+
+        typedef eosio::multi_index<hTable::table::fees, fee_t
+            , eosio::indexed_by<hTable::key::acct, \
+                eosio::const_mem_fun<fee_t, uint64_t, &fee_t::acct_key>>
+            , eosio::indexed_by<hTable::key::sym_acct, \
+                eosio::const_mem_fun<fee_t, uint128_t, &fee_t::sym_acct_key>>
+        > fees;
+
+        typedef eosio::multi_index<hTable::table::assets, asset_t
+            , eosio::indexed_by<hTable::key::sym_acct, \
+                eosio::const_mem_fun<asset_t, uint128_t, &asset_t::sym_acct_key>>
+        > assets;
+
+        typedef eosio::multi_index<hTable::table::pks, pk_t
+            , eosio::indexed_by<hTable::key::pkHash, \
                 eosio::const_mem_fun<pk_t, eosio::checksum256, &pk_t::pkhash_key>>
         > pks;
 
-        typedef eosio::multi_index<eosio::name(hTable::table::transfers), transfer_t
-            , eosio::indexed_by<eosio::name(hIndex::index::xHash), \
+        typedef eosio::multi_index<hTable::table::transfers, transfer_t
+            , eosio::indexed_by<hTable::key::xHash, \
                 eosio::const_mem_fun<transfer_t, eosio::checksum256, &transfer_t::xhash_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::pid), \
+            , eosio::indexed_by<hTable::key::pid, \
                 eosio::const_mem_fun<transfer_t, uint64_t, &transfer_t::pid_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::sym_pid), \
+            , eosio::indexed_by<hTable::key::sym_pid, \
                 eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::sym_pid_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::sym_status), \
+            , eosio::indexed_by<hTable::key::sym_status, \
                 eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::sym_status_key>>
+            , eosio::indexed_by<hTable::key::pid_acct, \
+                eosio::const_mem_fun<transfer_t, uint128_t, &transfer_t::pid_acct_key>>
         > transfers;
 
-        typedef eosio::multi_index<eosio::name(hTable::table::debts), debt_t
-            , eosio::indexed_by<eosio::name(hIndex::index::xHash), \
+        typedef eosio::multi_index<hTable::table::debts, debt_t
+            , eosio::indexed_by<hTable::key::xHash, \
                 eosio::const_mem_fun<debt_t, eosio::checksum256, &debt_t::xhash_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::sym), \
+            , eosio::indexed_by<hTable::key::sym, \
                 eosio::const_mem_fun<debt_t, uint64_t, &debt_t::sym_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::pid), \
+            , eosio::indexed_by<hTable::key::pid, \
                 eosio::const_mem_fun<debt_t, uint64_t, &debt_t::pid_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::npid), \
+            , eosio::indexed_by<hTable::key::npid, \
                 eosio::const_mem_fun<debt_t, uint64_t, &debt_t::npid_key>>
-            , eosio::indexed_by<eosio::name(hIndex::index::sym_pid), \
+            , eosio::indexed_by<hTable::key::sym_pid, \
                 eosio::const_mem_fun<debt_t, uint128_t, &debt_t::sym_pid_key>>
+            , eosio::indexed_by<hTable::key::pid_acct, \
+                eosio::const_mem_fun<debt_t, uint128_t, &debt_t::pid_acct_key>>
+            , eosio::indexed_by<hTable::key::npid_acct, \
+                eosio::const_mem_fun<debt_t, uint128_t, &debt_t::npid_acct_key>>
         > debts;
         /***************************************************************************************/
 
-        eosio::asset stringToAsset(std::string_view qStr);
-        uint64_t savePk(std::string_view pkView);
-        bool     findPK(std::string_view pkView, void *pkInfo);
-        bool     findPK(uint64_t pid, void *pkInfo);
-        bool     hasPK(std::string_view pkView);
-        bool     hasPK(uint64_t pid);
-        bool     isPkBusy(std::string_view pkView, eosio::symbol_code sym, std::string_view statusView);
-        bool     isPkBusy(uint64_t pid, eosio::symbol_code sym, std::string_view statusView);
-        bool     isPkBusy(std::string_view pkView, std::string_view symView, std::string_view statusView);
-        bool     isPkBusy(uint64_t pid, std::string_view symView, std::string_view statusView);
-        void     cleanPk(uint64_t pid, eosio::symbol_code sym);
+        inline eosio::checksum256 parseXHash(std::string_view xHashView);
 
-        void getOutPendAsset(uint64_t pid, eosio::asset *pQuantity);
-        void getPendDebtAsset(uint64_t pid, eosio::asset *pQuantity);
-        void getPendAsset(uint64_t pid, eosio::asset *pQuantity, std::string_view status);
-        void getAsset(uint64_t pid, eosio::asset *pQuantity);
-        void addAsset(uint64_t pid, const eosio::asset &quantity);
-        void subAsset(uint64_t pid, const eosio::asset &quantity);
+        inline eosio::symbol stringToSymbol(std::string_view symStr);
+        inline eosio::asset stringToAsset(std::string_view qStr);
 
-        bool existFee(uint64_t pid, eosio::symbol_code sym);
-        void addFee(uint64_t pid, const eosio::asset &quantity);
-        void subFee(uint64_t pid, std::string_view symView, eosio::name to, std::string memo);
-        void confirmLock(uint64_t pid, std::string_view statusView, const eosio::name &user, const eosio::asset &quantity);
-        void lockHTLCTx(const eosio::name &user, const eosio::asset &quantity, std::string_view xHashView, \
-            std::string_view wanAddrView, std::string_view pkView, \
-            std::string_view statusView, bool isOriginator = false);
-        void lockHTLCTx(const eosio::asset &quantity, std::string_view npkView, \
-            std::string_view xHashView, std::string_view pkView, \
-            std::string_view statusView, bool isOriginator = false);
+        inline void getRatio(uint64_t &ratio);
 
-        eosio::checksum256 parseXHash(std::string_view xHashView);
+        void cleanTokens(uint64_t codeId);
 
-        /* hex string to  capi_checksum256 */
-        capi_checksum256 str2CapiChecksum256(std::string_view hex_str) {
-            capi_checksum256 hexValue;
-            common::str2Hex(hex_str, (char *)hexValue.hash, sizeof(hexValue.hash));
-            return hexValue;
+        void savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo);
+        bool findPK(std::string_view pkView, void *pkInfo);
+        bool findPK(const eosio::checksum256 &pkHash, void *pkInfo);
+        bool findPK(uint64_t pid, void *pkInfo);
+        bool hasPK(uint64_t pid);
+        void cleanPk(uint64_t pid);
+
+        bool isPkInHtlc(uint64_t pid);
+
+        bool isPkDebt(uint64_t pid);
+        bool isPkDebt(std::string_view pkView);
+        bool isPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym);
+        bool isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+
+        bool isNPkDebt(uint64_t pid);
+        bool isNPkDebt(std::string_view pkView);
+        bool isNPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym);
+        bool isNPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+
+        void verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
+            uint64_t size, const std::string_view *msg, ...);
+
+        void addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
+        void subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
+
+        void getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+        void getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+        void getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity, std::string_view status);
+        void getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+
+        bool existFee(uint64_t pid);
+        bool existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+        void addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee);
+        void issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView, std::string_view memo);
+
+        void inlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+            const eosio::checksum256 &xHashValue, std::string_view wanAddrView);
+        void outlockTx(uint64_t pid, const eosio::name &account, const eosio::name &user, const eosio::asset &quantity, \
+            const eosio::checksum256 &xHashValue);
+        void lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
+            const eosio::checksum256 &xHashValue);
+
+        void hexStrToUint256(std::string_view hexStr, internal::Uint256_t &outValue) {
+            common::str2Hex(hexStr, (char *)outValue.data, sizeof(outValue));
+        }
+
+        bool hexStrToChecksum256(std::string_view hexStr, const eosio::checksum256 &outValue) {
+            if (hexStr.size() != 64)
+                return false;
+
+            std::string_view hex{"0123456789abcdef"};
+            for (int i = 0; i < 32; i++) {
+                auto d1 = hex.find(hexStr[2*i]);
+                auto d2 = hex.find(hexStr[2*i+1]);
+                if (d1 == std::string_view::npos || d2 == std::string_view::npos)
+                    return false;
+
+                // checksum256 is composed of little endian int128_t
+                uint8_t idx = i / 16 * 16 + 15 - (i % 16);
+                reinterpret_cast <char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
+                // static_cast<char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
+                // reinterpret_cast<char *>(outValue.data())[idx] = (d1 << 4)  + d2;
+            }
+            return true;
+        }
+
+        /* hex string to  checksum256 */
+        inline eosio::checksum256 hexStrToChecksum256(std::string_view hex_str, bool needHash = false) {
+            eosio::checksum256 hexValue;
+            #ifdef _DEBUG_PRINT
+            eosio::print("\t[hexStrToChecksum256=> init:", hexValue, ", size:", sizeof(hexValue.get_array()), "]\t");
+            #endif
+            common::str2Hex(hex_str, (char *)hexValue.data(), sizeof(hexValue.get_array()));
+            if (!needHash) {
+                #ifdef _DEBUG_PRINT
+                eosio::print("\t[hexStrToChecksum256=> before convertEndian:", hexValue, "]\t");
+                #endif
+                // eosio::checksum256 result = convertEndian(hexValue);
+                #ifdef _DEBUG_PRINT
+                eosio::print("\t[hexStrToChecksum256=> finaly:", hexValue, "]\t");
+                #endif
+                return hexValue;
+            }
+            // eosio::checksum256 result = convertEndian(hexValue);
+            return eosio::sha256((char *)hexValue.data(), sizeof(hexValue.get_array()));
+            // return hexValue;
         }
 
         /* x-hex-string to xHash eosio::checksum256 */
-        eosio::checksum256 hashX(std::string_view xView) {
-            capi_checksum256 hash;
-            capi_checksum256 xValue = str2CapiChecksum256(xView);
-            sha256((char *)xValue.hash, sizeof(xValue.hash), &hash);
-            return hash.hash;
+        inline eosio::checksum256 hashHexMsg(std::string_view hexView) {
+            internal::Uint256_t hexValue;
+            hexStrToUint256(hexView, hexValue);
+            eosio::checksum256 hashValue = eosio::sha256((char *)hexValue.data, sizeof(hexValue));
+            #ifdef _DEBUG_PRINT
+            eosio::print("\t[hashHexMsg=>hexView:", static_cast<std::string>(hexView), ", hashValue:", hashValue,"]\t");
+            #endif
+            return hashValue;
         }
 
-        // toHexStr(xHashValue)
-        std::string toHexStr(const capi_checksum256 &sha256) {
-            return common::toHexStr((char *) sha256.hash, sizeof(sha256.hash));
+        /* x-hex-string to xHash eosio::checksum256 */
+        inline eosio::checksum256 hashMsg(std::string_view msgView) {
+            return eosio::sha256((char *)msgView.data(), msgView.size());
+        }
+
+        inline std::string Uint256ToHexStr(const internal::Uint256_t &value) {
+            return common::toHexStr((char *) value.data, sizeof(value));
+            // eosio::checksum256 result = convertEndian(value);
+            // return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
+        }
+        inline std::string checksum256ToHexStr(const eosio::checksum256 &value) {
+            return common::toHexStr((char *) value.data(), sizeof(value.get_array()));
+            // eosio::checksum256 result = convertEndian(value);
+            // return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
         }
     };
 

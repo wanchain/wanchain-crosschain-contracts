@@ -1,11 +1,39 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Oct 18 16:46:09 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
     "version": "eosio::abi/1.1",
+    "types": [
+        {
+            "new_type_name": "time_t",
+            "type": "uint32"
+        }
+    ],
     "structs": [
+        {
+            "name": "account_t",
+            "base": "",
+            "fields": [
+                {
+                    "name": "code",
+                    "type": "name"
+                },
+                {
+                    "name": "action",
+                    "type": "name"
+                }
+            ]
+        },
         {
             "name": "asset_t",
             "base": "",
             "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
+                },
                 {
                     "name": "balance",
                     "type": "asset"
@@ -47,6 +75,10 @@
                 {
                     "name": "xHash",
                     "type": "checksum256"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
                 }
             ]
         },
@@ -55,8 +87,16 @@
             "base": "",
             "fields": [
                 {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
                     "name": "fee",
                     "type": "asset"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
                 }
             ]
         },
@@ -75,36 +115,6 @@
                 {
                     "name": "quantity",
                     "type": "asset"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "inrdm",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
                 },
                 {
                     "name": "memo",
@@ -139,69 +149,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
                     "name": "xHash",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "kk",
-            "base": "",
-            "fields": [
-                {
-                    "name": "x",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "leftlocktime",
-            "base": "",
-            "fields": [
-                {
-                    "name": "from",
-                    "type": "name"
-                },
-                {
-                    "name": "table",
-                    "type": "name"
-                },
-                {
-                    "name": "xHash",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "lkdebt",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
                     "type": "string"
                 }
             ]
@@ -212,6 +160,10 @@
             "fields": [
                 {
                     "name": "storeman",
+                    "type": "name"
+                },
+                {
+                    "name": "account",
                     "type": "name"
                 },
                 {
@@ -241,32 +193,16 @@
             ]
         },
         {
-            "name": "outlk",
+            "name": "num64_t",
             "base": "",
             "fields": [
                 {
-                    "name": "htlc",
+                    "name": "flag",
                     "type": "name"
                 },
                 {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
+                    "name": "value",
+                    "type": "uint64"
                 }
             ]
         },
@@ -283,15 +219,15 @@
                     "type": "name"
                 },
                 {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
                     "name": "quantity",
                     "type": "asset"
                 },
                 {
                     "name": "xHash",
-                    "type": "string"
-                },
-                {
-                    "name": "wanAddr",
                     "type": "string"
                 },
                 {
@@ -327,49 +263,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "storeman",
-                    "type": "name"
-                },
-                {
                     "name": "xHash",
-                    "type": "string"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "outrvk",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
                     "type": "string"
                 }
             ]
@@ -388,36 +282,6 @@
                 },
                 {
                     "name": "pk",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "rdmdebt",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
                     "type": "string"
                 }
             ]
@@ -445,13 +309,9 @@
             ]
         },
         {
-            "name": "regsig",
+            "name": "regacct",
             "base": "",
             "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
                 {
                     "name": "code",
                     "type": "name"
@@ -459,6 +319,34 @@
                 {
                     "name": "action",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "regsig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "code",
+                    "type": "name"
+                },
+                {
+                    "name": "action",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "regtoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "code",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol"
                 }
             ]
         },
@@ -489,10 +377,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "storeman",
-                    "type": "name"
-                },
-                {
                     "name": "xHash",
                     "type": "string"
                 },
@@ -507,62 +391,12 @@
             ]
         },
         {
-            "name": "rmpk",
+            "name": "setratio",
             "base": "",
             "fields": [
                 {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "rvkdebt",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
+                    "name": "ratio",
+                    "type": "uint64"
                 }
             ]
         },
@@ -577,6 +411,16 @@
                 {
                     "name": "action",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "token_t",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
                 }
             ]
         },
@@ -619,20 +463,20 @@
                 {
                     "name": "wanAddr",
                     "type": "string"
+                },
+                {
+                    "name": "account",
+                    "type": "name"
                 }
             ]
         },
         {
-            "name": "truncate",
+            "name": "unregaccnt",
             "base": "",
             "fields": [
                 {
-                    "name": "table",
+                    "name": "code",
                     "type": "name"
-                },
-                {
-                    "name": "scope",
-                    "type": "string"
                 }
             ]
         },
@@ -641,11 +485,39 @@
             "base": "",
             "fields": [
                 {
-                    "name": "htlc",
+                    "name": "code",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "unregtoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "code",
                     "type": "name"
                 },
                 {
+                    "name": "sym",
+                    "type": "symbol"
+                }
+            ]
+        },
+        {
+            "name": "updateacct",
+            "base": "",
+            "fields": [
+                {
                     "name": "code",
+                    "type": "name"
+                },
+                {
+                    "name": "nCode",
+                    "type": "name"
+                },
+                {
+                    "name": "nAction",
                     "type": "name"
                 }
             ]
@@ -677,13 +549,19 @@
             ]
         },
         {
-            "name": "updatesig",
+            "name": "updateratio",
             "base": "",
             "fields": [
                 {
-                    "name": "htlc",
-                    "type": "name"
-                },
+                    "name": "ratio",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "updatesig",
+            "base": "",
+            "fields": [
                 {
                     "name": "code",
                     "type": "name"
@@ -699,62 +577,20 @@
             ]
         },
         {
-            "name": "updtpk",
+            "name": "updatetoken",
             "base": "",
             "fields": [
                 {
-                    "name": "htlc",
+                    "name": "code",
                     "type": "name"
                 },
                 {
-                    "name": "r",
-                    "type": "string"
+                    "name": "sym",
+                    "type": "symbol"
                 },
                 {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "wdr",
-            "base": "",
-            "fields": [
-                {
-                    "name": "htlc",
-                    "type": "name"
-                },
-                {
-                    "name": "r",
-                    "type": "string"
-                },
-                {
-                    "name": "s",
-                    "type": "string"
-                },
-                {
-                    "name": "pk",
-                    "type": "string"
-                },
-                {
-                    "name": "msg",
-                    "type": "string"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
+                    "name": "nSym",
+                    "type": "symbol"
                 }
             ]
         },
@@ -765,6 +601,10 @@
                 {
                     "name": "storeman",
                     "type": "name"
+                },
+                {
+                    "name": "account",
+                    "type": "string"
                 },
                 {
                     "name": "sym",
@@ -785,21 +625,10 @@
             ]
         }
     ],
-    "types": [
-        {
-            "new_type_name": "time_t",
-            "type": "uint32"
-        }
-    ],
     "actions": [
         {
             "name": "inlock",
             "type": "inlock",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "inrdm",
-            "type": "inrdm",
             "ricardian_contract": ""
         },
         {
@@ -813,28 +642,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "kk",
-            "type": "kk",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "leftlocktime",
-            "type": "leftlocktime",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "lkdebt",
-            "type": "lkdebt",
-            "ricardian_contract": ""
-        },
-        {
             "name": "lockdebt",
             "type": "lockdebt",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "outlk",
-            "type": "outlk",
             "ricardian_contract": ""
         },
         {
@@ -853,23 +662,23 @@
             "ricardian_contract": ""
         },
         {
-            "name": "outrvk",
-            "type": "outrvk",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "rdmdebt",
-            "type": "rdmdebt",
-            "ricardian_contract": ""
-        },
-        {
             "name": "redeemdebt",
             "type": "redeemdebt",
             "ricardian_contract": ""
         },
         {
+            "name": "regacct",
+            "type": "regacct",
+            "ricardian_contract": ""
+        },
+        {
             "name": "regsig",
             "type": "regsig",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regtoken",
+            "type": "regtoken",
             "ricardian_contract": ""
         },
         {
@@ -883,18 +692,13 @@
             "ricardian_contract": ""
         },
         {
-            "name": "rmpk",
-            "type": "rmpk",
+            "name": "setratio",
+            "type": "setratio",
             "ricardian_contract": ""
         },
         {
-            "name": "rvkdebt",
-            "type": "rvkdebt",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "truncate",
-            "type": "truncate",
+            "name": "unregaccnt",
+            "type": "unregaccnt",
             "ricardian_contract": ""
         },
         {
@@ -903,8 +707,23 @@
             "ricardian_contract": ""
         },
         {
+            "name": "unregtoken",
+            "type": "unregtoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updateacct",
+            "type": "updateacct",
+            "ricardian_contract": ""
+        },
+        {
             "name": "updatepk",
             "type": "updatepk",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updateratio",
+            "type": "updateratio",
             "ricardian_contract": ""
         },
         {
@@ -913,13 +732,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "updtpk",
-            "type": "updtpk",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "wdr",
-            "type": "wdr",
+            "name": "updatetoken",
+            "type": "updatetoken",
             "ricardian_contract": ""
         },
         {
@@ -929,6 +743,13 @@
         }
     ],
     "tables": [
+        {
+            "name": "accounts",
+            "type": "account_t",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
         {
             "name": "assets",
             "type": "asset_t",
@@ -951,6 +772,13 @@
             "key_types": []
         },
         {
+            "name": "longlongs",
+            "type": "num64_t",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
             "name": "pks",
             "type": "pk_t",
             "index_type": "i64",
@@ -965,6 +793,13 @@
             "key_types": []
         },
         {
+            "name": "tokens",
+            "type": "token_t",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
             "name": "transfers",
             "type": "transfer_t",
             "index_type": "i64",
@@ -973,6 +808,5 @@
         }
     ],
     "ricardian_clauses": [],
-    "variants": [],
-    "abi_extensions": []
+    "variants": []
 }
