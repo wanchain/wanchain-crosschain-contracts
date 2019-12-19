@@ -30,7 +30,6 @@ pragma experimental ABIEncoderV2;
 
 import "../../lib/QuotaLib.sol";
 import "./HTLCLib.sol";
-import "./commonLib.sol";
 import "./HTLCTypes.sol";
 import "../../interfaces/ITokenManager.sol";
 import "../../interfaces/IWRC20Protocol.sol";
@@ -40,25 +39,34 @@ library HTLCUserLib {
     using QuotaLib for QuotaLib.Data;
     using HTLCLib for HTLCLib.Data;
 
+    /**
+    *
+    * STRUCTURES
+    *
+    */
+
+    /// @notice struct of HTLC user lock parameters
     struct HTLCUserLockParams {
-        bytes32 xHash;
-        uint value;
-        bytes tokenOrigAccount;
-        bytes userOrigAccount;
-        bytes storemanGroupPK;
-        ITokenManager tokenManager;
+        bytes32 xHash;                  /// hash of HTLC random number
+        uint value;                     /// exchange token value
+        bytes tokenOrigAccount;         /// token account on original chain
+        bytes userOrigAccount;          /// account of original chain, used to receive token
+        bytes storemanGroupPK;          /// PK of storeman group which user has selected
+        ITokenManager tokenManager;     /// interface of token manager
     }
 
+    /// @notice struct of HTLC user redeem parameters
     struct HTLCUserRedeemParams {
-        bytes tokenOrigAccount;
-        ITokenManager tokenManager;
-        bytes32 x;
+        bytes tokenOrigAccount;         /// token account on original chain
+        ITokenManager tokenManager;     /// interface of token manager
+        bytes32 x;                     /// HTLC random number
     }
 
+    /// @notice struct of HTLC user revoke parameters
     struct HTLCUserRevokeParams {
-        bytes tokenOrigAccount;
-        ITokenManager tokenManager;
-        bytes32 xHash;
+        bytes tokenOrigAccount;         /// token account on original chain
+        ITokenManager tokenManager;     /// interface of token manager
+        bytes32 xHash;                 /// hash of HTLC random number
     }
 
     /**
@@ -66,35 +74,44 @@ library HTLCUserLib {
      * EVENTS
      *
      **/
-    /// @notice                 event of exchange original chain token with WRC-20 token request
-    /// @param storemanGroupPK  PK of storemanGroup, where the original chain token come from
-    /// @param xHash            hash of HTLC random number
-    /// @param value            exchange value
-    /// @param userOrigAccount  account of original chain, used to receive token
-    /// fee              exchange fee
-    /// @param tokenOrigAccount account of original chain token
+
+
+    /// @notice                         event of exchange original chain token with WRC-20 token request
+    /// @param xHash                    hash of HTLC random number
+    /// @param value                    exchange value
+    /// @param userOrigAccount          account of original chain, used to receive token
+    /// @param storemanGroupPK          PK of storemanGroup, which user selected
     event OutboundLockLogger(bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes userOrigAccount, bytes storemanGroupPK);
 
-    /// @notice                 event of refund WRC-20 token from exchange WRC-20 token with original chain token HTLC transaction
-    /// @param wanAddr          address of user on wanchain, used to receive WRC-20 token
-    /// @param storemanGroupPK  PK of storeman, the WRC-20 token minter
-    /// @param xHash            hash of HTLC random number
-    /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                         event of refund WRC-20 token from exchange WRC-20 token with original chain token HTLC transaction
+    /// @param wanAddr                  address of user on wanchain, used to receive WRC-20 token
+    /// @param xHash                    hash of HTLC random number
+    /// @param x                        HTLC random number
+    /// @param storemanGroupPK          PK of storeman, the WRC-20 token minter
+    /// @param tokenOrigAccount         account of original chain token
     event InboundRedeemLogger(address indexed wanAddr, bytes32 indexed xHash, bytes32 indexed x, bytes storemanGroupPK, bytes tokenOrigAccount);
 
-    /// @notice                 event of revoke exchange original chain token with WRC-20 token HTLC transaction
-    /// @param wanAddr          address of user
-    /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                         event of revoke exchange original chain token with WRC-20 token HTLC transaction
+    /// @param wanAddr                  address of user
+    /// @param xHash                    hash of HTLC random number
+    /// @param tokenOrigAccount         account of original chain token
     event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount);
 
+    /**
+    *
+    * MANIPULATIONS
+    *
+    */
+
+    /// @notice                         outbound, user lock token on wanchain
+    /// @notice                         event invoked by user lock
+    /// @param htlcStorageData          HTLC storage data
+    /// @param params                   parameters for user lock token on wanchain
     function outUserLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserLockParams memory params)
         public
     {
         // check withdraw fee
         uint fee = getOutboundFee(htlcStorageData, params.tokenOrigAccount, params.storemanGroupPK, params.value);
-        require(msg.value >= fee, "Transferred fee is not enough");
 
         uint left = (msg.value).sub(fee);
         if (left != 0) {
@@ -113,6 +130,10 @@ library HTLCUserLib {
         emit OutboundLockLogger(params.xHash, params.value, params.tokenOrigAccount, params.userOrigAccount, params.storemanGroupPK);
     }
 
+    /// @notice                         inbound, user redeem token on wanchain
+    /// @notice                         event invoked by user redeem
+    /// @param htlcStorageData          HTLC storage data
+    /// @param params                   parameters for user redeem token on wanchain
     function inUserRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserRedeemParams memory params)
         public
     {
@@ -130,6 +151,10 @@ library HTLCUserLib {
         emit InboundRedeemLogger(userAddr, xHash, params.x, storemanGroupPK, params.tokenOrigAccount);
     }
 
+    /// @notice                         outbound, user revoke token on wanchain
+    /// @notice                         event invoked by user revoke
+    /// @param htlcStorageData          HTLC storage data
+    /// @param params                   parameters for user revoke token on wanchain
     function outUserRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCUserRevokeParams memory params)
         public
     {
@@ -147,8 +172,6 @@ library HTLCUserLib {
         (,,,instance,,,,) = params.tokenManager.getTokenInfo(params.tokenOrigAccount);
         require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
 
-        (source, , , storemanGroupPK) = htlcStorageData.htlcData.getUserTx(params.xHash);
-
         uint revokeFeeRatio = htlcStorageData.revokeFeeRatio;
         uint ratioPrecise = HTLCTypes.getRatioPrecise();
         uint revokeFee = htlcStorageData.mapXHashFee[params.xHash].mul(revokeFeeRatio).div(ratioPrecise);
@@ -165,6 +188,11 @@ library HTLCUserLib {
         emit OutboundRevokeLogger(source, params.xHash, params.tokenOrigAccount);
     }
 
+    /// @notice                         get outbound fee for user to lock token on wanchain
+    /// @param htlcStorageData          HTLC storage data
+    /// @param tokenOrigAccount         account of original chain token
+    /// @param storemanGroupPK          PK of storemanGroup
+    /// @param value                    HTLC exchange token value
     function getOutboundFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes storemanGroupPK, uint value)
         private
         returns(uint)

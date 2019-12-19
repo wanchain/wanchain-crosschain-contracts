@@ -42,7 +42,7 @@ library HTLCLib {
     enum TxStatus {None, Locked, Refunded, Revoked}
 
     /// @notice default locked time(in seconds)
-    uint constant DEF_LOCKED_TIME = uint(3600*36);
+    uint constant DEF_LOCKED_TIME = 40;
 
     /**
      *
@@ -52,27 +52,28 @@ library HTLCLib {
 
     /// @notice HTLC(Hashed TimeLock Contract) tx info
     struct BaseTx {
-        uint value;             // HTLC transfer value of token
-        bytes storemanPK;       // HTLC transaction storeman PK
-        TxStatus status;        // HTLC transaction status
-        uint lockedTime;        // HTLC transaction locked time
-        uint beginLockedTime;   // HTLC transaction begin locked time
+        uint value;                 // HTLC transfer value of token
+        bytes storemanPK;           // HTLC transaction storeman PK
+        TxStatus status;            // HTLC transaction status
+        uint lockedTime;            // HTLC transaction locked time
+        uint beginLockedTime;       // HTLC transaction begin locked time
     }
 
+    /// @notice user  tx info
     struct UserTx {
         BaseTx baseTx;
-        address sender;        // HTLC transaction sender address for the security check while user's revoke
-        bytes shadow;           // Shadow address or account on mirror chain
+        address sender;             // HTLC transaction sender address for the security check while user's revoke
+        bytes shadow;               // Shadow address or account on mirror chain
     }
-
+    /// @notice storeman  tx info
     struct SmgTx {
         BaseTx baseTx;
-        address  userAddr;   // HTLC transaction userAddr address for the security check while user's redeem
+        address  userAddr;          // HTLC transaction user address for the security check while user's redeem
     }
-
+    /// @notice storeman  debt tx info
     struct DebtTx {
         BaseTx baseTx;
-        bytes srcStoremanPK;            // HTLC transaction sender PK
+        bytes srcStoremanPK;        // HTLC transaction sender PK
     }
 
     struct Data {
@@ -92,8 +93,12 @@ library HTLCLib {
      *
      */
 
-    /// @notice                  function for get user info
-    /// @param xHash             xHash
+    /// @notice                     function for get user info
+    /// @param xHash                hash of HTLC random number
+    /// @return sender             HTLC transaction sender address for the security check while user's revoke
+    /// @return shadow             Shadow address or account on mirror chain
+    /// @return value              exchange value
+    /// @return storemanPK         PK of storeman which user has selected
     function getUserTx(Data storage self, bytes32 xHash)
         external
         view
@@ -103,8 +108,11 @@ library HTLCLib {
         return (t.sender, t.shadow, t.baseTx.value, t.baseTx.storemanPK);
     }
 
-    /// @notice                  function for get smg info
-    /// @param xHash             xHash
+    /// @notice                     function for get smg info
+    /// @param xHash                hash of HTLC random number
+    /// @return userAddr           user account address for redeem
+    /// @return value              exchange value
+    /// @return storemanPK         PK of storeman which user has selected
     function getSmgTx(Data storage self, bytes32 xHash)
         external
         view
@@ -114,8 +122,11 @@ library HTLCLib {
         return (t.userAddr, t.baseTx.value, t.baseTx.storemanPK);
     }
 
-    /// @notice                  function for get debt info
-    /// @param xHash             xHash
+    /// @notice                     function for get debt info
+    /// @param xHash                hash of HTLC random number
+    /// @return srcStoremanPK      PK of source storeman
+    /// @return value              debt value
+    /// @return storemanPK         PK of destination storeman which takes over the debt of source storeman
     function getDebtTx(Data storage self, bytes32 xHash)
         external
         view
@@ -125,10 +136,11 @@ library HTLCLib {
         return (t.srcStoremanPK, t.baseTx.value, t.baseTx.storemanPK);
     }
 
-    /// @notice                 add user transaction info
-    /// @param  xHash           hash of HTLC random number
-    /// @param  value           HTLC transfer value of token
-    /// @param  shadow          shadow address. used for receipt coins on opposite block chain
+    /// @notice                     add user transaction info
+    /// @param  xHash               hash of HTLC random number
+    /// @param  value               HTLC transfer value of token
+    /// @param  shadow              shadow address. used for receipt coins on opposite block chain
+    /// @param  storemanPK          PK of the storeman which user has selected
     function addUserTx(Data storage self, bytes32 xHash, uint value, bytes shadow, bytes storemanPK)
         external
     {
@@ -144,7 +156,11 @@ library HTLCLib {
         userTx.sender = msg.sender;
         userTx.shadow = shadow;
     }
-
+    /// @notice                     add storeman transaction info
+    /// @param  xHash               hash of HTLC random number
+    /// @param  value               HTLC transfer value of token
+    /// @param  userAddr            user account address on the destination chain, which is used to redeem token
+    /// @param  storemanPK          PK of the storeman which user has selected
     function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr, bytes storemanPK)
         external
     {
@@ -159,7 +175,11 @@ library HTLCLib {
         smgTx.baseTx.beginLockedTime = now;
         smgTx.userAddr = userAddr;
     }
-
+    /// @notice                     add storeman transaction info
+    /// @param  xHash               hash of HTLC random number
+    /// @param  value               HTLC transfer value of token
+    /// @param  srcStoremanPK       PK of source storeman group
+    /// @param  storemanPK          PK of the storeman which will take over of the debt of source storeman group
     function addDebtTx(Data storage self, bytes32 xHash, uint value, bytes srcStoremanPK, bytes storemanPK)
         external
     {
@@ -175,9 +195,9 @@ library HTLCLib {
         debtTx.srcStoremanPK = srcStoremanPK;
     }
 
-    /// @notice                 refund coins from HTLC transaction
-    /// @param  x               random number of HTLC
-    /// @return xHash           return hash of HTLC random number
+    /// @notice                     refund coins from HTLC transaction, which is used for storeman redeem(outbound)
+    /// @param  x                   random number of HTLC
+    /// @return xHash               return hash of HTLC random number
     function redeemUserTx(Data storage self, bytes32 x)
         external
         returns(bytes32 xHash)
@@ -192,9 +212,9 @@ library HTLCLib {
         return (xHash);
     }
 
-    /// @notice                 refund coins from HTLC transaction
-    /// @param  x               random number of HTLC
-    /// @return xHash           return hash of HTLC random number
+    /// @notice                     refund coins from HTLC transaction, which is used for users redeem(inbound)
+    /// @param  x                   random number of HTLC
+    /// @return xHash               return hash of HTLC random number
     function redeemSmgTx(Data storage self, bytes32 x)
         external
         returns(bytes32 xHash)
@@ -210,9 +230,9 @@ library HTLCLib {
         return (xHash);
     }
 
-    /// @notice                 refund coins from HTLC transaction
-    /// @param  x               random number of HTLC
-    /// @return xHash           return hash of HTLC random number
+    /// @notice                     refund coins from HTLC transaction
+    /// @param  x                   random number of HTLC
+    /// @return xHash               return hash of HTLC random number
     function redeemDebtTx(Data storage self, bytes32 x)
         external
         returns(bytes32 xHash)
@@ -227,8 +247,8 @@ library HTLCLib {
         return (xHash);
     }
 
-    /// @notice                 revoke user transaction
-    /// @param  xHash           hash of HTLC random number
+    /// @notice                     revoke user transaction
+    /// @param  xHash               hash of HTLC random number
     function revokeUserTx(Data storage self, bytes32 xHash)
         external
     {
@@ -240,8 +260,8 @@ library HTLCLib {
         info.baseTx.status = TxStatus.Revoked;
     }
 
-    /// @notice                 revoke user transaction
-    /// @param  xHash           hash of HTLC random number
+    /// @notice                     revoke storeman transaction
+    /// @param  xHash               hash of HTLC random number
     function revokeSmgTx(Data storage self, bytes32 xHash)
         external
     {
@@ -252,8 +272,8 @@ library HTLCLib {
         info.baseTx.status = TxStatus.Revoked;
     }
 
-    /// @notice                 revoke user transaction
-    /// @param  xHash           hash of HTLC random number
+    /// @notice                     revoke debt transaction, which is used for source storeman group
+    /// @param  xHash               hash of HTLC random number
     function revokeDebtTx(Data storage self, bytes32 xHash)
         external
     {

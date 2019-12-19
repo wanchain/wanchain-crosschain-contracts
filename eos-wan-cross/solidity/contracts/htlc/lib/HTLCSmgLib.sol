@@ -39,22 +39,28 @@ library HTLCSmgLib {
     using QuotaLib for QuotaLib.Data;
     using HTLCLib for HTLCLib.Data;
 
+    /**
+     *
+     * STRUCTURES
+     *
+     */
+    /// @notice struct of HTLC storeman lock parameters
     struct HTLCSmgLockParams {
-        bytes tokenOrigAccount;
-        bytes32 xHash;
-        address wanAddr;
-        uint value;
-        bytes storemanGroupPK;
-        bytes r;
-        bytes32 s;
+        bytes tokenOrigAccount;         /// token account on original chain
+        bytes32 xHash;                  /// hash of HTLC random number
+        address wanAddr;                /// user address which is used for user to redeem value
+        uint value;                     /// token value
+        bytes storemanGroupPK;          /// PK of storeman group which user has selected
+        bytes r;                        /// R in schnorr signature
+        bytes32 s;                      /// s in schnorr signature
     }
-
+    /// @notice struct of HTLC storeman redeem parameters
     struct HTLCSmgRedeemParams {
-        bytes tokenOrigAccount;
-        ITokenManager tokenManager;
-        bytes r;
-        bytes32 s;
-        bytes32 x;
+        bytes tokenOrigAccount;         /// token account on original chain
+        ITokenManager tokenManager;     /// interface of token manager
+        bytes r;                        /// R in schnorr signature
+        bytes32 s;                      /// s in schnorr signature
+        bytes32 x;                      /// HTLC random number
     }
 
     /**
@@ -63,32 +69,40 @@ library HTLCSmgLib {
      *
      **/
 
-    /**
-     *
-     * EVENTS
-     *
-     **/
-
-    /// @notice                 event of exchange WRC-20 token with original chain token request
-    /// @param storemanGroupPK  PK of storemanGroup
-    /// @param wanAddr          address of wanchain, used to receive WRC-20 token
-    /// @param xHash            hash of HTLC random number
-    /// @param value            HTLC value
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                         event of exchange WRC-20 token with original chain token request
+    /// @notice                         event invoked by storeman group
+    /// @param wanAddr                  address of wanchain, used to receive WRC-20 token
+    /// @param xHash                    hash of HTLC random number
+    /// @param value                    HTLC value
+    /// @param tokenOrigAccount         account of original chain token
+    /// @param storemanGroupPK          PK of storemanGroup
     event InboundLockLogger(address indexed wanAddr, bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes storemanGroupPK);
 
-    /// @notice                 event of revoke exchange WRC-20 token with original chain token HTLC transaction
-    /// @param storemanGroupPK  PK of storemanGroup
-    /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                         event of revoke exchange WRC-20 token with original chain token HTLC transaction
+    /// @notice                         event invoked by storeman revoke
+    /// @param xHash                    hash of HTLC random number
+    /// @param tokenOrigAccount         account of original chain token
+    /// @param storemanGroupPK          PK of storemanGroup
     event InboundRevokeLogger(bytes32 indexed xHash, bytes tokenOrigAccount, bytes storemanGroupPK);
 
-    /// @notice                 event of refund WRC-20 token from exchange original chain token with WRC-20 token HTLC transaction
-    /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                         event of refund WRC-20 token from exchange original chain token with WRC-20 token HTLC transaction
+    /// @notice                         event invoked by storeman redeem
+    /// @param hashX                    hash of HTLC random number
+    /// @param x                        HTLC random number
+    /// @param tokenOrigAccount         account of original chain token
     event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
 
 
+    /**
+     *
+     * MANIPULATIONS
+     *
+     */
+
+    /// @notice                         inbound, storeman lock token on wanchain
+    /// @notice                         event invoked by storeman lock
+    /// @param htlcStorageData          HTLC storage data
+    /// @param params                   parameters for storeman group lock token on wanchain
     function inSmgLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCSmgLockParams memory params)
         public
     {
@@ -101,6 +115,9 @@ library HTLCSmgLib {
         emit InboundLockLogger(params.wanAddr, params.xHash, params.value, params.tokenOrigAccount, params.storemanGroupPK);
     }
 
+    /// @notice                         outbound, storeman redeem token on wanchain which invokes burn token on wanchain
+    /// @param htlcStorageData          HTLC storage data
+    /// @param params                   parameters for storeman group redeem token on wanchain
     function outSmgRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCSmgRedeemParams memory params)
         public
     {
@@ -122,6 +139,10 @@ library HTLCSmgLib {
         emit OutboundRedeemLogger(xHash, params.x, params.tokenOrigAccount);
     }
 
+    /// @notice                         inbound, storeman revoke transaction on wanchain
+    /// @param htlcStorageData          HTLC storage data
+    /// @param tokenOrigAccount         account of original chain token
+    /// @param xHash                    hash of HTLC random number
     function inSmgRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes32 xHash)
         public
     {
@@ -140,11 +161,18 @@ library HTLCSmgLib {
         emit InboundRevokeLogger(xHash, tokenOrigAccount, storemanGroupPK);
     }
 
+    /// @notice                         storeman group withdraw the fee of transaction to the receiver
+    /// @param htlcStorageData          HTLC storage data
+    /// @param storemanGroupPK          PK of the storeman group
+    /// @param receiver                 the account for receiving the fee
+    /// @param r                        R in schnorr signature
+    /// @param s                        s in schnorr signature
     function smgWithdrawFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes storemanGroupPK, address receiver, bytes r, bytes32 s)
         public
     {
         commonLib.verifySignature(sha256(abi.encode(receiver)), storemanGroupPK, r, s);
         receiver.transfer(htlcStorageData.mapStoremanFee[storemanGroupPK]);
+        delete htlcStorageData.mapStoremanFee[storemanGroupPK];
     }
 
 }

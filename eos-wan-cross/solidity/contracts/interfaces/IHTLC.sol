@@ -30,5 +30,5 @@ interface IHTLC {
     function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio) external;
     function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK) external;
     function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK) external;
-    function smgAppendQuota(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) external;
+    function updateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota) external;
 }

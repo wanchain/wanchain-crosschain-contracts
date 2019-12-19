@@ -1,6 +1,6 @@
 /*
 
-  Copyright 2018 Wanchain Foundation.
+  Copyright 2019 Wanchain Foundation.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 //   \ V  V / (_| | | | | (__| | | | (_| | | | | | (_| |  __/\ V /
 //    \_/\_/ \__,_|_| |_|\___|_| |_|\__,_|_|_| |_|\__,_|\___| \_/
 //
+//  Code style according to: https://github.com/wanchain/wanchain-token/blob/master/style-guide.rst
 
 pragma solidity ^0.4.24;
 
@@ -32,20 +33,20 @@ import "../interfaces/IHTLC.sol";
 contract StoremanGroupStorage is BasicStorage {
     /// token manager instance address
     ITokenManager public tokenManager;
-    /// quotaLedger(HTLC) instance address
-    IHTLC public quotaLedger;
+    /// HTLC instance address
+    IHTLC public htlc;
+    /// is white list is enabled, if false, any storeman group can register
     bool public isWhiteListEnabled;
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)
     mapping(bytes=>mapping(bytes => StoremanGroup)) internal storemanGroupMap;
-    /// storemanPK->isEnabled
-    mapping(bytes=>bool) internal mapSmgWhiteList;
+    /// tokenOrigAddr->storemanPK->isEnabled
+    mapping(bytes=>mapping(bytes => bool)) internal whiteListMap;
 
     struct StoremanGroup {
+        address delegate;                 /// the account for registering a storeman group which provides storeman group deposit
         uint    deposit;                  /// the storeman group deposit in wan coins
-        uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
         uint    txFeeRatio;               /// the fee ratio required by storeman group
-        uint    startBlockNumber;         /// the start block number for bonus calculation for storeman group
-        address initiator;                /// the account for registering a storeman group which provides storeman group deposit
+        uint    unregisterApplyTime;      /// the time point for storeman group applied unregistration
     }
 }

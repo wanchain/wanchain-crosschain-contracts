@@ -48,12 +48,12 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param minDeposit            the default min deposit
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
-    /// @param tokenWanAddr          a wanchain address of supported ERC20 token
-    /// @param name                  WRC20 token name on wanchain mainnet
-    /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal               WRC20 token decimals on wanchain mainnet
+    /// @param name                  token name on wanchain mainnet
+    /// @param symbol                token symbol on wanchain mainnet
+    /// @param decimals              token decimals on wanchain mainnet
+    /// @param tokenWanAddr          a wanchain address of supported token
     event TokenAddedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
-                           bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
+                           bytes name, bytes symbol, uint8 decimals, address tokenWanAddr);
 
     /// @notice                      event for token registration update
     /// @dev                         event for token registration update
@@ -61,14 +61,23 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @param ratio                 coin Exchange ratio,such as ethereum 1 eth:880 WANs,the precision is 10000,the ratio is 880,0000
     /// @param minDeposit            the default min deposit
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
-    /// @param name                  WRC20 token name on wanchain mainnet
-    /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimal               WRC20 token decimals on wanchain mainnet
-    /// @param tokenWanAddr          a wanchain address of supported ERC20 token
+    /// @param name                  token name on wanchain mainnet
+    /// @param symbol                token symbol on wanchain mainnet
+    /// @param decimals              token decimals on wanchain mainnet
+    /// @param tokenWanAddr          a wanchain address of supported token
     event TokenUpdatedLogger(bytes tokenOrigAccount,  uint ratio, uint minDeposit, uint withdrawDelayTime,
-                             bytes name, bytes symbol, uint8 decimal, address tokenWanAddr);
+                             bytes name, bytes symbol, uint8 decimals, address tokenWanAddr);
 
+    /// @notice                      event for token remove
+    /// @dev                         event for token remove
+    /// @param tokenOrigAccount      token address of original chain
     event TokenRemovedLogger(bytes tokenOrigAccount);
+
+    /**
+     *
+     * MODIFIERS
+     *
+     */
 
     modifier onlyValidAccount(bytes account) {
         require(account.length != 0, "Account is null");
@@ -84,6 +93,12 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         require(value > 0, "Value is null");
         _;
     }
+
+    /**
+    *
+    * MANIPULATIONS
+    *
+    */
 
     /// @notice If WAN coin is sent to this address, send it back.
     /// @dev If WAN coin is sent to this address, send it back.
@@ -107,12 +122,12 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @notice                      add a supported token
     /// @dev                         add a supported token
     /// @param tokenOrigAccount      token account of original chain
-    /// @param token2WanRatio        1 ERC20 token valuated in wan coins, the excharge rate is token2WanRatio / DEFAULT_PRECISE
+    /// @param token2WanRatio        1 token valuated in wan coins, the excharge rate is token2WanRatio / DEFAULT_PRECISE
     /// @param minDeposit            the minimum deposit for a valid storeman group
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
-    /// @param name                  WRC20 token name on wanchain mainnet
-    /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimals              WRC20 token decimals on wanchain mainnet
+    /// @param name                  token name on wanchain mainnet
+    /// @param symbol                token symbol on wanchain mainnet
+    /// @param decimals              token decimals on wanchain mainnet
     function addToken(
         bytes tokenOrigAccount,
         uint  token2WanRatio,
@@ -159,12 +174,12 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     /// @notice                      update a supported token
     /// @dev                         update a supported token
     /// @param tokenOrigAccount      token account of original chain
-    /// @param token2WanRatio        1 ERC20 token valuated in wan coins, the excharge rate is token2WanRatio / DEFAULT_PRECISE
+    /// @param token2WanRatio        1 token valuated in wan coins, the excharge rate is token2WanRatio / DEFAULT_PRECISE
     /// @param minDeposit            the minimum deposit for a valid storeman group
     /// @param withdrawDelayTime     the delay time for withdrawing deposit after storeman group applied un-registration
-    /// @param name                  WRC20 token name on wanchain mainnet
-    /// @param symbol                WRC20 token symbol on wanchain mainnet
-    /// @param decimals              WRC20 token decimals on wanchain mainnet
+    /// @param name                  token name on wanchain mainnet
+    /// @param symbol                token symbol on wanchain mainnet
+    /// @param decimals              token decimals on wanchain mainnet
     /// @param tokenWanAddr          a wanchain address of supported ERC20 token
     function updateToken(
         bytes tokenOrigAccount,
@@ -195,9 +210,17 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         emit TokenUpdatedLogger(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, name, symbol, decimals, tokenWanAddr);
     }
 
-    /// @notice                      get a supported token info
-    /// @dev                         get a supported token info
-    /// @param tokenOrigAccount      token account of original chain
+    /// @notice                         get a supported token info
+    /// @dev                            get a supported token info
+    /// @param tokenOrigAccount         token account of original chain
+    /// @return name                    token name on wanchain mainnet
+    /// @return symbol                  token symbol on wanchain mainnet
+    /// @return decimals                token decimals on wanchain mainnet
+    /// @return tokenWanAddr            a wanchain address of supported ERC20 token
+    /// @return token2WanRatio          1 token valuated in wan coins, the excharge rate is token2WanRatio / DEFAULT_PRECISE
+    /// @return minDeposit              the minimum deposit for a valid storeman group
+    /// @return withdrawDelayTime       the delay time for withdrawing deposit after storeman group applied un-registration
+    /// @return DEFAULT_PRECISE         const value
     function getTokenInfo(bytes tokenOrigAccount)
         external
         view
@@ -209,11 +232,11 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
                 token.token2WanRatio, token.minDeposit, token.withdrawDelayTime, DEFAULT_PRECISE);
     }
 
-    /// @notice                      mint WRC20 token for a supported ERC20 token
-    /// @dev                         mint WRC20 token for a supported ERC20 token
+    /// @notice                      mint token for a supported token
+    /// @dev                         mint token for a supported token
     /// @param tokenOrigAccount      token account of original chain
-    /// @param recipient             account minted WRC20 for
-    /// @param value                 minted WRC20 amount
+    /// @param recipient             account minted token for
+    /// @param value                 minted token amount
     function mintToken(bytes tokenOrigAccount, address recipient, uint value)
         external
         onlyHTLC
@@ -226,10 +249,10 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         IWanToken(instance).mint(recipient, value);
     }
 
-    /// @notice                      burn WRC20 token in HTLC for a supported ERC20 token
-    /// @dev                         burn WRC20 token in HTLC for a supported ERC20 token
+    /// @notice                      burn token in HTLC for a supported token
+    /// @dev                         burn token in HTLC for a supported token
     /// @param tokenOrigAccount      token account of original chain
-    /// @param value                 burned WRC20 amount
+    /// @param value                 burned token amount
     function burnToken(bytes tokenOrigAccount, uint value)
         external
         onlyHTLC
@@ -242,7 +265,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
 
     /// @notice                      set HTLC address
     /// @dev                         set HTLC address
-    /// @param addr                  HTLC address
+    /// @param addr                  set HTLCProxy contract address
     function setHtlcAddr(address addr)
         external
         onlyOwner

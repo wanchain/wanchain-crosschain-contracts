@@ -36,6 +36,8 @@ import "../components/Proxy.sol";
 
 contract HTLCProxy is HTLCStorage, Halt, Proxy {
 
+    ///@dev                     update the address of HTLCDelegate contract
+    ///@param impl            the address of the new HTLCDelegate contract
     function upgradeTo(address impl) public onlyOwner {
         require(impl != address(0), "Cannot upgrade to invalid address");
         require(impl != _implementation, "Cannot upgrade to the same implementation");
