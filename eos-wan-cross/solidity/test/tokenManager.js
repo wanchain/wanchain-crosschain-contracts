@@ -1151,16 +1151,16 @@ contract('TokenManager', async (accounts) => {
   let delegate;
   let delegateV2;
 
-  before("init contracts", async() => {
+  before("init contracts", async () => {
     [delegateV2, delegate, proxy] = await initContracts(accounts);
   });
 
   it('proxy upgradeTo with address address(0), it should be throw error', async () => {
     let address0 = getAddress_0();
     try {
-    // Initalize the proxy with address 0.
-    await proxy.upgradeTo(address0)
-    lib.assertFail("proxy upgradeTo with address address(0), it should be throw error");
+      // Initalize the proxy with address 0.
+      await proxy.upgradeTo(address0)
+      lib.assertFail("proxy upgradeTo with address address(0), it should be throw error");
     } catch (err) {
       lib.expectToBeAnInstanceOf(err, Error);
       lib.assertExists(err.reason);
@@ -1311,7 +1311,11 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
+
     lib.assertCommonEqual(await proxyDelegateV1.isTokenRegistered(tokenOrigAccount), false);
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
     lib.assertCommonEqual(await proxyDelegateV1.isTokenRegistered(tokenOrigAccount), true);
@@ -1356,7 +1360,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
@@ -1419,7 +1426,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
@@ -1475,7 +1485,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
@@ -1520,7 +1533,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
 
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
     await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
     tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
@@ -1530,7 +1546,7 @@ contract('TokenManager', async (accounts) => {
     } catch (err) {
       lib.expectToBeAnInstanceOf(err, Error);
       lib.assertExists(err.reason);
-      lib.assertCommonEqual(err.reason, "Token is exist");
+      lib.assertCommonEqual(err.reason, "Token exists");
     }
     await proxyDelegateV1.removeToken(tokenOrigAccount);
   });
@@ -1561,7 +1577,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with 0 token to wan ratio, it should be throw error");
     } catch (err) {
@@ -1570,7 +1589,10 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Ratio is null");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
   });
 
   it('v1 delegate add token with low deposit, it should be throw error', async () => {
@@ -1599,7 +1621,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with low deposit, it should be throw error");
     } catch (err) {
@@ -1609,7 +1634,10 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Deposit amount is not enough");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
   });
 
   it('v1 delegate add token with low withdraw delay time, it should be throw error', async () => {
@@ -1638,7 +1666,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with low withdraw delay time, it should be throw error");
     } catch (err) {
@@ -1648,7 +1679,11 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Delay time for withdraw is too short");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
+
   });
 
   it('v1 delegate add token with empty name, it should be throw error', async () => {
@@ -1679,7 +1714,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = [];
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with empty name, it should be throw error");
     } catch (err) {
@@ -1689,7 +1727,10 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Name is null");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
   });
 
   it('v1 delegate add token with empty symbol, it should be throw error', async () => {
@@ -1717,7 +1758,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = [];
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with empty symbol, it should be throw error");
     } catch (err) {
@@ -1727,7 +1771,10 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Symbol is null");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
   });
 
   it('v1 delegate add token with empty token origin account, it should be throw error', async () => {
@@ -1755,7 +1802,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with empty token origin account, it should be throw error");
     } catch (err) {
@@ -1794,7 +1844,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = [];
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       lib.assertFail("add token with with empty symbol, it should be throw error");
     } catch (err) {
@@ -1804,7 +1857,10 @@ contract('TokenManager', async (accounts) => {
       lib.assertCommonEqual(err.reason, "Symbol is null");
       // // console.log(typeof(err), JSON.stringify(err.reason));
     }
-    await proxyDelegateV1.removeToken(tokenOrigAccount);
+    let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+    if (bTokenExist) {
+      await proxyDelegateV1.removeToken(tokenOrigAccount);
+    }
   });
 
   it('v1 delegate update an not existed token, it should be success', async () => {
@@ -1832,7 +1888,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.updateToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals, accounts[1]);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
 
@@ -1876,7 +1935,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -1925,7 +1987,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -1940,7 +2005,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Ratio is null");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -1972,7 +2037,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -1987,7 +2055,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Deposit amount is not enough");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -2019,7 +2087,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -2034,7 +2105,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Delay time for withdraw is too short");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -2066,7 +2137,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -2081,7 +2155,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Name is null");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -2113,7 +2187,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -2128,7 +2205,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Symbol is null");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -2160,7 +2237,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -2175,7 +2255,7 @@ contract('TokenManager', async (accounts) => {
         lib.assertCommonEqual(err.reason, "Account is null");
         // // console.log(typeof(err), JSON.stringify(err.reason));
       }
-        // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
+      // lib.assertCommonEqual(await web3.utils.toAscii(tokenInfoV1["7"].toNumber()), DEFAULT_PRECISE);
     } catch (err) {
       lib.assertFail(err);
     }
@@ -2231,7 +2311,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];
@@ -2305,7 +2388,10 @@ contract('TokenManager', async (accounts) => {
     let tokenName = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenName));
     let tokenSymbol = await web3.utils.hexToBytes(await web3.utils.toHex(asciiTokenSymbol));
     try {
-      await proxyDelegateV1.removeToken(tokenOrigAccount);
+      let bTokenExist = await proxyDelegateV1.isTokenRegistered(tokenOrigAccount);
+      if (bTokenExist) {
+        await proxyDelegateV1.removeToken(tokenOrigAccount);
+      }
       await proxyDelegateV1.addToken(tokenOrigAccount, token2WanRatio, minDeposit, withdrawDelayTime, tokenName, tokenSymbol, decimals);
       tokenInfoV1 = await proxyDelegateV1.getTokenInfo(tokenOrigAccount);
       let wTokenAddr = tokenInfoV1["3"];

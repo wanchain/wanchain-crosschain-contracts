@@ -729,7 +729,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcSmgLockParamsTemp.s);
 
         } catch (err) {
-            assert.include(err.toString(), "Smg tx is exist");
+            assert.include(err.toString(), "Smg tx exists");
         }
     });
 
@@ -1124,7 +1124,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcUserLockParamsTemp.userOrigAccount,
                 htlcUserLockParamsTemp.storemanGroupPK, {from: accounts[1], value: htlcUserLockParams.value});
         } catch (err) {
-            assert.include(err.toString(), "User tx is exist");
+            assert.include(err.toString(), "User tx exists");
         }
     });
 
@@ -1736,7 +1736,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcDebtLockParamsTemp.s);
 
         } catch (err) {
-            assert.include(err.toString(), "Debt tx is exist");
+            assert.include(err.toString(), "Debt tx exists");
         }
 
     });

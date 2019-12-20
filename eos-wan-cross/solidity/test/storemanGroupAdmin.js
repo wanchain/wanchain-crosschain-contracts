@@ -311,7 +311,7 @@ contract('StoremanGroupAdmin_UNITs', async ([owner, delegate, someone]) => {
     } catch (e) {
       result = e;
     }
-    assert.equal(result.reason, 'Token not exist')
+    assert.equal(result.reason, 'Token doesn\'t exist')
   })
 
   it('[StoremanGroupDelegate_storemanGroupRegister] should fail: less than minDeposit', async () => {
