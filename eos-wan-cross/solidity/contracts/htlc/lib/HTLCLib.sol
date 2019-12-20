@@ -146,7 +146,7 @@ library HTLCLib {
     {
         UserTx storage userTx = self.mapHashXUserTxs[xHash];
         require(value != 0, "Value is invalid");
-        require(userTx.baseTx.status == TxStatus.None, "User tx is exist");
+        require(userTx.baseTx.status == TxStatus.None, "User tx exists");
 
         userTx.baseTx.value = value;
         userTx.baseTx.status = TxStatus.Locked;
@@ -166,7 +166,7 @@ library HTLCLib {
     {
         SmgTx storage smgTx = self.mapHashXSmgTxs[xHash];
         require(value != 0, "Value is invalid");
-        require(smgTx.baseTx.status == TxStatus.None, "Smg tx is exist");
+        require(smgTx.baseTx.status == TxStatus.None, "Smg tx exists");
 
         smgTx.baseTx.value = value;
         smgTx.baseTx.storemanPK = storemanPK;
@@ -185,7 +185,7 @@ library HTLCLib {
     {
         DebtTx storage debtTx = self.mapHashXDebtTxs[xHash];
         require(value != 0, "Value is invalid");
-        require(debtTx.baseTx.status == TxStatus.None, "Debt tx is exist");
+        require(debtTx.baseTx.status == TxStatus.None, "Debt tx exists");
 
         debtTx.baseTx.value = value;
         debtTx.baseTx.storemanPK = storemanPK;

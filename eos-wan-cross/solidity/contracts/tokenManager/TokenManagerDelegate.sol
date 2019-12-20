@@ -116,7 +116,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
     {
         TokenInfo storage tokenInfo = mapTokenInfo[tokenOrigAccount];
 
-        return tokenInfo.tokenWanAddr != address(0) && tokenInfo.token2WanRatio != 0;
+        return tokenInfo.tokenWanAddr != address(0);
     }
 
     /// @notice                      add a supported token
@@ -146,7 +146,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         require(withdrawDelayTime >= MIN_WITHDRAW_WINDOW, "Delay time for withdraw is too short");
         require(name.length != 0, "Name is null");
         require(symbol.length != 0, "Symbol is null");
-        require(mapTokenInfo[tokenOrigAccount].tokenWanAddr == address(0), "Token is exist");
+        require(mapTokenInfo[tokenOrigAccount].tokenWanAddr == address(0), "Token exists");
 
         // generate a w-token contract instance
         address tokenInst = new WanToken(string(name), string(symbol), decimals);
@@ -167,6 +167,7 @@ contract TokenManagerDelegate is TokenManagerStorage, Owned {
         onlyOwner
         onlyValidAccount(tokenOrigAccount)
     {
+        require(mapTokenInfo[tokenOrigAccount].tokenWanAddr != address(0), "Token doesn't exist");
         delete mapTokenInfo[tokenOrigAccount];
         emit TokenRemovedLogger(tokenOrigAccount);
     }

@@ -35,14 +35,10 @@ contract TokenManagerStorage is BasicStorage {
      **
      ************************************************************/
 
-    /// a period of block numbers in which bonus is calculated and rewarded to storeman groups
-    uint public constant DEFAULT_BONUS_PERIOD_BLOCKS = 6 * 60 * 24;
-    /// default bonus ratio, in percentage of deposit
-    uint public constant DEFAULT_BONUS_RATIO_FOR_DEPOSIT = 20;
     /// default precision
     uint public constant DEFAULT_PRECISE = 10000;
-    /// a time period after which a storeman group could confirm unregister
-    uint public constant MIN_WITHDRAW_WINDOW = 10;
+    /// a time period after which a storeman group could confirm unregister, unit:s
+    uint public constant MIN_WITHDRAW_WINDOW = 60 * 60 * 72;
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
 
