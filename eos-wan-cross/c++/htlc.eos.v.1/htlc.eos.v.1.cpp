@@ -287,7 +287,7 @@ ACTION htlc::unregtoken(eosio::name code, eosio::symbol sym) {
 
     tokens token_table(get_self(), code.value);
     auto tItr = token_table.find(sym.raw());
-    eosio::check(tItr == token_table.end(), hError::error::NOT_FOUND_TOKEN_RECORD.data());
+    eosio::check(tItr != token_table.end(), hError::error::NOT_FOUND_TOKEN_RECORD.data());
 
     tItr = token_table.erase(tItr);
 }

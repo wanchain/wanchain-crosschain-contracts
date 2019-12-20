@@ -54,8 +54,7 @@ namespace htlc {
         constexpr uint64_t ratioPrecise = 10000;
 
         #ifdef _DEBUG_HTLC
-        constexpr time_t lockedTime = time_t(60);
-        // constexpr time_t lockedTime = time_t(3600);
+        constexpr time_t lockedTime = time_t(3600);
         #else
         constexpr time_t lockedTime = time_t(3600 * 36);
         #endif
