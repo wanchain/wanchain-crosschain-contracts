@@ -42,6 +42,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
      *
      */
 
+    /// @dev Check the sender whether is storeman group admin sc or not
     modifier onlyStoremanGroupAdmin {
         require(msg.sender == htlcStorageData.storemanGroupAdmin, "Only storeman group admin sc can call it");
         _;
@@ -53,7 +54,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
         // require(htlcStorageData.storemanGroupAdmin != address(0));
         _;
     }
-
+    /// @dev Check whether the token has been registered or not
     modifier onlyTokenRegistered(bytes tokenOrigAccount) {
         require(htlcStorageData.tokenManager.isTokenRegistered(tokenOrigAccount), "Token is not registered");
         _;
@@ -65,14 +66,14 @@ contract HTLCDelegate is HTLCStorage, Halt {
      *
      */
 
-    /// @notice                 request exchange WRC20 token with original chain token(to prevent collision, x must be a 256bit random bigint)
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @param  xHash           hash of HTLC random number
-    /// @param  wanAddr         address of user, used to receive WRC20 token
-    /// @param  value           exchange value
-    /// @param  storemanGroupPK      PK of storeman
-    /// @param  r               signature
-    /// @param  s               signature
+    /// @notice                                 request exchange RC20 token with WRC20 on wanchain
+    /// @param  tokenOrigAccount                account of original chain token
+    /// @param  xHash                           hash of HTLC random number
+    /// @param  wanAddr                         address of user, used to receive WRC20 token
+    /// @param  value                           exchange value
+    /// @param  storemanGroupPK                 PK of storeman
+    /// @param  r                               signature
+    /// @param  s                               signature
     function inSmgLock(bytes tokenOrigAccount, bytes32 xHash, address wanAddr, uint value, bytes storemanGroupPK, bytes r, bytes32 s)
         external
         initialized
@@ -91,12 +92,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCSmgLib.inSmgLock(htlcStorageData, params);
     }
 
-    /// @notice                 request exchange original chain token with WRC-20 token(to prevent collision, x must be a 256bit random big int)
-    /// @param tokenOrigAccount account of original chain token
-    /// @param xHash            hash of HTLC random number
-    /// @param storemanGroupPK  PK of storeman group
-    /// @param userOrigAccount  account of original chain, used to receive token
-    /// @param value            token value
+    /// @notice                                 request exchange WRC-20 token with RC20 on original chain
+    /// @param xHash                            hash of HTLC random number
+    /// @param value                            token value
+    /// @param tokenOrigAccount                 account of original chain token
+    /// @param userOrigAccount                  account of original chain, used to receive token
+    /// @param storemanGroupPK                  PK of storeman group
+
     function outUserLock(bytes32 xHash, uint value, bytes tokenOrigAccount, bytes userOrigAccount, bytes storemanGroupPK)
         external
         initialized
@@ -118,9 +120,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
 
     }
 
-    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @param  x               HTLC random number
+    /// @notice                                 user redeem WRC20 token on wanchain, which invokes mint token
+    /// @param  tokenOrigAccount                account of original chain token
+    /// @param  x                               HTLC random number
     function inUserRedeem(bytes tokenOrigAccount, bytes32 x)
         external
         initialized
@@ -134,9 +136,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCUserLib.inUserRedeem(htlcStorageData, params);
     }
 
-    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @param  x               HTLC random number
+    /// @notice                                 storeman redeem transaction on wanchain,which invokes burn token
+    /// @param  tokenOrigAccount                account of original chain token
+    /// @param  x                               HTLC random number
     function outSmgRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
         external
         initialized
@@ -152,9 +154,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCSmgLib.outSmgRedeem(htlcStorageData, params);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange WRC-20 token with original chain token
-    /// @param tokenOrigAccount account of original chain token
-    /// @param xHash            hash of HTLC random number
+    /// @notice                                 inbound, storeman revoke HTLC transaction on wanchain
+    /// @param tokenOrigAccount                 account of original chain token
+    /// @param xHash                            hash of HTLC random number
     function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash)
         external
         initialized
@@ -163,10 +165,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCSmgLib.inSmgRevoke(htlcStorageData, tokenOrigAccount, xHash);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange original chain token with WRC-20 token(must be called after HTLC timeout)
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @notice                 the revoking fee will be sent to storeman
-    /// @param  xHash           hash of HTLC random number
+    /// @notice                                 outbound, user revoke HTLC transaction on wanchain
+    /// @param                                  tokenOrigAccount  account of original chain token
+    /// @notice                                 the revoking fee will be sent to storeman
+    /// @param  xHash                           hash of HTLC random number
     function outUserRevoke(bytes tokenOrigAccount, bytes32 xHash)
         external
         initialized
@@ -180,13 +182,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCUserLib.outUserRevoke(htlcStorageData, params);
     }
 
-    /// @notice                 lock storeman deb
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @param  xHash           hash of HTLC random number
-    /// @param  srcStoremanPK   PK of src storeman
-    /// @param  dstStoremanPK   PK of dst storeman
-    /// @param  r               signature
-    /// @param  s               signature
+    /// @notice                                 lock storeman debt
+    /// @param  tokenOrigAccount                account of original chain token
+    /// @param  xHash                           hash of HTLC random number
+    /// @param  srcStoremanPK                   PK of src storeman
+    /// @param  dstStoremanPK                   PK of dst storeman
+    /// @param  r                               signature
+    /// @param  s                               signature
     function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, uint value, bytes srcStoremanPK, bytes dstStoremanPK, bytes r, bytes32 s)
         external
         initialized
@@ -205,9 +207,11 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCDebtLib.inDebtLock(htlcStorageData, params);
     }
 
-    /// @notice                 refund WRC20 token from recorded HTLC transaction, should be invoked before timeout
-    /// @param  tokenOrigAccount  account of original chain token
-    /// @param  x               HTLC random number
+    /// @notice                             redeem debt, destination storeman group takes over the debt of source storeman group
+    /// @param  tokenOrigAccount            account of original chain token
+    /// @param  x                           HTLC random number
+    /// @param  r                           signature
+    /// @param  s                           signature
     function inDebtRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
         external
         initialized
@@ -222,9 +226,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCDebtLib.inDebtRedeem(htlcStorageData, params);
     }
 
-    /// @notice                 revoke HTLC transaction of exchange WRC-20 token with original chain token
-    /// @param tokenOrigAccount account of original chain token
-    /// @param xHash            hash of HTLC random number
+    /// @notice                             source storeman group revoke the debt on wanchain
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param xHash                        hash of HTLC random number
     function inDebtRevoke(bytes tokenOrigAccount, bytes32 xHash)
         external
         initialized
@@ -233,6 +237,11 @@ contract HTLCDelegate is HTLCStorage, Halt {
         HTLCDebtLib.inDebtRevoke(htlcStorageData, tokenOrigAccount, xHash);
     }
 
+    /// @notice                             add a storeman group and activate the storeman group
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param storemanGroupPK              PK of the storeman group
+    /// @param quota                        quota decides the token amount which the storeman group can exchange
+    /// @param txFeeRatio                   exchange transaction fee ratio of this token and of this storeman group
     function addStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota, uint txFeeRatio)
         external
         onlyStoremanGroupAdmin
@@ -240,6 +249,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.quotaData.addStoremanGroup(tokenOrigAccount, storemanGroupPK, quota, txFeeRatio);
     }
 
+    /// @notice                             deactivate the storeman group
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param storemanGroupPK              PK of the storeman group
     function deactivateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyStoremanGroupAdmin
@@ -247,6 +259,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.quotaData.deactivateStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
+    /// @notice                             quit the storeman group
+    /// @notice                             the debt of the storeman group must be pay-off
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param storemanGroupPK              PK of the storeman group
     function delStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         onlyStoremanGroupAdmin
@@ -254,6 +270,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.quotaData.delStoremanGroup(tokenOrigAccount, storemanGroupPK);
     }
 
+    /// @notice                             update the storeman group
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param storemanGroupPK              PK of the storeman group
+    /// @param quota                        new quota will overwrite the old one
     function updateStoremanGroup(bytes tokenOrigAccount, bytes storemanGroupPK, uint quota)
         external
         onlyStoremanGroupAdmin
@@ -261,10 +281,19 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.quotaData.updateStoremanGroup(tokenOrigAccount, storemanGroupPK, quota);
     }
 
+    /// @notice                             storeman group withdraw the fee to receiver account
+    /// @param storemanGroupPK              PK of the storeman group
+    /// @param receiver                     account of the receiver
+    /// @param r                            signature
+    /// @param s                            signature
     function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
         HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);
     }
 
+    /// @notice                             update the initialized state value of this contract
+    /// @param tokenManagerAddr             address of the token manager
+    /// @param storemanGroupAdminAddr       address of the storeman group
+    /// @param ratio                        revoke ratio, the denominator is DEFAULT_PRECISE
     function setEconomics(address tokenManagerAddr, address storemanGroupAdminAddr, uint ratio)
         external
         onlyOwner
@@ -277,10 +306,23 @@ contract HTLCDelegate is HTLCStorage, Halt {
         htlcStorageData.storemanGroupAdmin = storemanGroupAdminAddr;
     }
 
+    /// @notice                             get the initialized state value of this contract
+    /// @return tokenManagerAddr             address of the token manager
+    /// @return storemanGroupAdminAddr       address of the storeman group
+    /// @return revokeFeeRatio               revoke ratio, the denominator is DEFAULT_PRECISE
     function getEconomics() external view returns(address, address, uint) {
         return (address(htlcStorageData.tokenManager), htlcStorageData.storemanGroupAdmin, htlcStorageData.revokeFeeRatio);
     }
 
+    /// @notice                             get the detailed quota info. of this storeman group
+    /// @param tokenOrigAccount             account of original chain token
+    /// @param storemanGroupPK              PK of storemanGroup
+    /// @return _quota                     storemanGroup's total quota
+    /// @return inboundQuota               inbound, the amount which storeman group can handle
+    /// @return outboundQuota              outbound, the amount which storeman group can handle
+    /// @return _receivable                amount of original token to be received, equals to amount of WAN token to be minted
+    /// @return _payable                   amount of WAN token to be burnt
+    /// @return _debt                      amount of original token has been exchanged to the wanchain
     function queryStoremanGroupQuota(bytes tokenOrigAccount, bytes storemanGroupPK)
         external
         view
@@ -289,6 +331,9 @@ contract HTLCDelegate is HTLCStorage, Halt {
         return htlcStorageData.quotaData.queryQuotaInfo(tokenOrigAccount, storemanGroupPK);
     }
 
+    /// @notice                             get the fee of the storeman group should get
+    /// @param storemanGroupPK              PK of storemanGroup
+    /// @return fee                                WAN coin the storeman group should get
     function getStoremanFee(bytes storemanGroupPK)
         external
         view

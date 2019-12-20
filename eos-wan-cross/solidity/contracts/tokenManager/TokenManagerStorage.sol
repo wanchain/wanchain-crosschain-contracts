@@ -35,13 +35,9 @@ contract TokenManagerStorage is BasicStorage {
      **
      ************************************************************/
 
-    /// a period of block numbers in which bonus is calculated and rewarded to storeman groups
-    uint public constant DEFAULT_BONUS_PERIOD_BLOCKS = 6 * 60 * 24;
-    /// default bonus ratio, in percentage of deposit
-    uint public constant DEFAULT_BONUS_RATIO_FOR_DEPOSIT = 20;
     /// default precision
     uint public constant DEFAULT_PRECISE = 10000;
-    /// a time period after which a storeman group could confirm unregister
+    /// a time period after which a storeman group could confirm unregister, unit:s
     uint public constant MIN_WITHDRAW_WINDOW = 60 * 60 * 72;
     /// default minimum deposit to register a storeman group
     uint public constant MIN_DEPOSIT = 10 ether;
@@ -53,12 +49,11 @@ contract TokenManagerStorage is BasicStorage {
     address public htlcAddr;
 
     struct TokenInfo {
-        // bytes              tokenOrigAddr;       /// token account on original chain
-        bytes              name;                /// WRC20 token name on wanchain mainnet
-        bytes              symbol;              /// WRC20 token symbol on wanchain mainnet
-        uint8              decimals;            /// WRC20 token decimals on wanchain mainnet
-        address            tokenWanAddr;        /// a wanchain address of supported ERC20 token
-        uint               token2WanRatio;      /// 1 ERC20 token valuated in wan coins
+        bytes              name;                /// token name on wanchain mainnet
+        bytes              symbol;              /// token symbol on wanchain mainnet
+        uint8              decimals;            /// token decimals on wanchain mainnet
+        address            tokenWanAddr;        /// a wanchain address of supported token
+        uint               token2WanRatio;      /// 1 token valuated in wan coins
         uint               minDeposit;          /// the minimum deposit for a valid storeman group
         uint               withdrawDelayTime;   /// the delay time for withdrawing deposit after storeman group applied un-registration
     }

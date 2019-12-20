@@ -10,6 +10,19 @@ contract WRC20Protocol {
     currently recognised as an implementation of the matching abstract
     function by the compiler.
     */
+
+    /**************************************
+     **
+     ** VARIABLES
+     **
+     **************************************/
+
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+    mapping (address => uint) balances;
+    mapping (address => mapping (address => uint)) allowed;
+
     /// total amount of tokens
     uint public totalSupply;
 

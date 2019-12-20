@@ -32,16 +32,6 @@ import '../components/Owned.sol';
 contract WanToken is StandardToken, Owned {
     using SafeMath for uint;
 
-    /**************************************
-     **
-     ** VARIABLES
-     **
-     **************************************/
-
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-
     /****************************************************************************
      **
      ** MODIFIERS
@@ -92,12 +82,6 @@ contract WanToken is StandardToken, Owned {
         decimals = tokenDecimal;
     }
 
-    /// @notice If WAN coin is sent to this address, send it back.
-    /// @dev If WAN coin is sent to this address, send it back.
-    function() public payable {
-        revert("Not support");
-    }
-
     /****************************************************************************
      **
      ** MANIPULATIONS
@@ -109,7 +93,7 @@ contract WanToken is StandardToken, Owned {
     /// @param account Address will receive token
     /// @param value Amount of token to be minted
     function mint(address account, uint value)
-        public
+        external
         onlyOwner
         onlyMeaningfulValue(value)
     {
@@ -126,7 +110,7 @@ contract WanToken is StandardToken, Owned {
     /// @param account Address of whose token will be burnt
     /// @param value Amount of token to be burnt
     function burn(address account, uint value)
-        public
+        external
         onlyOwner
         onlyMeaningfulValue(value)
     {

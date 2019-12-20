@@ -37,21 +37,27 @@ library HTLCDebtLib {
     using QuotaLib for QuotaLib.Data;
     using HTLCLib for HTLCLib.Data;
 
+    /**
+     *
+     * STRUCTURES
+     *
+     */
+    /// @notice struct of HTLC debt lock parameters
     struct HTLCDebtLockParams {
-        bytes tokenOrigAccount;
-        bytes32 xHash;
-        uint value;
-        bytes srcStoremanPK;
-        bytes dstStoremanPK;
-        bytes r;
-        bytes32 s;
+        bytes tokenOrigAccount;         /// token account on original chain
+        bytes32 xHash;                  /// hash of HTLC random number
+        uint value;                     /// token value
+        bytes srcStoremanPK;            /// PK of source storeman group
+        bytes dstStoremanPK;            /// PK of destination storeman group
+        bytes r;                        /// R in schnorr signature
+        bytes32 s;                      /// s in schnorr signature
     }
-
+    /// @notice struct of HTLC debt redeem parameters
     struct HTLCDebtRedeemParams {
-        bytes tokenOrigAccount;
-        bytes r;
-        bytes32 s;
-        bytes32 x;
+        bytes tokenOrigAccount;         /// token account on original chain
+        bytes r;                        /// R in schnorr signature
+        bytes32 s;                      /// s in schnorr signature
+        bytes32 x;                      /// HTLC random number
     }
 
     /**
@@ -60,28 +66,38 @@ library HTLCDebtLib {
      *
      **/
 
-    /// @notice                 event of store debt lock
-    /// @param srcStoremanPK    PK of src storeman
-    /// @param dstStoremanPK    PK of dst storeman
-    /// @param xHash            hash of HTLC random number
-    /// @param value            exchange value
-    /// @param tokenOrigAccount account of original chain token
+    /// @notice                     event of storeman debt lock
+    /// @param xHash                hash of HTLC random number
+    /// @param value                exchange value
+    /// @param tokenOrigAccount     account of original chain token
+    /// @param srcStoremanPK        PK of source storeman group
+    /// @param dstStoremanPK        PK of destination storeman group
     event DebtLockLogger(bytes32 indexed xHash, uint value, bytes tokenOrigAccount, bytes srcStoremanPK, bytes dstStoremanPK);
-    /// @notice                 event of refund storeman debt
-    /// @param srcStoremanPK    PK of src storeman
-    /// @param dstStoremanPK    PK of dst storeman
-    /// @param xHash            hash of HTLC random number
-    /// @param x                HTLC random number
-    /// @param tokenOrigAccount account of original chain token
+
+    /// @notice                     event of redeem storeman debt
+    /// @param xHash                hash of HTLC random number
+    /// @param x                    HTLC random number
+    /// @param tokenOrigAccount     account of original chain token
+    /// @param srcStoremanPK        PK of source storeman group
+    /// @param dstStoremanPK        PK of destination storeman group
     event DebtRedeemLogger(bytes32 indexed xHash, bytes32 x, bytes tokenOrigAccount, bytes srcStoremanPK, bytes dstStoremanPK);
-    /// @notice                 event of revoke storeman debt
-    /// @param xHash            hash of HTLC random number
-    /// @param tokenOrigAccount account of original chain token
-    /// @param srcStoremanPK    PK of src storeman
-    /// @param dstStoremanPK    PK of dst storeman
+
+    /// @notice                     event of revoke storeman debt
+    /// @param xHash                hash of HTLC random number
+    /// @param tokenOrigAccount     account of original chain token
+    /// @param srcStoremanPK        PK of source storeman group
+    /// @param dstStoremanPK        PK of destination storeman group
     event DebtRevokeLogger(bytes32 indexed xHash, bytes tokenOrigAccount, bytes srcStoremanPK, bytes dstStoremanPK);
 
+    /**
+     *
+     * MANIPULATIONS
+     *
+     */
 
+    /// @notice                     lock storeman debt
+    /// @param  htlcStorageData     HTLC storage data
+    /// @param  params              parameters of storeman debt lock
     function inDebtLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCDebtLockParams memory params)
         public
     {
@@ -94,6 +110,9 @@ library HTLCDebtLib {
         emit DebtLockLogger(params.xHash, params.value, params.tokenOrigAccount, params.srcStoremanPK, params.dstStoremanPK);
     }
 
+    /// @notice                     redeem storeman debt
+    /// @param  htlcStorageData     HTLC storage data
+    /// @param  params              parameters of storeman debt redeem
     function inDebtRedeem(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCDebtRedeemParams memory params)
         public
     {
@@ -110,6 +129,10 @@ library HTLCDebtLib {
         emit DebtRedeemLogger(xHash, params.x, params.tokenOrigAccount, srcStoremanPK, dstStoremanPK);
     }
 
+    /// @notice                     revoke storeman debt
+    /// @param  htlcStorageData     HTLC storage data
+    /// @param  tokenOrigAccount    account of original chain token
+    /// @param  xHash               hash of HTLC random number
     function inDebtRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes32 xHash)
         public
     {
@@ -123,34 +146,4 @@ library HTLCDebtLib {
         htlcStorageData.quotaData.debtRevoke(tokenOrigAccount, value, srcStoremanPK, dstStoremanPK);
         emit DebtRevokeLogger(xHash, tokenOrigAccount, srcStoremanPK, dstStoremanPK);
     }
-
-    // /// @notice       convert bytes to bytes32
-    // /// @param b      bytes array
-    // /// @param offset offset of array to begin convert
-    // function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
-    //     bytes32 out;
-
-    //     for (uint i = 0; i < 32; i++) {
-    //       out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
-    //     }
-    //     return out;
-    // }
-
-    // /// @notice             verify signature
-    // /// @param  message        message to be verified
-    // /// @param  r           Signature info r
-    // /// @param  s           Signature info s
-    // /// @return             true/false
-    // function verifySignature(bytes32 message, bytes PK, bytes r, bytes32 s)
-    //     private
-    //     pure
-    // {
-    //     bytes32 PKx = bytesToBytes32(PK, 1);
-    //     bytes32 PKy = bytesToBytes32(PK, 33);
-
-    //     bytes32 Rx = bytesToBytes32(r, 1);
-    //     bytes32 Ry = bytesToBytes32(r, 33);
-
-    //     require(SchnorrVerifier.verify(s, PKx, PKy, Rx, Ry, message), "Signature verification failed");
-    // }
 }

@@ -61,7 +61,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @notice                           event for storeman group withdraw deposit
     /// @param tokenOrigAccount           token account of original chain
     /// @param storemanGroup              storeman group PK
-    /// @param actualReturn               the time for storeman applying unregister
+    /// @param actualReturn               actual amount wan coin received, for penalty extension
     /// @param deposit                    deposit in the first place
     event StoremanGroupWithdrawLogger(bytes tokenOrigAccount, bytes storemanGroup, uint actualReturn, uint deposit);
 
@@ -140,7 +140,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         uint minDeposit;
         uint defaultPrecise;
         (,,decimals,,token2WanRatio,minDeposit,,defaultPrecise) = tokenManager.getTokenInfo(tokenOrigAccount);
-        require(minDeposit > 0, "Token not exist");
+        require(minDeposit > 0, "Token doesn't exist");
         require(msg.value >= minDeposit, "At lease minDeposit");
         require(txFeeRatio < defaultPrecise, "Invalid txFeeRatio");
         if (isWhiteListEnabled) {

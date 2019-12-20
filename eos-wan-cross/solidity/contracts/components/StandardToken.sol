@@ -33,9 +33,6 @@ import "../lib/SafeMath.sol";
 contract StandardToken is WRC20Protocol {
     using SafeMath for uint;
 
-    mapping (address => uint) balances;
-    mapping (address => mapping (address => uint)) allowed;
-
     /**
     * @dev Fix for the ERC20 short address attack.
     */
