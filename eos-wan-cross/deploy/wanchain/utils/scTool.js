@@ -12,8 +12,7 @@ const wanUtil = require('wanchain-util');
 // const Tx = wanUtil.wanchainTx;
 const Tx = require('ethereumjs-tx');
 
-const deployAddr = '0x574EC77cb2905515E1e218014819a38119324a56';
-const gasEstimate = 5000000;
+const deployAddr = '0x938ce70246cb3e62fa4ba12d70d9bb84ff6c9274';
 
 function getImport(filePath) {
   let fileName = path.basename(filePath);
@@ -61,7 +60,7 @@ const deployContract = async (contractName, compiled) => {
   let contract = new web3.eth.Contract(JSON.parse(compiled.interface), {data: '0x' + compiled.bytecode});
   try {
     let inst = await contract.deploy()
-                             .send({from: deployAddr, gas: gasEstimate})
+                             .send({from: deployAddr, gas: cfg.gasLimit})
                              .on('transactionHash', txHash => {
                                console.log("deploy %s txHash: %s", contractName, txHash);
                              });
@@ -84,7 +83,7 @@ const getDeployContractTxData = async (compiled) => {
 }
 
 const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => {
-  console.log("txdata=" + data);
+  // console.log("txdata=" + data);
   if (0 != data.indexOf('0x')){
     data = '0x' + data;
   }
@@ -102,7 +101,7 @@ const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => 
       gasLimit: cfg.gasLimit,
       to: contractAddr,
       value: value,
-      // from: keythereum.privateKeyToAddress(priv),
+      from: keythereum.privateKeyToAddress(priv),
       data: data
   };
   console.log("rawTx: %O", rawTx)
@@ -111,7 +110,7 @@ const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => 
   tx.sign(priv);
 
   let serialized = tx.serialize();
-  console.log("serialized tx: " + serialized.toString('hex'));
+  // console.log("serialized tx: " + serialized.toString('hex'));
   tool.write2file(filePath, serialized.toString('hex'));
   // let result = await web3.eth.sendSignedTransaction('0x' + serialized.toString('hex'));
   // console.log("offline serializeTx test: ", result)
