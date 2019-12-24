@@ -188,7 +188,8 @@ library HTLCLib {
     /// @param  value               HTLC transfer value of token
     /// @param  srcStoremanPK       PK of source storeman group
     /// @param  storemanPK          PK of the storeman which will take over of the debt of source storeman group
-    function addDebtTx(Data storage self, bytes32 xHash, uint value, bytes srcStoremanPK, bytes storemanPK)
+    /// @param  tokenOrigAccount    token account of original chain
+    function addDebtTx(Data storage self, bytes32 xHash, uint value, bytes srcStoremanPK, bytes storemanPK, bytes tokenOrigAccount)
         external
     {
         DebtTx storage debtTx = self.mapHashXDebtTxs[xHash];
@@ -200,6 +201,7 @@ library HTLCLib {
         debtTx.baseTx.status = TxStatus.Locked;
         debtTx.baseTx.lockedTime = DEF_LOCKED_TIME;
         debtTx.baseTx.beginLockedTime = now;
+        debtTx.baseTx.tokenOrigAccount = tokenOrigAccount;
         debtTx.srcStoremanPK = srcStoremanPK;
     }
 
