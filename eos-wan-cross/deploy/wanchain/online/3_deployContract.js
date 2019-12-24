@@ -1,86 +1,36 @@
 const scTool = require('../utils/scTool')
 const contractAddress = require('../contractAddress');
 
-async function deployContract() {
-  let txHash, address;
- 
-  /*
-   * deploy TokenManager contracts
-   */
+const scArray = [
+  // deploy TokenManager
+  'TokenManagerProxy',
+  'TokenManagerDelegate',
+  // deploy HTLC
+  'HTLCProxy',
+  'HTLCDelegate',
+  // deploy StoremanGroupAdmin
+  'StoremanGroupProxy',
+  'StoremanGroupDelegate'
+]
 
-  // TokenManagerProxy
-  txHash = await scTool.sendSerializedTx("../txData/deployTokenManagerProxy.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
-  if (address) {
-    contractAddress.setAddress('TokenManagerProxy', address);
-    console.log("deployed TokenManagerProxy address: %s", address);
-  } else {
-    console.log("deploy TokenManagerProxy failed");
-    return false;
+async function deployContract(index) {
+  if (index >= scArray.length) {
+    console.log("deployContract finished");
+    return true;
   }
 
-  // TokenManagerDelegate
-  txHash = await scTool.sendSerializedTx("../txData/deployTokenManagerDelegate.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
+  let scName = scArray[index];
+  let txFile = "../txData/deploy" + scName + ".dat";
+  let txHash = await scTool.sendSerializedTx(txFile);
+  let address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
-    contractAddress.setAddress('TokenManagerDelegate', address);
-    console.log("deployed TokenManagerDelegate address: %s", address);
+    contractAddress.setAddress(scName, address);
+    console.log("deployed %s address: %s", scName, address);
+    return deployContract(index + 1);
   } else {
-    console.log("deploy TokenManagerDelegate failed");
+    console.log("deploy %s failed", scName);
     return false;
   }
-
-  /* 
-   * deploy htlc contracts
-   */
- 
-  // HTLCProxy
-  txHash = await scTool.sendSerializedTx("../txData/deployHTLCProxy.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
-  if (address) {
-    contractAddress.setAddress('HTLCProxy', address);
-    console.log("deployed HTLCProxy address: %s", address);
-  } else {
-    console.log("deploy HTLCProxy failed");
-    return false;
-  }
-
-  // HTLCDelegate
-  txHash = await scTool.sendSerializedTx("../txData/deployHTLCDelegate.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
-  if (address) {
-    contractAddress.setAddress('HTLCDelegate', address);
-    console.log("deployed HTLCDelegate address: %s", address);
-  } else {
-    console.log("deploy HTLCDelegate failed");
-    return false;
-  }
-
-  // deploy StoremanGroupAdmin contracts
-
-  // StoremanGroupProxy
-  txHash = await scTool.sendSerializedTx("../txData/deployStoremanGroupProxy.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
-  if (address) {
-    contractAddress.setAddress('StoremanGroupProxy', address);
-    console.log("deployed StoremanGroupProxy address: %s", address);
-  } else {
-    console.log("deploy StoremanGroupProxy failed");
-    return false;
-  }
-
-  // StoremanGroupDelegate
-  txHash = await scTool.sendSerializedTx("../txData/deployStoremanGroupDelegate.dat")
-  address = await scTool.waitReceipt(txHash, 30, true);
-  if (address) {
-    contractAddress.setAddress('StoremanGroupDelegate', address);
-    console.log("deployed StoremanGroupDelegate address: %s", address);
-  } else {
-    console.log("deploy StoremanGroupDelegate failed");
-    return false;
-  }  
-
-  return true;
 }
 
-deployContract();
+deployContract(0);
