@@ -56,7 +56,6 @@ library HTLCSmgLib {
     }
     /// @notice struct of HTLC storeman redeem parameters
     struct HTLCSmgRedeemParams {
-        bytes tokenOrigAccount;         /// token account on original chain
         ITokenManager tokenManager;     /// interface of token manager
         bytes r;                        /// R in schnorr signature
         bytes32 s;                      /// s in schnorr signature
@@ -90,7 +89,8 @@ library HTLCSmgLib {
     /// @param hashX                    hash of HTLC random number
     /// @param x                        HTLC random number
     /// @param tokenOrigAccount         account of original chain token
-    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount);
+    /// @param fee                      fee of user outbound lock
+    event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount,uint fee);
 
 
     /**
@@ -106,10 +106,10 @@ library HTLCSmgLib {
     function inSmgLock(HTLCTypes.HTLCStorageData storage htlcStorageData, HTLCSmgLockParams memory params)
         public
     {
-        bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.wanAddr, params.value, params.storemanGroupPK));
+        bytes32 mHash = sha256(abi.encode(params.tokenOrigAccount, params.xHash, params.wanAddr, params.value));
         commonLib.verifySignature(mHash, params.storemanGroupPK, params.r, params.s);
 
-        htlcStorageData.htlcData.addSmgTx(params.xHash, params.value, params.wanAddr, params.storemanGroupPK);
+        htlcStorageData.htlcData.addSmgTx(params.xHash, params.value, params.wanAddr, params.storemanGroupPK,params.tokenOrigAccount);
         htlcStorageData.quotaData.inLock(params.tokenOrigAccount, params.storemanGroupPK, params.value);
 
         emit InboundLockLogger(params.wanAddr, params.xHash, params.value, params.tokenOrigAccount, params.storemanGroupPK);
@@ -125,32 +125,33 @@ library HTLCSmgLib {
 
         uint value;
         bytes memory storemanGroupPK;
-        (, , value, storemanGroupPK) = htlcStorageData.htlcData.getUserTx(xHash);
+        bytes memory tokenOrigAccount;
+        (, , value, storemanGroupPK,tokenOrigAccount) = htlcStorageData.htlcData.getUserTx(xHash);
 
-        commonLib.verifySignature(sha256(abi.encode(params.tokenOrigAccount, params.x)), storemanGroupPK, params.r, params.s);
-        htlcStorageData.quotaData.outRedeem(params.tokenOrigAccount, storemanGroupPK, value);
+        commonLib.verifySignature(sha256(abi.encode(params.x)), storemanGroupPK, params.r, params.s);
+        htlcStorageData.quotaData.outRedeem(tokenOrigAccount, storemanGroupPK, value);
 
-        params.tokenManager.burnToken(params.tokenOrigAccount, value);
+        params.tokenManager.burnToken(tokenOrigAccount, value);
 
         // Add fee to storeman group
         htlcStorageData.mapStoremanFee[storemanGroupPK].add(htlcStorageData.mapXHashFee[xHash]);
         delete htlcStorageData.mapXHashFee[xHash];
 
-        emit OutboundRedeemLogger(xHash, params.x, params.tokenOrigAccount);
+        emit OutboundRedeemLogger(xHash, params.x, tokenOrigAccount, htlcStorageData.mapXHashFee[xHash]);
     }
 
     /// @notice                         inbound, storeman revoke transaction on wanchain
     /// @param htlcStorageData          HTLC storage data
-    /// @param tokenOrigAccount         account of original chain token
     /// @param xHash                    hash of HTLC random number
-    function inSmgRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes tokenOrigAccount, bytes32 xHash)
+    function inSmgRevoke(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes32 xHash)
         public
     {
         htlcStorageData.htlcData.revokeSmgTx(xHash);
 
         uint value;
         bytes memory storemanGroupPK;
-        (, value, storemanGroupPK) = htlcStorageData.htlcData.getSmgTx(xHash);
+        bytes memory tokenOrigAccount;
+        (, value, storemanGroupPK,tokenOrigAccount) = htlcStorageData.htlcData.getSmgTx(xHash);
 
         // Anyone could do revoke for the owner
         // bytes32 mHash = sha256(abi.encode(tokenOrigAccount, xHash));
