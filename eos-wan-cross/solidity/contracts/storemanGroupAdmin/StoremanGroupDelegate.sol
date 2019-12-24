@@ -70,7 +70,8 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
     /// @param storemanGroup              storeman group PK
     /// @param wanDeposit                 deposit wancoin number
     /// @param quota                      corresponding token quota
-    event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota);
+    /// @param txFeeRatio                 storeman fee ratio
+    event StoremanGroupUpdateLogger(bytes tokenOrigAccount, bytes storemanGroup, uint wanDeposit, uint quota, uint txFeeRatio);
 
     /**
     *
@@ -213,7 +214,7 @@ contract StoremanGroupDelegate is StoremanGroupStorage, Halt {
         htlc.updateStoremanGroup(tokenOrigAccount, storemanGroup, quota);
         // TODO: notify bonus contract
         smg.deposit = deposit;
-        emit StoremanGroupUpdateLogger(tokenOrigAccount, storemanGroup, deposit, quota);
+        emit StoremanGroupUpdateLogger(tokenOrigAccount, storemanGroup, deposit, quota, smg.txFeeRatio);
     }
 
     /// @notice                           function for getting storeman group information

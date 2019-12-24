@@ -57,14 +57,12 @@ library HTLCUserLib {
 
     /// @notice struct of HTLC user redeem parameters
     struct HTLCUserRedeemParams {
-        bytes tokenOrigAccount;         /// token account on original chain
         ITokenManager tokenManager;     /// interface of token manager
         bytes32 x;                     /// HTLC random number
     }
 
     /// @notice struct of HTLC user revoke parameters
     struct HTLCUserRevokeParams {
-        bytes tokenOrigAccount;         /// token account on original chain
         ITokenManager tokenManager;     /// interface of token manager
         bytes32 xHash;                 /// hash of HTLC random number
     }
@@ -95,7 +93,8 @@ library HTLCUserLib {
     /// @param wanAddr                  address of user
     /// @param xHash                    hash of HTLC random number
     /// @param tokenOrigAccount         account of original chain token
-    event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount);
+    /// @param revokeFee                revoke fee of outbound user revoke
+    event OutboundRevokeLogger(address indexed wanAddr, bytes32 indexed xHash, bytes tokenOrigAccount, uint revokeFee);
 
     /**
     *
@@ -118,7 +117,7 @@ library HTLCUserLib {
             (msg.sender).transfer(left);
         }
 
-        htlcStorageData.htlcData.addUserTx(params.xHash, params.value, params.userOrigAccount, params.storemanGroupPK);
+        htlcStorageData.htlcData.addUserTx(params.xHash, params.value, params.userOrigAccount, params.storemanGroupPK,params.tokenOrigAccount);
 
         htlcStorageData.quotaData.outLock(params.value, params.tokenOrigAccount, params.storemanGroupPK);
 
@@ -142,13 +141,14 @@ library HTLCUserLib {
         address userAddr;
         uint value;
         bytes memory storemanGroupPK;
-        (userAddr, value, storemanGroupPK) = htlcStorageData.htlcData.getSmgTx(xHash);
+        bytes memory tokenOrigAccount;
+        (userAddr, value, storemanGroupPK,tokenOrigAccount) = htlcStorageData.htlcData.getSmgTx(xHash);
 
-        htlcStorageData.quotaData.inRedeem(params.tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.inRedeem(tokenOrigAccount, storemanGroupPK, value);
 
-        params.tokenManager.mintToken(params.tokenOrigAccount, userAddr, value);
+        params.tokenManager.mintToken(tokenOrigAccount, userAddr, value);
 
-        emit InboundRedeemLogger(userAddr, xHash, params.x, storemanGroupPK, params.tokenOrigAccount);
+        emit InboundRedeemLogger(userAddr, xHash, params.x, storemanGroupPK, tokenOrigAccount);
     }
 
     /// @notice                         outbound, user revoke token on wanchain
@@ -161,15 +161,16 @@ library HTLCUserLib {
         address source;
         uint value;
         bytes memory storemanGroupPK;
+        bytes memory tokenOrigAccount;
         address instance;
 
         htlcStorageData.htlcData.revokeUserTx(params.xHash);
 
-        (source, , value, storemanGroupPK) = htlcStorageData.htlcData.getUserTx(params.xHash);
+        (source, , value, storemanGroupPK,tokenOrigAccount) = htlcStorageData.htlcData.getUserTx(params.xHash);
 
-        htlcStorageData.quotaData.outRevoke(params.tokenOrigAccount, storemanGroupPK, value);
+        htlcStorageData.quotaData.outRevoke(tokenOrigAccount, storemanGroupPK, value);
 
-        (,,,instance,,,,) = params.tokenManager.getTokenInfo(params.tokenOrigAccount);
+        (,,,instance,,,,) = params.tokenManager.getTokenInfo(tokenOrigAccount);
         require(IWRC20Protocol(instance).transfer(source, value), "Transfer token failed");
 
         uint revokeFeeRatio = htlcStorageData.revokeFeeRatio;
@@ -185,7 +186,8 @@ library HTLCUserLib {
             source.transfer(left);
         }
 
-        emit OutboundRevokeLogger(source, params.xHash, params.tokenOrigAccount);
+        delete htlcStorageData.mapXHashFee[params.xHash];
+        emit OutboundRevokeLogger(source, params.xHash, tokenOrigAccount, revokeFee);
     }
 
     /// @notice                         get outbound fee for user to lock token on wanchain
@@ -204,8 +206,8 @@ library HTLCUserLib {
         (,, decimals,,token2WanRatio,,, defaultPrecise) = htlcStorageData.tokenManager.getTokenInfo(tokenOrigAccount);
         (, txFeeRatio,,,,) = htlcStorageData.quotaData.getQuota(tokenOrigAccount, storemanGroupPK);
 
-        uint temp = value.mul(1 ether).div(10**uint(decimals));
-        return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise);
+        uint temp = value.mul(1 ether);
+        return temp.mul(token2WanRatio).mul(txFeeRatio).div(defaultPrecise).div(defaultPrecise).div(10**uint(decimals));
     }
 
 }

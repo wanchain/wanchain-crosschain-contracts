@@ -57,6 +57,7 @@ library HTLCLib {
         TxStatus status;            // HTLC transaction status
         uint lockedTime;            // HTLC transaction locked time
         uint beginLockedTime;       // HTLC transaction begin locked time
+        bytes tokenOrigAccount;     // token account of original chain
     }
 
     /// @notice user  tx info
@@ -77,13 +78,13 @@ library HTLCLib {
     }
 
     struct Data {
-        /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
+        /// @notice mapping of hash(x) to UserTx -- xHash->htlcData
         mapping(bytes32 => UserTx) mapHashXUserTxs;
 
-        /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
+        /// @notice mapping of hash(x) to UserTx -- xHash->htlcData
         mapping(bytes32 => SmgTx) mapHashXSmgTxs;
 
-        /// @notice mapping of hash(x) to UserTx -- token->xHash->htlcData
+        /// @notice mapping of hash(x) to UserTx -- xHash->htlcData
         mapping(bytes32 => DebtTx) mapHashXDebtTxs;
     }
 
@@ -99,13 +100,14 @@ library HTLCLib {
     /// @return shadow             Shadow address or account on mirror chain
     /// @return value              exchange value
     /// @return storemanPK         PK of storeman which user has selected
+    /// @return tokenOrigAccount   token account of original chain
     function getUserTx(Data storage self, bytes32 xHash)
         external
         view
-        returns (address, bytes, uint, bytes)
+        returns (address, bytes, uint, bytes, bytes)
     {
         UserTx storage t = self.mapHashXUserTxs[xHash];
-        return (t.sender, t.shadow, t.baseTx.value, t.baseTx.storemanPK);
+        return (t.sender, t.shadow, t.baseTx.value, t.baseTx.storemanPK, t.baseTx.tokenOrigAccount);
     }
 
     /// @notice                     function for get smg info
@@ -113,27 +115,29 @@ library HTLCLib {
     /// @return userAddr           user account address for redeem
     /// @return value              exchange value
     /// @return storemanPK         PK of storeman which user has selected
+    /// @return tokenOrigAccount   token account of original chain
     function getSmgTx(Data storage self, bytes32 xHash)
         external
         view
-        returns (address, uint, bytes)
+        returns (address, uint, bytes, bytes)
     {
         SmgTx storage t = self.mapHashXSmgTxs[xHash];
-        return (t.userAddr, t.baseTx.value, t.baseTx.storemanPK);
+        return (t.userAddr, t.baseTx.value, t.baseTx.storemanPK, t.baseTx.tokenOrigAccount);
     }
 
     /// @notice                     function for get debt info
     /// @param xHash                hash of HTLC random number
-    /// @return srcStoremanPK      PK of source storeman
-    /// @return value              debt value
-    /// @return storemanPK         PK of destination storeman which takes over the debt of source storeman
+    /// @return srcStoremanPK       PK of source storeman
+    /// @return value               debt value
+    /// @return storemanPK          PK of destination storeman which takes over the debt of source storeman
+    /// @return  tokenOrigAccount   token account of original chain
     function getDebtTx(Data storage self, bytes32 xHash)
         external
         view
-        returns (bytes, uint, bytes)
+        returns (bytes, uint, bytes,bytes)
     {
         DebtTx storage t = self.mapHashXDebtTxs[xHash];
-        return (t.srcStoremanPK, t.baseTx.value, t.baseTx.storemanPK);
+        return (t.srcStoremanPK, t.baseTx.value, t.baseTx.storemanPK,t.baseTx.tokenOrigAccount);
     }
 
     /// @notice                     add user transaction info
@@ -141,7 +145,8 @@ library HTLCLib {
     /// @param  value               HTLC transfer value of token
     /// @param  shadow              shadow address. used for receipt coins on opposite block chain
     /// @param  storemanPK          PK of the storeman which user has selected
-    function addUserTx(Data storage self, bytes32 xHash, uint value, bytes shadow, bytes storemanPK)
+    /// @param  tokenOrigAccount    token account of original chain
+    function addUserTx(Data storage self, bytes32 xHash, uint value, bytes shadow, bytes storemanPK, bytes tokenOrigAccount)
         external
     {
         UserTx storage userTx = self.mapHashXUserTxs[xHash];
@@ -153,6 +158,7 @@ library HTLCLib {
         userTx.baseTx.lockedTime = DEF_LOCKED_TIME.mul(2);
         userTx.baseTx.beginLockedTime = now;
         userTx.baseTx.storemanPK = storemanPK;
+        userTx.baseTx.tokenOrigAccount = tokenOrigAccount;
         userTx.sender = msg.sender;
         userTx.shadow = shadow;
     }
@@ -161,7 +167,8 @@ library HTLCLib {
     /// @param  value               HTLC transfer value of token
     /// @param  userAddr            user account address on the destination chain, which is used to redeem token
     /// @param  storemanPK          PK of the storeman which user has selected
-    function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr, bytes storemanPK)
+    /// @param  tokenOrigAccount    token account of original chain
+    function addSmgTx(Data storage self, bytes32 xHash, uint value, address userAddr, bytes storemanPK, bytes tokenOrigAccount)
         external
     {
         SmgTx storage smgTx = self.mapHashXSmgTxs[xHash];
@@ -173,6 +180,7 @@ library HTLCLib {
         smgTx.baseTx.status = TxStatus.Locked;
         smgTx.baseTx.lockedTime = DEF_LOCKED_TIME;
         smgTx.baseTx.beginLockedTime = now;
+        smgTx.baseTx.tokenOrigAccount = tokenOrigAccount;
         smgTx.userAddr = userAddr;
     }
     /// @notice                     add storeman transaction info
