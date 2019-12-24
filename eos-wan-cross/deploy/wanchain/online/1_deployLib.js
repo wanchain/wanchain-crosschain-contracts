@@ -5,8 +5,8 @@ async function deployLib() {
   let compiled, deployed;
 
   // HTLCLib
-  compiled = scTool.compileContract('HTLCLib.sol');
-  deployed = await scTool.deployContract('HTLCLib', compiled['HTLCLib.sol:HTLCLib']);
+  compiled = scTool.compileContract('HTLCLib');
+  deployed = await scTool.deployContract('HTLCLib', compiled);
   if (deployed) {
     contractAddress.setAddress('HTLCLib', deployed._address);
   } else {
@@ -14,8 +14,8 @@ async function deployLib() {
   }
 
   // QuotaLib
-  compiled = scTool.compileContract('QuotaLib.sol');
-  deployed = await scTool.deployContract('QuotaLib', compiled['QuotaLib.sol:QuotaLib']);
+  compiled = scTool.compileContract('QuotaLib');
+  deployed = await scTool.deployContract('QuotaLib', compiled);
   if (deployed) {
     contractAddress.setAddress('QuotaLib', deployed._address);
   } else {
@@ -23,8 +23,8 @@ async function deployLib() {
   }
 
   // Secp256k1
-  compiled = scTool.compileContract('Secp256k1.sol');
-  deployed = await scTool.deployContract('Secp256k1', compiled['Secp256k1.sol:Secp256k1']);
+  compiled = scTool.compileContract('Secp256k1');
+  deployed = await scTool.deployContract('Secp256k1', compiled);
   if (deployed) {
     contractAddress.setAddress('Secp256k1', deployed._address);
   } else {
@@ -32,8 +32,7 @@ async function deployLib() {
   }
 
   // SchnorrVerifier
-  compiled = scTool.compileContract('SchnorrVerifier.sol');
-  compiled = compiled['SchnorrVerifier.sol:SchnorrVerifier'];
+  compiled = scTool.compileContract('SchnorrVerifier');
   scTool.linkContract(compiled, ['Secp256k1']);
   deployed = await scTool.deployContract('SchnorrVerifier', compiled);
   if (deployed) {
@@ -43,8 +42,7 @@ async function deployLib() {
   }
 
   // HTLCUserLib
-  compiled = scTool.compileContract('HTLCUserLib.sol');
-  compiled = compiled['HTLCUserLib.sol:HTLCUserLib'];
+  compiled = scTool.compileContract('HTLCUserLib');
   scTool.linkContract(compiled, ['QuotaLib', 'HTLCLib']);
   deployed = await scTool.deployContract('HTLCUserLib', compiled);
   if (deployed) {
@@ -54,8 +52,7 @@ async function deployLib() {
   }
   
   // HTLCDebtLib
-  compiled = scTool.compileContract('HTLCDebtLib.sol');
-  compiled = compiled['HTLCDebtLib.sol:HTLCDebtLib'];
+  compiled = scTool.compileContract('HTLCDebtLib');
   scTool.linkContract(compiled, ['SchnorrVerifier', 'QuotaLib', 'HTLCLib']);
   deployed = await scTool.deployContract('HTLCDebtLib', compiled);
   if (deployed) {
@@ -65,8 +62,7 @@ async function deployLib() {
   }
 
   // HTLCSmgLib
-  compiled = scTool.compileContract('HTLCSmgLib.sol');
-  compiled = compiled['HTLCSmgLib.sol:HTLCSmgLib'];
+  compiled = scTool.compileContract('HTLCSmgLib');
   scTool.linkContract(compiled, ['SchnorrVerifier', 'QuotaLib', 'HTLCLib']);
   deployed = await scTool.deployContract('HTLCSmgLib', compiled);
   if (deployed) {

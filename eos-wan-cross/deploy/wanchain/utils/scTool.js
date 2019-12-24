@@ -43,11 +43,13 @@ function getLibAddress(libs, refs) {
   return result;
 }
 
-const compileContract = (fileName) => {
+const compileContract = (contractName) => {
   let input = {};
+  let fileName = contractName + ".sol";
+  let key = fileName + ":" + contractName;
   input[fileName] = source[fileName];
   let output = solc.compile({sources: input}, 1, getImport);
-  return output.contracts;
+  return output.contracts[key];
 }
 
 const linkContract = (compiled, libs) => {
@@ -144,11 +146,9 @@ const waitReceipt = async (txHash, waitBlocks, isDeploySc) => {
   }
 }
 
-const getDeployedContract = async (fileName, contractName, address) => {
-  let compiled = compileContract(fileName);
-  let key = fileName + ':' + contractName;
-  let contract = new web3.eth.Contract(JSON.parse(compiled[key].interface), address);
-  return contract;
+const getDeployedContract = async (contractName, address) => {
+  let compiled = compileContract(contractName);
+  return new web3.eth.Contract(JSON.parse(compiled.interface), address);
 }
 
 module.exports = {

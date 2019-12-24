@@ -22,10 +22,10 @@ async function buildDependency(privateKey) {
    */
 
   // TokenManagerProxy
-  contract = await scTool.getDeployedContract('TokenManagerProxy.sol', 'TokenManagerProxy', tmProxyAddress);
+  contract = await scTool.getDeployedContract('TokenManagerProxy', tmProxyAddress);
   txData = await contract.methods.upgradeTo(tmDelegateAddress).encodeABI();
   scTool.serializeTx(txData, nonce.owner++, tmProxyAddress, '0', "../txData/setTokenManagerImp.dat", privateKey);
-  contract = await scTool.getDeployedContract('TokenManagerDelegate.sol', 'TokenManagerDelegate', tmProxyAddress);
+  contract = await scTool.getDeployedContract('TokenManagerDelegate', tmProxyAddress);
   txData = await contract.methods.setHtlcAddr(htlcProxyAddress).encodeABI();
   scTool.serializeTx(txData, nonce.owner++, tmProxyAddress, '0', "../txData/setTokenManagerHtlc.dat", privateKey);
 
@@ -34,10 +34,10 @@ async function buildDependency(privateKey) {
    */
 
    // HTLCProxy
-   contract = await scTool.getDeployedContract('HTLCProxy.sol', 'HTLCProxy', htlcProxyAddress);
+   contract = await scTool.getDeployedContract('HTLCProxy', htlcProxyAddress);
    txData = await contract.methods.upgradeTo(htlcDelegateAddress).encodeABI();
    scTool.serializeTx(txData, nonce.owner++, htlcProxyAddress, '0', "../txData/setHTLCImp.dat", privateKey);
-   contract = await scTool.getDeployedContract('HTLCDelegate.sol', 'HTLCDelegate', htlcProxyAddress);
+   contract = await scTool.getDeployedContract('HTLCDelegate', htlcProxyAddress);
    txData = await contract.methods.setEconomics(tmProxyAddress, smgProxyAddress, cfg.htlcRatio).encodeABI();
    scTool.serializeTx(txData, nonce.owner++, htlcProxyAddress, '0', "../txData/setHTLCEconomics.dat", privateKey);
 
@@ -46,10 +46,10 @@ async function buildDependency(privateKey) {
    */
 
   // StoremanGroupProxy
-  contract = await scTool.getDeployedContract('StoremanGroupProxy.sol', 'StoremanGroupProxy', smgProxyAddress);
+  contract = await scTool.getDeployedContract('StoremanGroupProxy', smgProxyAddress);
   txData = await contract.methods.upgradeTo(smgDelegateAddress).encodeABI();
   scTool.serializeTx(txData, nonce.owner++, smgProxyAddress, '0', "../txData/setStoremanGroupAdminImp.dat", privateKey);
-  contract = await scTool.getDeployedContract('StoremanGroupDelegate.sol', 'StoremanGroupDelegate', smgProxyAddress);
+  contract = await scTool.getDeployedContract('StoremanGroupDelegate', smgProxyAddress);
   txData = await contract.methods.setDependence(tmProxyAddress, htlcProxyAddress).encodeABI();
   scTool.serializeTx(txData, nonce.owner++, smgProxyAddress, '0', "../txData/setStoremanGroupAdminDependency.dat", privateKey);
 

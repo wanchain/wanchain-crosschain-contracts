@@ -13,14 +13,12 @@ async function buildDeployContract(privateKey) {
    */
 
   // TokenManagerProxy
-  compiled = scTool.compileContract('TokenManagerProxy.sol');
-  compiled = compiled['TokenManagerProxy.sol:TokenManagerProxy'];
+  compiled = scTool.compileContract('TokenManagerProxy');
   txData = await scTool.getDeployContractTxData(compiled);
   scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployTokenManagerProxy.dat", privateKey);
 
   // TokenManagerDelegate
-  compiled = scTool.compileContract('TokenManagerDelegate.sol');
-  compiled = compiled['TokenManagerDelegate.sol:TokenManagerDelegate'];
+  compiled = scTool.compileContract('TokenManagerDelegate');
   txData = await scTool.getDeployContractTxData(compiled);
   scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployTokenManagerDelegate.dat", privateKey);
   
@@ -29,14 +27,12 @@ async function buildDeployContract(privateKey) {
    */
 
    // HTLCProxy
-   compiled = scTool.compileContract('HTLCProxy.sol');
-   compiled = compiled['HTLCProxy.sol:HTLCProxy'];
+   compiled = scTool.compileContract('HTLCProxy');
    txData = await scTool.getDeployContractTxData(compiled);
    scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployHTLCProxy.dat", privateKey);
 
    // HTLCDelegate
-   compiled = scTool.compileContract('HTLCDelegate.sol');
-   compiled = compiled['HTLCDelegate.sol:HTLCDelegate'];
+   compiled = scTool.compileContract('HTLCDelegate');
    scTool.linkContract(compiled, ['SchnorrVerifier', 'QuotaLib', 'HTLCLib', 'HTLCDebtLib', 'HTLCSmgLib', 'HTLCUserLib']);
    txData = await scTool.getDeployContractTxData(compiled);
    scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployHTLCDelegate.dat", privateKey);
@@ -47,17 +43,14 @@ async function buildDeployContract(privateKey) {
    */
 
   // StoremanGroupProxy
-  compiled = scTool.compileContract('StoremanGroupProxy.sol');
-  compiled = compiled['StoremanGroupProxy.sol:StoremanGroupProxy'];
+  compiled = scTool.compileContract('StoremanGroupProxy');
   txData = await scTool.getDeployContractTxData(compiled);
   scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployStoremanGroupProxy.dat", privateKey);
 
   // StoremanGroupDelegate
-  compiled = scTool.compileContract('StoremanGroupDelegate.sol');
-  compiled = compiled['StoremanGroupDelegate.sol:StoremanGroupDelegate'];
+  compiled = scTool.compileContract('StoremanGroupDelegate');
   txData = await scTool.getDeployContractTxData(compiled);
   scTool.serializeTx(txData, nonce.owner++, '', '0', "../txData/deployStoremanGroupDelegate.dat", privateKey);  
-
 
   // update nonce
   tool.write2file("../nonce.json", JSON.stringify(nonce));
