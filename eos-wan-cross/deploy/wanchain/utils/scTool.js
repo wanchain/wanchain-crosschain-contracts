@@ -64,6 +64,7 @@ const deployContract = async (contractName, compiled) => {
                              .on('transactionHash', txHash => {
                                console.log("deploy %s txHash: %s", contractName, txHash);
                              });
+    console.log("deployed %s address: %s", contractName, inst._address);
     return inst;
   } catch(err) {
     console.log("deploy %s failed: %O", contractName, err);
@@ -104,7 +105,7 @@ const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => 
       from: keythereum.privateKeyToAddress(priv),
       data: data
   };
-  console.log("rawTx: %O", rawTx)
+  // console.log("rawTx: %O", rawTx)
 
   tx = new Tx(rawTx);
   tx.sign(priv);
@@ -123,12 +124,12 @@ const sendSerializedTx = async (filePath) => {
 }
 
 const waitReceipt = async (txHash, waitBlocks, isDeploySc) => {
-  console.log("waitReceipt txHash %d: %s", waitBlocks, txHash);
   if (waitBlocks == 0) {
     return null;
   }
   let receipt = await web3.eth.getTransactionReceipt(txHash);
   if (receipt) {
+    // console.log("%s times %d receipt: %O", txHash, waitBlocks, receipt);
     if (isDeploySc) {
       if (receipt.status) {
         return receipt.contractAddress;
@@ -146,8 +147,8 @@ const waitReceipt = async (txHash, waitBlocks, isDeploySc) => {
 const getDeployedContract = async (fileName, contractName, address) => {
   let compiled = compileContract(fileName);
   let key = fileName + ':' + contractName;
-  let contract = new web3.eth.Contract(JSON.parse(compiled[key].interface));
-  return contract.at(address);
+  let contract = new web3.eth.Contract(JSON.parse(compiled[key].interface), address);
+  return contract;
 }
 
 module.exports = {

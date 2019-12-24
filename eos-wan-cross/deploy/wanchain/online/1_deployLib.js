@@ -74,8 +74,6 @@ async function deployLib() {
   } else {
     return false;
   }
-
-  console.log("depolyed contracts: %O", contractAddress.getAddress());
  
   return true;
 }

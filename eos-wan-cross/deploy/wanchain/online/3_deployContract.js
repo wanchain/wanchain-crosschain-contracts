@@ -1,10 +1,8 @@
-const contractAddress = require('../contractAddress');
 const scTool = require('../utils/scTool')
+const contractAddress = require('../contractAddress');
 
-const owner = '0x938cE70246CB3e62fa4BA12D70D9bb84FF6C9274';
-
-async function deployContract(owner) {
-  let txHash, address, contract;
+async function deployContract() {
+  let txHash, address;
  
   /*
    * deploy TokenManager contracts
@@ -15,7 +13,7 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('TokenManagerProxy', address);
-    console.log("deploy TokenManagerProxy address: %s", address);
+    console.log("deployed TokenManagerProxy address: %s", address);
   } else {
     console.log("deploy TokenManagerProxy failed");
     return false;
@@ -26,7 +24,7 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('TokenManagerDelegate', address);
-    console.log("deploy TokenManagerDelegate address: %s", address);
+    console.log("deployed TokenManagerDelegate address: %s", address);
   } else {
     console.log("deploy TokenManagerDelegate failed");
     return false;
@@ -41,7 +39,7 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('HTLCProxy', address);
-    console.log("deploy HTLCProxy address: %s", address);
+    console.log("deployed HTLCProxy address: %s", address);
   } else {
     console.log("deploy HTLCProxy failed");
     return false;
@@ -52,7 +50,7 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('HTLCDelegate', address);
-    console.log("deploy HTLCDelegate address: %s", address);
+    console.log("deployed HTLCDelegate address: %s", address);
   } else {
     console.log("deploy HTLCDelegate failed");
     return false;
@@ -65,7 +63,7 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('StoremanGroupProxy', address);
-    console.log("deploy StoremanGroupProxy address: %s", address);
+    console.log("deployed StoremanGroupProxy address: %s", address);
   } else {
     console.log("deploy StoremanGroupProxy failed");
     return false;
@@ -76,13 +74,13 @@ async function deployContract(owner) {
   address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {
     contractAddress.setAddress('StoremanGroupDelegate', address);
-    console.log("deploy StoremanGroupDelegate address: %s", address);
+    console.log("deployed StoremanGroupDelegate address: %s", address);
   } else {
     console.log("deploy StoremanGroupDelegate failed");
     return false;
-  }
+  }  
 
   return true;
 }
 
-deployContract(owner);
+deployContract();
