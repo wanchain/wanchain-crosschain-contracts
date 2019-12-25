@@ -1505,8 +1505,8 @@ contract('Test HTLC', async (accounts) => {
         try {
             await htlcInstProxy.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1523,8 +1523,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1541,8 +1541,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstNotInit.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1566,8 +1566,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1628,8 +1628,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1692,8 +1692,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1720,8 +1720,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1767,8 +1767,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1830,8 +1830,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1912,8 +1912,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);

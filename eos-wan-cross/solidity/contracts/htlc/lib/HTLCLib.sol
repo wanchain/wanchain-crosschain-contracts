@@ -39,7 +39,7 @@ library HTLCLib {
 
     /// @notice tx info status
     /// @notice uninitialized,locked,refunded,revoked
-    enum TxStatus {None, Locked, Refunded, Revoked}
+    enum TxStatus {None, Locked, Redeemed, Revoked}
 
     /// @notice default locked time(in seconds)
     uint constant DEF_LOCKED_TIME = uint(3600*36);
@@ -218,7 +218,7 @@ library HTLCLib {
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
 
-        info.baseTx.status = TxStatus.Refunded;
+        info.baseTx.status = TxStatus.Redeemed;
         return (xHash);
     }
 
@@ -236,7 +236,7 @@ library HTLCLib {
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
         require(info.userAddr == msg.sender, "Msg sender is incorrect");
 
-        info.baseTx.status = TxStatus.Refunded;
+        info.baseTx.status = TxStatus.Redeemed;
         return (xHash);
     }
 
@@ -253,7 +253,7 @@ library HTLCLib {
         require(info.baseTx.status == TxStatus.Locked, "Status is not locked");
         require(now < info.baseTx.beginLockedTime.add(info.baseTx.lockedTime), "Redeem timeout");
 
-        info.baseTx.status = TxStatus.Refunded;
+        info.baseTx.status = TxStatus.Redeemed;
         return (xHash);
     }
 

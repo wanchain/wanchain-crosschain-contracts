@@ -184,7 +184,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param  dstStoremanPK                   PK of dst storeman
     /// @param  r                               signature
     /// @param  s                               signature
-    function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, uint value, bytes srcStoremanPK, bytes dstStoremanPK, bytes r, bytes32 s)
+    function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, bytes srcStoremanPK, uint value, bytes dstStoremanPK, bytes r, bytes32 s)
         external
         initialized
         notHalted

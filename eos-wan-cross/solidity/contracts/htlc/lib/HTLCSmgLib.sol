@@ -135,9 +135,9 @@ library HTLCSmgLib {
 
         // Add fee to storeman group
         htlcStorageData.mapStoremanFee[storemanGroupPK].add(htlcStorageData.mapXHashFee[xHash]);
-        delete htlcStorageData.mapXHashFee[xHash];
 
         emit OutboundRedeemLogger(xHash, params.x, tokenOrigAccount, htlcStorageData.mapXHashFee[xHash]);
+        delete htlcStorageData.mapXHashFee[xHash];
     }
 
     /// @notice                         inbound, storeman revoke transaction on wanchain
