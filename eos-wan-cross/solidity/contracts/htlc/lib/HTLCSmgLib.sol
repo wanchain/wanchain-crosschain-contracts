@@ -168,10 +168,10 @@ library HTLCSmgLib {
     /// @param receiver                 the account for receiving the fee
     /// @param r                        R in schnorr signature
     /// @param s                        s in schnorr signature
-    function smgWithdrawFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes storemanGroupPK, address receiver, bytes r, bytes32 s)
+    function smgWithdrawFee(HTLCTypes.HTLCStorageData storage htlcStorageData, bytes storemanGroupPK, uint timeStamp, address receiver, bytes r, bytes32 s)
         public
     {
-        commonLib.verifySignature(sha256(abi.encode(receiver)), storemanGroupPK, r, s);
+        commonLib.verifySignature(sha256(abi.encode(timeStamp,receiver)), storemanGroupPK, r, s);
         receiver.transfer(htlcStorageData.mapStoremanFee[storemanGroupPK]);
         delete htlcStorageData.mapStoremanFee[storemanGroupPK];
     }

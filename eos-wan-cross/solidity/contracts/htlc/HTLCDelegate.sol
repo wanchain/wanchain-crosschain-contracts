@@ -278,8 +278,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param receiver                     account of the receiver
     /// @param r                            signature
     /// @param s                            signature
-    function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
-        HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);
+    function smgWithdrawFee(bytes storemanGroupPK, uint timeStamp, address receiver, bytes r, bytes32 s) external {
+
+        require(now < timeStamp.add(HTLCTypes.getSMGRcvTimeOut()), "The receiver address expired");
+        HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, timeStamp, receiver, r, s);
     }
 
     /// @notice                             update the initialized state value of this contract
