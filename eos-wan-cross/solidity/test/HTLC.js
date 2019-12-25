@@ -25,6 +25,7 @@ let revokeFeeRatio          = 100;
 let ratioPrecise            = 10000;
 let ratioPreciseInvld       = 10001;
 let lockedTime              = 40*1000; //unit: ms
+let msgRcvTimeout           = 40*1000; //unit: ms
 let DEFAULT_PRECISE         = 10000;
 
 // x and xhash
@@ -196,8 +197,8 @@ let htlcDebtRedeemParams    = {
 let PrmTypeList             = {
     //tokenOrigAccount    xHash   wanAddr   value
     inSmgLock: ['bytes', 'bytes32', 'address', 'uint'],
-    // receiver
-    smgWithdrawFee: ['address'],
+    // timeout receiver
+    smgWithdrawFee: ['uint','address'],
     // x
     outSmgRedeem: ['bytes32'],
     // x
@@ -1950,18 +1951,41 @@ contract('Test HTLC', async (accounts) => {
         }
     });
 
-    it('Debt  ==>smgWithdrawFee', async () => {
+    it('others  ==>smgWithdrawFee', async () => {
         try {
 
             let typeList = PrmTypeList.smgWithdrawFee;
-            let ValueList = buildParametersArray(accounts[6]);
+            let nowTimeStamp = Math.floor(Date.now()/1000);
+            let bnTimeStamp = '0x'+(new BN(nowTimeStamp).toString(16));
+            let ValueList = buildParametersArray(bnTimeStamp,accounts[6]);
             let tempS = schnorr.getS(skDstSmg, typeList, ValueList);
 
-            await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK, accounts[6], R, tempS);
+            let bnSmgFee = new BN(await htlcInstProxy.getStoremanFee(dstDebtStoremanPK));
+            let bnRcvCoin = new BN(await web3.eth.getBalance(accounts[6]));
+            let bnRcvCoinExpect = bnRcvCoin.add(bnSmgFee);
+            await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp),accounts[6], R, tempS);
+            let bnRcvCoinActual = new BN(await web3.eth.getBalance(accounts[6]));
+
+            assert.equal(bnRcvCoinExpect.toString(),bnRcvCoinActual.toString());
         } catch (err) {
             assert.fail(err.toString());
         }
     });
+
+  it('others  ==>smgWithdrawFee time out', async () => {
+    try {
+
+      let typeList = PrmTypeList.smgWithdrawFee;
+      let nowTimeStamp = Math.floor(Date.now()/1000);
+      let bnTimeStamp = '0x'+(new BN(nowTimeStamp).toString(16));
+      let ValueList = buildParametersArray(bnTimeStamp,accounts[6]);
+      let tempS = schnorr.getS(skDstSmg, typeList, ValueList);
+      await sleep(msgRcvTimeout);
+      await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp), accounts[6], R, tempS);
+    } catch (err) {
+      assert.include(err.toString(),"The receiver address expired");
+    }
+  });
 });
 
 async function sleep(time) {
