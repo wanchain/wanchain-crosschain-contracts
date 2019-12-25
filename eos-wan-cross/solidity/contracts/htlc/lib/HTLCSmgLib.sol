@@ -92,6 +92,13 @@ library HTLCSmgLib {
     /// @param fee                      fee of user outbound lock
     event OutboundRedeemLogger(bytes32 indexed hashX, bytes32 indexed x, bytes tokenOrigAccount,uint fee);
 
+    /// @notice                         event of storeman group pk withdraw wan coin to receiver
+    /// @param storemanGroupPK          PK of storemanGroup
+    /// @param receiver                 receiver address
+    /// @param timeStamp                timestamp of the withdraw
+    /// @param fee                      wan coin of the fee which the storeman group pk got it
+    event SmgWithdrawFeeLogger(address indexed receiver, bytes storemanGroupPK, uint timeStamp, uint fee);
+
 
     /**
      *
@@ -173,6 +180,8 @@ library HTLCSmgLib {
     {
         commonLib.verifySignature(sha256(abi.encode(timeStamp,receiver)), storemanGroupPK, r, s);
         receiver.transfer(htlcStorageData.mapStoremanFee[storemanGroupPK]);
+
+        emit SmgWithdrawFeeLogger(receiver, storemanGroupPK, now, htlcStorageData.mapStoremanFee[storemanGroupPK]);
         delete htlcStorageData.mapStoremanFee[storemanGroupPK];
     }
 

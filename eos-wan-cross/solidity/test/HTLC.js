@@ -1972,7 +1972,7 @@ contract('Test HTLC', async (accounts) => {
         }
     });
 
-  it('others  ==>smgWithdrawFee time out', async () => {
+    it('others  ==>smgWithdrawFee time out', async () => {
     try {
 
       let typeList = PrmTypeList.smgWithdrawFee;
