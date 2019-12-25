@@ -1,32 +1,35 @@
-const scTool = require('../utils/scTool')
+const scTool = require('../utils/scTool');
 const contractAddress = require('../contractAddress');
 
-async function deployLib() {
-  let compiled, deployed;
+// '0x574ec77cb2905515e1e218014819a38119324a56';
+const devPrivateKey = new Buffer.from('2727714014292a6ee6d9047538c176df80205d98abcb736c70653b7f126ccfa5', 'hex');
+
+async function deployLib(privateKey) {
+  let compiled, address;
 
   // HTLCLib
   compiled = scTool.compileContract('HTLCLib');
-  deployed = await scTool.deployContract('HTLCLib', compiled);
-  if (deployed) {
-    contractAddress.setAddress('HTLCLib', deployed._address);
+  address = await scTool.deployContract('HTLCLib', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('HTLCLib', address);
   } else {
     return false;
   }
 
   // QuotaLib
   compiled = scTool.compileContract('QuotaLib');
-  deployed = await scTool.deployContract('QuotaLib', compiled);
-  if (deployed) {
-    contractAddress.setAddress('QuotaLib', deployed._address);
+  address = await scTool.deployContract('QuotaLib', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('QuotaLib', address);
   } else {
     return false;
   }
 
   // Secp256k1
   compiled = scTool.compileContract('Secp256k1');
-  deployed = await scTool.deployContract('Secp256k1', compiled);
-  if (deployed) {
-    contractAddress.setAddress('Secp256k1', deployed._address);
+  address = await scTool.deployContract('Secp256k1', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('Secp256k1', address);
   } else {
     return false;
   }
@@ -34,9 +37,9 @@ async function deployLib() {
   // SchnorrVerifier
   compiled = scTool.compileContract('SchnorrVerifier');
   scTool.linkContract(compiled, ['Secp256k1']);
-  deployed = await scTool.deployContract('SchnorrVerifier', compiled);
-  if (deployed) {
-    contractAddress.setAddress('SchnorrVerifier', deployed._address);
+  address = await scTool.deployContract('SchnorrVerifier', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('SchnorrVerifier', address);
   } else {
     return false;
   }
@@ -44,9 +47,9 @@ async function deployLib() {
   // HTLCUserLib
   compiled = scTool.compileContract('HTLCUserLib');
   scTool.linkContract(compiled, ['QuotaLib', 'HTLCLib']);
-  deployed = await scTool.deployContract('HTLCUserLib', compiled);
-  if (deployed) {
-    contractAddress.setAddress('HTLCUserLib', deployed._address);
+  address = await scTool.deployContract('HTLCUserLib', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('HTLCUserLib', address);
   } else {
     return false;
   }
@@ -54,9 +57,9 @@ async function deployLib() {
   // HTLCDebtLib
   compiled = scTool.compileContract('HTLCDebtLib');
   scTool.linkContract(compiled, ['SchnorrVerifier', 'QuotaLib', 'HTLCLib']);
-  deployed = await scTool.deployContract('HTLCDebtLib', compiled);
-  if (deployed) {
-    contractAddress.setAddress('HTLCDebtLib', deployed._address);
+  address = await scTool.deployContract('HTLCDebtLib', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('HTLCDebtLib', address);
   } else {
     return false;
   }
@@ -64,9 +67,9 @@ async function deployLib() {
   // HTLCSmgLib
   compiled = scTool.compileContract('HTLCSmgLib');
   scTool.linkContract(compiled, ['SchnorrVerifier', 'QuotaLib', 'HTLCLib']);
-  deployed = await scTool.deployContract('HTLCSmgLib', compiled);
-  if (deployed) {
-    contractAddress.setAddress('HTLCSmgLib', deployed._address);
+  address = await scTool.deployContract('HTLCSmgLib', compiled, privateKey);
+  if (address) {
+    contractAddress.setAddress('HTLCSmgLib', address);
   } else {
     return false;
   }
@@ -74,4 +77,4 @@ async function deployLib() {
   return true;
 }
 
-deployLib();
+deployLib(devPrivateKey);

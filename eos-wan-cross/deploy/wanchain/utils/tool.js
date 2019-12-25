@@ -22,7 +22,20 @@ const readFromFile = (filePath) => {
   return fs.readFileSync(filePath, 'utf8');
 }
 
+const getOutputPath = (type) => {
+  if (type == 'nonce') {
+    return path.join(__dirname, "../nonce.json");
+  } else if (type == 'contractAddress') {
+    return path.join(__dirname, "../contractAddress.json");
+  } else if (type == 'txData') {  // folder
+    return path.join(__dirname, "../txData/");
+  } else {
+    return path.join(__dirname, "..");
+  }
+}
+
 module.exports = {
   write2file,
-  readFromFile
+  readFromFile,
+  getOutputPath
 }

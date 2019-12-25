@@ -1,7 +1,6 @@
-const tool = require('./utils/tool')
-const path = require('path');
+const tool = require('./utils/tool');
 
-const datePath = path.join(__dirname, "contractAddress.json");
+const datePath = tool.getOutputPath('contractAddress');
 
 let addressMap = new Map();
 

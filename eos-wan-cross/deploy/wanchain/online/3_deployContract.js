@@ -1,4 +1,4 @@
-const scTool = require('../utils/scTool')
+const scTool = require('../utils/scTool');
 const contractAddress = require('../contractAddress');
 
 const scArray = [
@@ -15,7 +15,7 @@ const scArray = [
 
 async function deployContract(index) {
   if (index >= scArray.length) {
-    console.log("deployContract finished");
+    // console.log("deployContract finished");
     return true;
   }
 

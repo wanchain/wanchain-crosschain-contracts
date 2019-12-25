@@ -12,8 +12,6 @@ const wanUtil = require('wanchain-util');
 // const Tx = wanUtil.wanchainTx;
 const Tx = require('ethereumjs-tx');
 
-const deployAddr = '0x938ce70246cb3e62fa4ba12d70d9bb84ff6c9274';
-
 function getImport(filePath) {
   let fileName = path.basename(filePath);
   let content = source[fileName];
@@ -43,10 +41,10 @@ function getLibAddress(libs, refs) {
   return result;
 }
 
-const compileContract = (contractName) => {
+const compileContract = (name) => {
   let input = {};
-  let fileName = contractName + ".sol";
-  let key = fileName + ":" + contractName;
+  let fileName = name + ".sol";
+  let key = fileName + ":" + name;
   input[fileName] = source[fileName];
   let output = solc.compile({sources: input}, 1, getImport);
   return output.contracts[key];
@@ -58,34 +56,12 @@ const linkContract = (compiled, libs) => {
   compiled.bytecode = linker.linkBytecode(compiled.bytecode, getLibAddress(libs, refs));
 }
 
-const deployContract = async (contractName, compiled) => {
-  let contract = new web3.eth.Contract(JSON.parse(compiled.interface), {data: '0x' + compiled.bytecode});
-  try {
-    let inst = await contract.deploy()
-                             .send({from: deployAddr, gas: cfg.gasLimit})
-                             .on('transactionHash', txHash => {
-                               console.log("deploy %s txHash: %s", contractName, txHash);
-                             });
-    console.log("deployed %s address: %s", contractName, inst._address);
-    return inst;
-  } catch(err) {
-    console.log("deploy %s failed: %O", contractName, err);
-    return null;
-  }
-}
-
-const getNonce = async (address) => {
-  let nonce = await web3.eth.getTransactionCount(address);
-  console.log("getNonce: %s, %d", address, nonce);
-  return nonce;
-}
-
 const getDeployContractTxData = async (compiled) => {
   let contract = new web3.eth.Contract(JSON.parse(compiled.interface), {data: '0x' + compiled.bytecode});
   return await contract.deploy().encodeABI();
 }
 
-const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => {
+const serializeTx = (data, nonce, contractAddr, value, filePath, privateKey) => {
   // console.log("txdata=" + data);
   if (0 != data.indexOf('0x')){
     data = '0x' + data;
@@ -104,24 +80,29 @@ const serializeTx = async (data, nonce, contractAddr, value, filePath, priv) => 
       gasLimit: cfg.gasLimit,
       to: contractAddr,
       value: value,
-      from: keythereum.privateKeyToAddress(priv),
+      from: keythereum.privateKeyToAddress(privateKey),
       data: data
   };
   // console.log("rawTx: %O", rawTx)
 
   tx = new Tx(rawTx);
-  tx.sign(priv);
-
+  tx.sign(privateKey);
   let serialized = tx.serialize();
   // console.log("serialized tx: " + serialized.toString('hex'));
-  tool.write2file(filePath, serialized.toString('hex'));
-  // let result = await web3.eth.sendSignedTransaction('0x' + serialized.toString('hex'));
-  // console.log("offline serializeTx test: ", result)
+  if (filePath) {
+    tool.write2file(filePath, serialized.toString('hex'));
+    console.log("tx is serialized to %s", filePath);
+    return true;
+  } else {
+    return serialized;
+  }
 }
 
-const sendSerializedTx = async (filePath) => {
-  let serialized = tool.readFromFile(filePath);
-  let receipt = await web3.eth.sendSignedTransaction('0x' + serialized.toString('hex'));
+const sendSerializedTx = async (tx) => {
+  if (typeof(tx) == 'string') { // filePath
+    tx = tool.readFromFile(tx);
+  }
+  let receipt = await web3.eth.sendSignedTransaction('0x' + tx.toString('hex'));
   return receipt.transactionHash;
 }
 
@@ -146,19 +127,41 @@ const waitReceipt = async (txHash, waitBlocks, isDeploySc) => {
   }
 }
 
-const getDeployedContract = async (contractName, address) => {
-  let compiled = compileContract(contractName);
+const deployContract = async (name, compiled, privateKey) => {
+  let txData = await getDeployContractTxData(compiled);
+  let nonce = await getNonce(keythereum.privateKeyToAddress(privateKey));
+  let serialized = serializeTx(txData, nonce, '', '0', null, privateKey);
+  let txHash = await sendSerializedTx(serialized);
+  // console.log("deploy %s txHash: %s", name, txHash);
+  let address = await waitReceipt(txHash, 30, true);
+  if (address) {
+    console.log("deployed %s address: %s", name, address);
+    return address;
+  } else {
+    console.log("deploy %s failed", name);
+    return null;
+  }
+}
+
+const getDeployedContract = async (name, address) => {
+  let compiled = compileContract(name);
   return new web3.eth.Contract(JSON.parse(compiled.interface), address);
+}
+
+const getNonce = async (address) => {
+  let nonce = await web3.eth.getTransactionCount(address);
+  // console.log("getNonce: %s, %d", address, nonce);
+  return nonce;
 }
 
 module.exports = {
   compileContract,
   linkContract,
-  deployContract,
-  getNonce,
   getDeployContractTxData,
   serializeTx,
   sendSerializedTx,
   waitReceipt,
-  getDeployedContract
+  deployContract,
+  getDeployedContract,
+  getNonce,
 }

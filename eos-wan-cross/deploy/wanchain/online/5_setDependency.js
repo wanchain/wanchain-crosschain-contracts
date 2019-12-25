@@ -1,4 +1,4 @@
-const scTool = require('../utils/scTool')
+const scTool = require('../utils/scTool');
 
 const txArray = [
   // TokenManager dependency
@@ -14,7 +14,7 @@ const txArray = [
 
 async function setDependency(index) {
   if (index >= txArray.length) {
-    console.log("setDependency finished");
+    // console.log("setDependency finished");
     return true;
   }
   let txName = txArray[index];
