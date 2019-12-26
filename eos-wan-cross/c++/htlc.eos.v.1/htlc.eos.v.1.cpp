@@ -94,6 +94,111 @@ ACTION htlc::truncate(eosio::name table, std::string scope) {
     }
 }
 
+ACTION htlc::query(eosio::name table, std::string scope) {
+    eosio::print("\t[query => table:", table);
+    switch (table.value) {
+        case hTable::table::transfers.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            transfers transfers_table(get_self(), eosio::name(scope).value);
+            auto tItr = transfers_table.begin();
+            while (tItr != transfers_table.end()) {
+                eosio::print("\t[beginTime:", (*tItr).beginTime.sec_since_epoch(),\
+                    ", lockedTime:", (*tItr).lockedTime,\
+                    ", status:", (*tItr).status, ", id:", (*tItr).id,\
+                    ", user:", (*tItr).user, ", pid:", (*tItr).pid,\
+                    ", quantity:", (*tItr).quantity,\
+                    ", xHash:", (*tItr).xHash, \
+                    ", wanAddr:", (*tItr).wanAddr, \
+                    ", account:", (*tItr).account, "]\t");
+                ++tItr;
+            }
+            break;
+        }
+        case hTable::table::pks.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            pks pk_table(get_self(), eosio::name(scope).value);
+            auto pItr = pk_table.begin();
+            while (pItr != pk_table.end()) {
+                eosio::print("\t[id:", (*pItr).id, ", pk:", (*pItr).pk, ", pkHash:", (*pItr).pkHash, "]\t");
+                ++pItr;
+            }
+            break;
+        }
+        case hTable::table::assets.value: {
+            uint64_t scopeValue = std::atoll(scope.data());
+            eosio::print(",scope:", scopeValue, "]\t");
+            assets asset_table(get_self(), scopeValue);
+            auto aItr = asset_table.begin();
+            while (aItr != asset_table.end()) {
+                eosio::print("\t[id:", (*aItr).id, ", account:", (*aItr).account, ", balance:", (*aItr).balance, "]\t");
+                ++aItr;
+            }
+            break;
+        }
+        case hTable::table::fees.value: {
+            uint64_t scopeValue = std::atoll(scope.data());
+            eosio::print(",scope:", scopeValue, "]\t");
+            fees fee_table(get_self(), scopeValue);
+            auto fItr = fee_table.begin();
+            while (fItr != fee_table.end()) {
+                eosio::print("\t[id:", (*fItr).id, ", account:", (*fItr).account, ", fee:", (*fItr).fee, "]\t");
+                ++fItr;
+            }
+            break;
+        }
+        // case hTable::table::debts.value: {
+        //     debts debt_table(get_self(), eosio::name(scope).value);
+        //     auto dItr = debt_table.begin();
+        //     while (dItr != debt_table.end()) {
+        //         dItr = debt_table.erase(dItr);
+        //     }
+        //     break;
+        // }
+        case hTable::table::signer.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            signer signer_table(get_self(), eosio::name(scope).value);
+            auto sItr = signer_table.begin();
+            while (sItr != signer_table.end()) {
+                eosio::print("\t[code:", (*sItr).code, ", action:", (*sItr).action, "]\t");
+                ++sItr;
+            }
+            break;
+        }
+        case hTable::table::accounts.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            accounts account_table(get_self(), eosio::name(scope).value);
+            auto aItr = account_table.begin();
+            while (aItr != account_table.end()) {
+                eosio::print("\t[code:", (*aItr).code, ", action:", (*aItr).action, "]\t");
+                ++aItr;
+            }
+            break;
+        }
+        case hTable::table::tokens.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            tokens token_table(get_self(), eosio::name(scope).value);
+            auto tItr = token_table.begin();
+            while (tItr != token_table.end()) {
+                eosio::print("\t[symbol:", (*tItr).sym, "]\t");
+                ++tItr;
+            }
+            break;
+        }
+        case hTable::table::longlongs.value: {
+            eosio::print(",scope:", eosio::name(scope).value, "]\t");
+            longlongs ll_table(get_self(), eosio::name(scope).value);
+            auto lItr = ll_table.begin();
+            while (lItr != ll_table.end()) {
+                eosio::print("\t[flag:", (*lItr).flag, ", value:", (*lItr).value, "]\t");
+                ++lItr;
+            }
+            break;
+        }
+        default:
+            eosio::check(false, hError::error::INVALID_TABLE.data());
+    }
+}
+
 /* debug, would be removed */
 ACTION htlc::leftlocktime(eosio::name table, std::string xHash) {
     eosio::checksum256 xHashValue = parseXHash(xHash);
@@ -1022,30 +1127,27 @@ ACTION htlc::outrevoke(std::string xHash) {
 }
 
 ACTION htlc::setratio(uint64_t ratio) {
+    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::sign});
+
     longlongs ll_table(get_self(), get_self().value);
     auto lItr = ll_table.find(hTable::key::ratio.value);
-    eosio::check(lItr == ll_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
 
-    ll_table.emplace(get_self(), [&](auto &s) {
-        s.flag = hTable::key::ratio;
-        s.value = ratio;
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[setratio => flag:", s.flag, ", value:", s.value, "]\t");
-        #endif
-    });
-}
-
-ACTION htlc::updateratio(uint64_t ratio) {
-    longlongs ll_table(get_self(), get_self().value);
-    auto lItr = ll_table.find(hTable::key::ratio.value);
-    eosio::check(lItr == ll_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
-
-    ll_table.modify(lItr, get_self(), [&](auto &s) {
-        s.value = ratio;
-        #ifdef _DEBUG_PRINT
-        eosio::print("\t[updateratio => flag:", s.flag, ", value:", s.value, "]\t");
-        #endif
-    });
+    if (lItr == ll_table.end()) {
+        ll_table.emplace(get_self(), [&](auto &s) {
+            s.flag = hTable::key::ratio;
+            s.value = ratio;
+            #ifdef _DEBUG_PRINT
+            eosio::print("\t[setratio => flag:", s.flag, ", value:", s.value, "]\t");
+            #endif
+        });
+    } else {
+        ll_table.modify(lItr, get_self(), [&](auto &s) {
+            s.value = ratio;
+            #ifdef _DEBUG_PRINT
+            eosio::print("\t[setratio => flag:", s.flag, ", value:", s.value, "]\t");
+            #endif
+        });
+    }
 }
 
 #ifdef _DEBUG_API
@@ -1480,7 +1582,7 @@ void htlc::verifySignature(std::string_view statusView, std::string &pk, std::st
         std::make_tuple(this->get_self(), r, s, pk, encodedActionData,static_cast<std::string>(statusView))).send();
 }
 
-void htlc::addAssetTo(uint64_t pid, const eosio::name &account,const eosio::asset &quantity) {
+void htlc::addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity) {
     /* add table assets */
     uint128_t symAcctKey = common::makeU128(quantity.symbol.raw(), account.value);
     assets asset_table(get_self(), pid);
@@ -1846,7 +1948,6 @@ extern "C" {
             eosio::print("\t[parse memo for status:", status.data(), ", size:", status.size(), \
                 ", status.value:", eosio::name(status).value, "]\t");
             #endif
-            if(status.size() > 0){
 
                 switch (eosio::name(status).value) {
                     case eosio::name(hStatus::status::inlock).value: {
@@ -1862,7 +1963,6 @@ extern "C" {
                     //     eosio::check(false, "invalid status, it should be one of [inlock, inredeem, inrevoke, outlock, outredeem, outrevoke]");
                     // }
                 }
-            }
         }
     }
 }
@@ -1899,12 +1999,12 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
             #ifdef _DEBUG_API
             EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
                 (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
-                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio)(updateratio)\
-                (printratio)(truncate)(leftlocktime)(gethash))
+                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio)\
+                (printratio)(query)(truncate)(leftlocktime)(gethash))
             #else
             EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
                 (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
-                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio)(updateratio))
+                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio))
             #endif
         }
     }

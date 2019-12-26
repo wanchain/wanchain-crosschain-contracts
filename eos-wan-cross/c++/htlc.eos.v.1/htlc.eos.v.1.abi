@@ -316,6 +316,20 @@
             "fields": []
         },
         {
+            "name": "query",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "redeemdebt",
             "base": "",
             "fields": [
@@ -592,16 +606,6 @@
             ]
         },
         {
-            "name": "updateratio",
-            "base": "",
-            "fields": [
-                {
-                    "name": "ratio",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
             "name": "updatesig",
             "base": "",
             "fields": [
@@ -720,6 +724,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "query",
+            "type": "query",
+            "ricardian_contract": ""
+        },
+        {
             "name": "redeemdebt",
             "type": "redeemdebt",
             "ricardian_contract": ""
@@ -782,11 +791,6 @@
         {
             "name": "updatepk",
             "type": "updatepk",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "updateratio",
-            "type": "updateratio",
             "ricardian_contract": ""
         },
         {
