@@ -1,5 +1,9 @@
+const path = require('path');
+const tool = require('../utils/tool');
 const scTool = require('../utils/scTool');
 const contractAddress = require('../contractAddress');
+
+const txDataDir = tool.getOutputPath('txData');
 
 const scArray = [
   // deploy TokenManager
@@ -20,7 +24,7 @@ async function deployContract(index) {
   }
 
   let scName = scArray[index];
-  let txFile = "../txData/deploy" + scName + ".dat";
+  let txFile = path.join(txDataDir, "deploy" + scName + ".dat");
   let txHash = await scTool.sendSerializedTx(txFile);
   let address = await scTool.waitReceipt(txHash, 30, true);
   if (address) {

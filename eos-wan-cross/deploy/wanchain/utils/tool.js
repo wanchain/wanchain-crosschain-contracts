@@ -34,8 +34,14 @@ const getOutputPath = (type) => {
   }
 }
 
+const str2hex = (str) => {
+  let content = new Buffer.from(str).toString('hex');
+  return '0x' + content;
+}
+
 module.exports = {
   write2file,
   readFromFile,
-  getOutputPath
+  getOutputPath,
+  str2hex
 }

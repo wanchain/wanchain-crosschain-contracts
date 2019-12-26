@@ -1,4 +1,8 @@
+const path = require('path');
+const tool = require('../utils/tool');
 const scTool = require('../utils/scTool');
+
+const txDataDir = tool.getOutputPath('txData');
 
 const txArray = [
   // TokenManager dependency
@@ -18,7 +22,7 @@ async function setDependency(index) {
     return true;
   }
   let txName = txArray[index];
-  let txFile = "../txData/" + txName + ".dat";
+  let txFile = path.join(txDataDir, txName + ".dat");
   let txHash = await scTool.sendSerializedTx(txFile);
   let success = await scTool.waitReceipt(txHash, 30, false);
   if (success) {

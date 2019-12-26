@@ -154,6 +154,10 @@ const getNonce = async (address) => {
   return nonce;
 }
 
+const wan2win = (wan) => {
+  return web3.utils.toWei(wan.toString(), 'ether');
+}
+
 module.exports = {
   compileContract,
   linkContract,
@@ -164,4 +168,5 @@ module.exports = {
   deployContract,
   getDeployedContract,
   getNonce,
+  wan2win
 }
