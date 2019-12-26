@@ -25,6 +25,7 @@ let revokeFeeRatio          = 100;
 let ratioPrecise            = 10000;
 let ratioPreciseInvld       = 10001;
 let lockedTime              = 40*1000; //unit: ms
+let msgRcvTimeout           = 40*1000; //unit: ms
 let DEFAULT_PRECISE         = 10000;
 
 // x and xhash
@@ -194,16 +195,16 @@ let htlcDebtRedeemParams    = {
 };
 
 let PrmTypeList             = {
-    //tokenOrigAccount    xHash   wanAddr   value   storemanGroupPK
-    inSmgLock: ['bytes', 'bytes32', 'address', 'uint', 'bytes'],
-    // receiver
-    smgWithdrawFee: ['address'],
-    // tokenOrigAccount   x
-    outSmgRedeem: ['bytes', 'bytes32'],
-    //tokenOrigAccount    x
-    inDebtRedeem: ['bytes', 'bytes32'],
-    //tokenOrigAccount    xHash   srcStoremanPK   dstStoremanPK
-    inDebtLock: ['bytes', 'bytes32', 'bytes', 'bytes', 'uint']
+    //tokenOrigAccount    xHash   wanAddr   value
+    inSmgLock: ['bytes', 'bytes32', 'address', 'uint'],
+    // timeout receiver
+    smgWithdrawFee: ['uint','address'],
+    // x
+    outSmgRedeem: ['bytes32'],
+    // x
+    inDebtRedeem: ['bytes32'],
+    //tokenOrigAccount    xHash   srcStoremanPK value
+    inDebtLock: ['bytes', 'bytes32', 'bytes', 'uint']
 };
 
 let tmAddress, smgAddress, precise;
@@ -605,8 +606,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -627,8 +627,7 @@ contract('Test HTLC', async (accounts) => {
         try {
             // accounts[1] is the wan address of the user.
             //Msg sender is incorrect
-            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x);
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x);
 
         } catch (err) {
             assert.include(err.toString(), "Smart contract is halted");
@@ -640,8 +639,7 @@ contract('Test HTLC', async (accounts) => {
         try {
             // accounts[1] is the wan address of the user.
             //Msg sender is incorrect
-            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x);
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x);
 
         } catch (err) {
             assert.include(err.toString(), "Msg sender is incorrect");
@@ -650,8 +648,7 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inUserRedeem ==> Token manager is null', async () => {
         try {
-            await htlcInstNotInit.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x);
+            await htlcInstNotInit.inUserRedeem(htlcUserRedeemParams.x);
 
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
@@ -660,8 +657,7 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inUserRedeem ==> success', async () => {
         try {
-            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x, {from: accounts[1]});
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x, {from: accounts[1]});
             let balance = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
             assert.equal(balance, htlcSmgLockParams.value, "Redeemed token is not equal the locked value");
         } catch (err) {
@@ -671,8 +667,7 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inUserRedeem ==> Redeem twice', async () => {
         try {
-            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x, {from: accounts[1]});
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x, {from: accounts[1]});
         } catch (err) {
             assert.include(err.toString(), "Status is not locked");
         }
@@ -689,8 +684,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -716,8 +710,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -729,7 +722,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcSmgLockParamsTemp.s);
 
         } catch (err) {
-            assert.include(err.toString(), "Smg tx is exist");
+            assert.include(err.toString(), "Smg tx exists");
         }
     });
 
@@ -745,8 +738,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -759,15 +751,6 @@ contract('Test HTLC', async (accounts) => {
 
         } catch (err) {
             assert.include(err.toString(), "Quota is not enough");
-        }
-    });
-
-    it('EOS->WAN inUserRedeem ==> Token manager is null', async () => {
-        try {
-            await htlcInstNotInit.inUserRedeem(htlcUserRedeemParams.tokenOrigAccount,
-                htlcUserRedeemParams.x, {from: accounts[1]});
-        } catch (err) {
-            assert.include(err.toString(), "Token manager is null");
         }
     });
 
@@ -785,8 +768,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -800,8 +782,7 @@ contract('Test HTLC', async (accounts) => {
             // wait timeout
             await sleep(lockedTime + 1);
             // check user redeem
-            await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
-                htlcSmgLockParamsTemp.x, {from: accounts[1]});
+            await htlcInstProxy.inUserRedeem(htlcSmgLockParamsTemp.x, {from: accounts[1]});
         } catch (err) {
             assert.include(err.toString(), "Redeem timeout");
         }
@@ -841,8 +822,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -854,7 +834,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcSmgLockParamsTemp.s);
 
 
-            await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount, xHash5);
+            await htlcInstProxy.inSmgRevoke(xHash5);
         } catch (err) {
             assert.include(err.toString(), "Revoke is not permitted");
         }
@@ -863,7 +843,7 @@ contract('Test HTLC', async (accounts) => {
     it('EOS->WAN inSmgRevoke  ==>success', async () => {
         try {
             await sleep(lockedTime);
-            await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount, xHash5);
+            await htlcInstProxy.inSmgRevoke(xHash5);
         } catch (err) {
             assert.fail(err);
         }
@@ -871,7 +851,7 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inSmgRevoke  ==>Status is not locked', async () => {
         try {
-            await htlcInstProxy.inSmgRevoke(tokenInfo.tokenOrigAccount, xHash5);
+            await htlcInstProxy.inSmgRevoke(xHash5);
         } catch (err) {
             assert.include(err.toString(), "Status is not locked");
         }
@@ -879,7 +859,7 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inSmgRevoke  ==>Token manager is null', async () => {
         try {
-            await htlcInstNotInit.inSmgRevoke(tokenInfo.tokenOrigAccount, xHash5);
+            await htlcInstNotInit.inSmgRevoke(xHash5);
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
         }
@@ -1124,7 +1104,7 @@ contract('Test HTLC', async (accounts) => {
                 htlcUserLockParamsTemp.userOrigAccount,
                 htlcUserLockParamsTemp.storemanGroupPK, {from: accounts[1], value: htlcUserLockParams.value});
         } catch (err) {
-            assert.include(err.toString(), "User tx is exist");
+            assert.include(err.toString(), "User tx exists");
         }
     });
 
@@ -1167,8 +1147,7 @@ contract('Test HTLC', async (accounts) => {
         await htlcInstProxy.setHalt(true);
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.tokenOrigAccount,
-                htlcSmgRedeemParams.x,
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x,
                 htlcSmgRedeemParams.r,
                 htlcSmgRedeemParams.s);
         } catch (err) {
@@ -1181,8 +1160,7 @@ contract('Test HTLC', async (accounts) => {
 
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstNotInit.outSmgRedeem(htlcSmgRedeemParams.tokenOrigAccount,
-                htlcSmgRedeemParams.x,
+            await htlcInstNotInit.outSmgRedeem(htlcSmgRedeemParams.x,
                 htlcSmgRedeemParams.r,
                 htlcSmgRedeemParams.s);
         } catch (err) {
@@ -1194,8 +1172,7 @@ contract('Test HTLC', async (accounts) => {
     it('WAN->EOS outSmgRedeem ==> use wrong x', async () => {
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.tokenOrigAccount,
-                htlcSmgRedeemParams.x,
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x,
                 htlcSmgRedeemParams.r,
                 htlcSmgRedeemParams.s);
         } catch (err) {
@@ -1209,12 +1186,10 @@ contract('Test HTLC', async (accounts) => {
             htlcSmgRedeemParamsTemp.x = x2;
 
             let typeList = PrmTypeList.outSmgRedeem;
-            let ValueList = buildParametersArray(htlcSmgRedeemParamsTemp.tokenOrigAccount,
-                htlcSmgRedeemParamsTemp.x);
+            let ValueList = buildParametersArray(htlcSmgRedeemParamsTemp.x);
             htlcSmgRedeemParamsTemp.s = schnorr.getS(skSmg1, typeList, ValueList);
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.tokenOrigAccount,
-                htlcSmgRedeemParamsTemp.x,
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
                 htlcSmgRedeemParamsTemp.r,
                 htlcSmgRedeemParamsTemp.s);
 
@@ -1263,8 +1238,7 @@ contract('Test HTLC', async (accounts) => {
             let htlcSmgRedeemParamsTemp = Object.assign({}, htlcSmgRedeemParams);
             htlcSmgRedeemParamsTemp.x = x13;
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.tokenOrigAccount,
-                htlcSmgRedeemParamsTemp.x,
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
                 htlcSmgRedeemParamsTemp.r,
                 htlcSmgRedeemParamsTemp.s);
 
@@ -1279,8 +1253,7 @@ contract('Test HTLC', async (accounts) => {
             let htlcSmgRedeemParamsTemp = Object.assign({}, htlcSmgRedeemParams);
             htlcSmgRedeemParamsTemp.x = x2;
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.tokenOrigAccount,
-                htlcSmgRedeemParamsTemp.x,
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
                 htlcSmgRedeemParamsTemp.r,
                 htlcSmgRedeemParamsTemp.s);
 
@@ -1325,7 +1298,7 @@ contract('Test HTLC', async (accounts) => {
 
         // revoke
         try {
-            await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, htlcUserLockParamsTemp.xHash);
+            await htlcInstProxy.outUserRevoke(htlcUserLockParamsTemp.xHash);
         } catch (err) {
             assert.include(err.toString(), "Revoke is not permitted");
         }
@@ -1335,7 +1308,7 @@ contract('Test HTLC', async (accounts) => {
         // revoke
         await htlcInstProxy.setHalt(true);
         try {
-            await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            await htlcInstProxy.outUserRevoke(xHash4);
         } catch (err) {
             assert.include(err.toString(), "Smart contract is halted");
         }
@@ -1346,7 +1319,7 @@ contract('Test HTLC', async (accounts) => {
         // revoke
         try {
             await sleep(lockedTime);
-            await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            await htlcInstProxy.outUserRevoke(xHash4);
         } catch (err) {
             assert.include(err.toString(), "Revoke is not permitted");
         }
@@ -1355,7 +1328,7 @@ contract('Test HTLC', async (accounts) => {
     it('WAN->EOS outUserRevoke  ==>Token manager is null', async () => {
         // revoke
         try {
-            await htlcInstNotInit.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            await htlcInstNotInit.outUserRevoke(xHash4);
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
         }
@@ -1374,8 +1347,7 @@ contract('Test HTLC', async (accounts) => {
             let beforeCoin = await web3.eth.getBalance(accounts[1]);
             //console.log("beforeCoin:"+beforeCoin.toString());
 
-            //let txRevokeRpt = await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
-            let txRevokeRpt = await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4, {from:accounts[1]});
+            let txRevokeRpt = await htlcInstProxy.outUserRevoke(xHash4, {from:accounts[1]});
             let txRevoke = await web3.eth.getTransaction(txRevokeRpt.tx);
 
             let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
@@ -1420,7 +1392,7 @@ contract('Test HTLC', async (accounts) => {
         // revoke
         try {
             let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
-            await htlcInstProxy.outUserRevoke(tokenInfo.tokenOrigAccount, xHash4);
+            await htlcInstProxy.outUserRevoke(xHash4);
             let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
             assert.equal(balanceAfterRevoke, (new BN(balanceBeforeRevoke)).add(v3), "The balance of revoked is not right!");
         } catch (err) {
@@ -1534,8 +1506,8 @@ contract('Test HTLC', async (accounts) => {
         try {
             await htlcInstProxy.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1552,8 +1524,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1570,8 +1542,8 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstNotInit.inDebtLock(tokenInfoNotReg.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1590,14 +1562,13 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList, ValueList);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1624,8 +1595,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(skSrcSmg, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -1639,8 +1609,7 @@ contract('Test HTLC', async (accounts) => {
             // redeem
             let htlcUserRedeemParamsTemp = Object.assign({}, htlcUserRedeemParams);
             htlcUserRedeemParamsTemp.x = x7;
-            await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
-                htlcUserRedeemParamsTemp.x, {from: accounts[1]});
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParamsTemp.x, {from: accounts[1]});
 
             let srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.srcStoremanPK);
             let dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.dstStoremanPK);
@@ -1655,14 +1624,13 @@ contract('Test HTLC', async (accounts) => {
             let ValueList1 = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList1, ValueList1);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1682,12 +1650,10 @@ contract('Test HTLC', async (accounts) => {
         try {
 
             let typeList = PrmTypeList.inDebtRedeem;
-            let ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x);
+            let ValueList = buildParametersArray(htlcDebtRedeemParamsTemp.x);
             htlcDebtRedeemParamsTemp.s = schnorr.getS(htlcDebtRedeemParamsTemp.skSmg, typeList, ValueList);
 
-            await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x,
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
 
@@ -1700,8 +1666,7 @@ contract('Test HTLC', async (accounts) => {
 
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x,
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
 
@@ -1723,20 +1688,19 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList, ValueList);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
 
         } catch (err) {
-            assert.include(err.toString(), "Debt tx is exist");
+            assert.include(err.toString(), "Debt tx exists");
         }
 
     });
@@ -1752,14 +1716,13 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList, ValueList);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1774,8 +1737,7 @@ contract('Test HTLC', async (accounts) => {
         await htlcInstProxy.setHalt(true);
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x,
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
 
@@ -1801,14 +1763,13 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList, ValueList);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
@@ -1822,12 +1783,10 @@ contract('Test HTLC', async (accounts) => {
             await sleep(lockedTime + 1);
 
             let typeList1 = PrmTypeList.inDebtRedeem;
-            let ValueList1 = buildParametersArray(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x);
+            let ValueList1 = buildParametersArray(htlcDebtRedeemParamsTemp.x);
 
             htlcDebtRedeemParamsTemp.s = schnorr.getS(htlcDebtRedeemParamsTemp.skSmg, typeList1, ValueList1);
-            await htlcInstProxy.inDebtRedeem(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x,
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
 
@@ -1840,8 +1799,7 @@ contract('Test HTLC', async (accounts) => {
 
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstNotInit.inDebtRedeem(tokenInfo.tokenOrigAccount,
-                htlcDebtRedeemParamsTemp.x,
+            await htlcInstNotInit.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
 
@@ -1856,7 +1814,7 @@ contract('Test HTLC', async (accounts) => {
 
             let htlcDebtLockParamsTemp = Object.assign({}, htlcDebtLockParams);
             htlcDebtLockParamsTemp.xHash = xHash8;
-            await htlcInstNotInit.inDebtRevoke(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.xHash);
+            await htlcInstNotInit.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
 
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
@@ -1873,13 +1831,13 @@ contract('Test HTLC', async (accounts) => {
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
 
-            await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.xHash);
+            await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
 
         } catch (err) {
             assert.include(err.toString(), "Smart contract is halted");
@@ -1921,8 +1879,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
-                '0x' + htlcSmgLockParamsTemp.value.toString(16),
-                htlcSmgLockParamsTemp.storemanGroupPK);
+                '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(skSrcSmg1, typeList, ValueList);
 
             await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
@@ -1936,8 +1893,7 @@ contract('Test HTLC', async (accounts) => {
             // redeem
             let htlcUserRedeemParamsTemp = Object.assign({}, htlcUserRedeemParams);
             htlcUserRedeemParamsTemp.x = x9;
-            await htlcInstProxy.inUserRedeem(tokenInfo.tokenOrigAccount,
-                htlcUserRedeemParamsTemp.x, {from: accounts[1]});
+            await htlcInstProxy.inUserRedeem(htlcUserRedeemParamsTemp.x, {from: accounts[1]});
 
             // deactive
             await smgInstProxy.storemanGroupUnregister(tokenInfo.tokenOrigAccount, srcDebtStoremanPK1, {from: accounts[4]});
@@ -1952,19 +1908,18 @@ contract('Test HTLC', async (accounts) => {
             ValueList = buildParametersArray(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
-                htlcDebtLockParamsTemp.dstStoremanPK,
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList, ValueList);
 
             await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
-                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.srcStoremanPK,
+                htlcDebtLockParamsTemp.value,
                 htlcDebtLockParamsTemp.dstStoremanPK,
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
 
-            await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.xHash);
+            await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
 
         } catch (err) {
             assert.include(err.toString(), "Revoke is not permitted");
@@ -1977,7 +1932,7 @@ contract('Test HTLC', async (accounts) => {
             let htlcDebtLockParamsTemp = Object.assign({}, htlcDebtLockParams);
             htlcDebtLockParamsTemp.xHash = xHash11;
             await sleep(2 * lockedTime);
-            await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.xHash);
+            await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
 
         } catch (err) {
             assert.fail(err.toString());
@@ -1989,25 +1944,48 @@ contract('Test HTLC', async (accounts) => {
         try {
             let htlcDebtLockParamsTemp = Object.assign({}, htlcDebtLockParams);
             htlcDebtLockParamsTemp.xHash = xHash11;
-            await htlcInstProxy.inDebtRevoke(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.xHash);
+            await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
 
         } catch (err) {
             assert.include(err.toString(), "Status is not locked");
         }
     });
 
-    it('Debt  ==>smgWithdrawFee', async () => {
+    it('others  ==>smgWithdrawFee', async () => {
         try {
 
             let typeList = PrmTypeList.smgWithdrawFee;
-            let ValueList = buildParametersArray(accounts[6]);
+            let nowTimeStamp = Math.floor(Date.now()/1000);
+            let bnTimeStamp = '0x'+(new BN(nowTimeStamp).toString(16));
+            let ValueList = buildParametersArray(bnTimeStamp,accounts[6]);
             let tempS = schnorr.getS(skDstSmg, typeList, ValueList);
 
-            await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK, accounts[6], R, tempS);
+            let bnSmgFee = new BN(await htlcInstProxy.getStoremanFee(dstDebtStoremanPK));
+            let bnRcvCoin = new BN(await web3.eth.getBalance(accounts[6]));
+            let bnRcvCoinExpect = bnRcvCoin.add(bnSmgFee);
+            await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp),accounts[6], R, tempS);
+            let bnRcvCoinActual = new BN(await web3.eth.getBalance(accounts[6]));
+
+            assert.equal(bnRcvCoinExpect.toString(),bnRcvCoinActual.toString());
         } catch (err) {
             assert.fail(err.toString());
         }
     });
+
+    it('others  ==>smgWithdrawFee time out', async () => {
+    try {
+
+      let typeList = PrmTypeList.smgWithdrawFee;
+      let nowTimeStamp = Math.floor(Date.now()/1000);
+      let bnTimeStamp = '0x'+(new BN(nowTimeStamp).toString(16));
+      let ValueList = buildParametersArray(bnTimeStamp,accounts[6]);
+      let tempS = schnorr.getS(skDstSmg, typeList, ValueList);
+      await sleep(msgRcvTimeout);
+      await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp), accounts[6], R, tempS);
+    } catch (err) {
+      assert.include(err.toString(),"The receiver address expired");
+    }
+  });
 });
 
 async function sleep(time) {

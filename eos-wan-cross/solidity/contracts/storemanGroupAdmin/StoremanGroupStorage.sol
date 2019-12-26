@@ -39,9 +39,9 @@ contract StoremanGroupStorage is BasicStorage {
     bool public isWhiteListEnabled;
 
     /// tokenOrigAddr->storemanPK->StoremanGroup)
-    mapping(bytes=>mapping(bytes => StoremanGroup)) internal storemanGroupMap;
+    mapping(bytes => mapping(bytes => StoremanGroup)) internal storemanGroupMap;
     /// tokenOrigAddr->storemanPK->isEnabled
-    mapping(bytes=>mapping(bytes => bool)) internal whiteListMap;
+    mapping(bytes => mapping(bytes => bool)) internal whiteListMap;
 
     struct StoremanGroup {
         address delegate;                 /// the account for registering a storeman group which provides storeman group deposit

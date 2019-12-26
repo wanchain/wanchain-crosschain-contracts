@@ -511,7 +511,7 @@ contract('WanToken', async (accounts) => {
       } catch (err) {
         lib.assertExists(err);
         lib.expectToBeAnInstanceOf(err, Error);
-        lib.assertInclude(err.message, "Not support", err);
+        lib.assertInclude(err.message, "VM Exception while processing transaction", err);
       }
 
       let destroyTx = await testWanToken.destroyToken(tokenInfo.name, tokenInfo.symbol);

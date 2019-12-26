@@ -36,6 +36,11 @@ library HTLCTypes {
     /// @notice for example: revokeFeeRatio is 3, meaning that the revoking fee ratio is 3/10000
     uint constant RATIO_PRECISE = 10000;
 
+    /// @notice     Since storeman group admin receiver address may be changed, system should make sure the new address
+    /// @notice     can be used, and the old address can not be used. The solution is add timestamp.
+    /// @notice     unit: second
+    uint constant SMG_FEE_RECEIVER_TIMEOUT = uint(10*60);
+
     /**
      *
      * STRUCTURES
@@ -69,5 +74,10 @@ library HTLCTypes {
     /// @notice get the const value RATIO_PRECISE
     function getRatioPrecise() internal pure returns(uint) {
       return RATIO_PRECISE;
+    }
+
+    /// @notice get the const value RATIO_PRECISE
+    function getSMGRcvTimeOut() internal pure returns(uint) {
+        return SMG_FEE_RECEIVER_TIMEOUT;
     }
 }

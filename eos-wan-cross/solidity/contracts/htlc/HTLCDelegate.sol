@@ -121,15 +121,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     /// @notice                                 user redeem WRC20 token on wanchain, which invokes mint token
-    /// @param  tokenOrigAccount                account of original chain token
     /// @param  x                               HTLC random number
-    function inUserRedeem(bytes tokenOrigAccount, bytes32 x)
+    function inUserRedeem(bytes32 x)
         external
         initialized
         notHalted
     {
         HTLCUserLib.HTLCUserRedeemParams memory params = HTLCUserLib.HTLCUserRedeemParams({
-            tokenOrigAccount: tokenOrigAccount,
             tokenManager: htlcStorageData.tokenManager,
             x: x
         });
@@ -137,15 +135,15 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     /// @notice                                 storeman redeem transaction on wanchain,which invokes burn token
-    /// @param  tokenOrigAccount                account of original chain token
     /// @param  x                               HTLC random number
-    function outSmgRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
+    /// @param  r                               signature
+    /// @param  s                               signature
+    function outSmgRedeem(bytes32 x, bytes r, bytes32 s)
         external
         initialized
         notHalted
     {
         HTLCSmgLib.HTLCSmgRedeemParams memory params = HTLCSmgLib.HTLCSmgRedeemParams({
-            tokenOrigAccount: tokenOrigAccount,
             tokenManager: htlcStorageData.tokenManager,
             r: r,
             s: s,
@@ -155,27 +153,24 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     /// @notice                                 inbound, storeman revoke HTLC transaction on wanchain
-    /// @param tokenOrigAccount                 account of original chain token
     /// @param xHash                            hash of HTLC random number
-    function inSmgRevoke(bytes tokenOrigAccount, bytes32 xHash)
+    function inSmgRevoke(bytes32 xHash)
         external
         initialized
         notHalted
     {
-        HTLCSmgLib.inSmgRevoke(htlcStorageData, tokenOrigAccount, xHash);
+        HTLCSmgLib.inSmgRevoke(htlcStorageData,xHash);
     }
 
     /// @notice                                 outbound, user revoke HTLC transaction on wanchain
-    /// @param                                  tokenOrigAccount  account of original chain token
     /// @notice                                 the revoking fee will be sent to storeman
     /// @param  xHash                           hash of HTLC random number
-    function outUserRevoke(bytes tokenOrigAccount, bytes32 xHash)
+    function outUserRevoke(bytes32 xHash)
         external
         initialized
         notHalted
     {
         HTLCUserLib.HTLCUserRevokeParams memory params = HTLCUserLib.HTLCUserRevokeParams({
-            tokenOrigAccount: tokenOrigAccount,
             tokenManager: htlcStorageData.tokenManager,
             xHash: xHash
         });
@@ -189,7 +184,7 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param  dstStoremanPK                   PK of dst storeman
     /// @param  r                               signature
     /// @param  s                               signature
-    function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, uint value, bytes srcStoremanPK, bytes dstStoremanPK, bytes r, bytes32 s)
+    function inDebtLock(bytes tokenOrigAccount, bytes32 xHash, bytes srcStoremanPK, uint value, bytes dstStoremanPK, bytes r, bytes32 s)
         external
         initialized
         notHalted
@@ -208,17 +203,15 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     /// @notice                             redeem debt, destination storeman group takes over the debt of source storeman group
-    /// @param  tokenOrigAccount            account of original chain token
     /// @param  x                           HTLC random number
     /// @param  r                           signature
     /// @param  s                           signature
-    function inDebtRedeem(bytes tokenOrigAccount, bytes32 x, bytes r, bytes32 s)
+    function inDebtRedeem(bytes32 x, bytes r, bytes32 s)
         external
         initialized
         notHalted
     {
         HTLCDebtLib.HTLCDebtRedeemParams memory params = HTLCDebtLib.HTLCDebtRedeemParams({
-            tokenOrigAccount: tokenOrigAccount,
             r: r,
             s: s,
             x: x
@@ -227,14 +220,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
     }
 
     /// @notice                             source storeman group revoke the debt on wanchain
-    /// @param tokenOrigAccount             account of original chain token
     /// @param xHash                        hash of HTLC random number
-    function inDebtRevoke(bytes tokenOrigAccount, bytes32 xHash)
+    function inDebtRevoke(bytes32 xHash)
         external
         initialized
         notHalted
     {
-        HTLCDebtLib.inDebtRevoke(htlcStorageData, tokenOrigAccount, xHash);
+        HTLCDebtLib.inDebtRevoke(htlcStorageData, xHash);
     }
 
     /// @notice                             add a storeman group and activate the storeman group
@@ -286,8 +278,10 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @param receiver                     account of the receiver
     /// @param r                            signature
     /// @param s                            signature
-    function smgWithdrawFee(bytes storemanGroupPK, address receiver, bytes r, bytes32 s) external {
-        HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, receiver, r, s);
+    function smgWithdrawFee(bytes storemanGroupPK, uint timeStamp, address receiver, bytes r, bytes32 s) external {
+
+        require(now < timeStamp.add(HTLCTypes.getSMGRcvTimeOut()), "The receiver address expired");
+        HTLCSmgLib.smgWithdrawFee(htlcStorageData, storemanGroupPK, timeStamp, receiver, r, s);
     }
 
     /// @notice                             update the initialized state value of this contract
