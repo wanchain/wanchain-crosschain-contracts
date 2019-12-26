@@ -1,4 +1,7 @@
 {
+  "admin": "0x938cE70246CB3e62fa4BA12D70D9bb84FF6C9274",
+  "libOwner": "0x574ec77cb2905515e1e218014819a38119324a56",
+  "smgDelegate": "0x79c4cf40e7702331c1c077d164824fb83149ee38",
   "gasPrice": 20000000000,
   "gasLimit": 5000000,
   "htlcRatio": 0

@@ -6,13 +6,15 @@ const tokenArray = require('../token.json');
 const smgArray = require('../smg.json');
 
 // '0x938cE70246CB3e62fa4BA12D70D9bb84FF6C9274'
-const ownerPriv = new Buffer.from('7d3e5d150fce5a3ca580e0a5728dac020be97396394948c6ff03de94cc468e7e', 'hex');
+const adminPrivateKey = new Buffer.from('7d3e5d150fce5a3ca580e0a5728dac020be97396394948c6ff03de94cc468e7e', 'hex');
+const smgDelegatePrivateKey = new Buffer.from('59218f485a99cabb9075bab78c833233efa8e2ad7ed5bb45dc004d354702f6fd', 'hex');
 
-const noncePath = tool.getOutputPath('nonce');
 const txDataDir = tool.getOutputPath('txData');
 
-async function buildRegTokenSmg(privateKey) {
-  let nonce = JSON.parse(tool.readFromFile(noncePath));
+async function buildRegTokenSmg(adminPrivateKey, smgDelegatePrivateKey) {
+  let adminNonce = tool.getNonce('admin')
+  let smgDelegateNonce = tool.getNonce('smgDelegate');
+  
   let contract, txData, i;
 
   let tmProxyAddress = contractAddress.getAddress('TokenManagerProxy');
@@ -28,8 +30,11 @@ async function buildRegTokenSmg(privateKey) {
     txData = await contract.methods.addToken(t.tokenOrigAccount, t.token2WanRatio, scTool.wan2win(t.minDeposit), t.withdrawDelayTime,
                                       tool.str2hex(t.name), tool.str2hex(t.symbol), t.decimals)
                                    .encodeABI();
-    scTool.serializeTx(txData, nonce.owner++, tmProxyAddress, '0', path.join(txDataDir, "regToken" + t.symbol + ".dat"), privateKey);
+    scTool.serializeTx(txData, adminNonce++, tmProxyAddress, '0', path.join(txDataDir, "regToken" + t.symbol + ".dat"), adminPrivateKey);
   }
+
+  // update admin nonce
+  tool.updateNonce('admin', adminNonce);  
 
   /* 
    * build register storemanGroup
@@ -38,11 +43,11 @@ async function buildRegTokenSmg(privateKey) {
   for (i = 0; i < smgArray.length; i++) {
     let s = smgArray[i];
     txData = await contract.methods.storemanGroupRegister(s.tokenOrigAccount, s.storemanGroup, s.txFeeRatio).encodeABI();
-    scTool.serializeTx(txData, nonce.owner++, smgProxyAddress, s.wanDeposit.toString(), path.join(txDataDir, "regSmg" + s.tokenSymbol + ".dat"), privateKey);
+    scTool.serializeTx(txData, smgDelegateNonce++, smgProxyAddress, s.wanDeposit.toString(), path.join(txDataDir, "regSmg" + s.tokenSymbol + ".dat"), smgDelegatePrivateKey);
   }
 
-  // update nonce
-  tool.write2file(noncePath, JSON.stringify(nonce));
+  // update smgDelegate nonce
+  tool.updateNonce('smgDelegate', smgDelegateNonce);
 }
 
-buildRegTokenSmg(ownerPriv);
+buildRegTokenSmg(adminPrivateKey, smgDelegatePrivateKey);

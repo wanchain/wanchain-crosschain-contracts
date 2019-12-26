@@ -1,10 +1,10 @@
-const cfg = require('../config.json');
 const path = require('path');
 const tool = require('./tool');
 const solc = require('solc');
 const linker = require('solc/linker')
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:9545'));
+const cfg = require('../config.json');
 const source = require('../source');
 const contractAddress = require('../contractAddress');
 const keythereum = require('keythereum');

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const cfg = require('../config.json')
 
 const createFolder = (filePath) => { 
   var sep = path.sep
@@ -39,9 +40,25 @@ const str2hex = (str) => {
   return '0x' + content;
 }
 
+const getNonce = (role) => {
+  let nonce = JSON.parse(readFromFile(getOutputPath('nonce')));
+  return nonce[cfg[role]];
+}
+
+const updateNonce = (role, nonce) => {
+  let n = {};
+  try {
+    n = JSON.parse(readFromFile(getOutputPath('nonce')));
+  } catch {}
+  n[cfg[role]] = nonce;
+  write2file(getOutputPath('nonce'), JSON.stringify(n));
+}
+
 module.exports = {
   write2file,
   readFromFile,
   getOutputPath,
-  str2hex
+  str2hex,
+  getNonce,
+  updateNonce
 }

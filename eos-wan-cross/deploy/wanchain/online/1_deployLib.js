@@ -2,7 +2,7 @@ const scTool = require('../utils/scTool');
 const contractAddress = require('../contractAddress');
 
 // '0x574ec77cb2905515e1e218014819a38119324a56';
-const devPrivateKey = new Buffer.from('2727714014292a6ee6d9047538c176df80205d98abcb736c70653b7f126ccfa5', 'hex');
+const libOwnerPrivateKey = new Buffer.from('2727714014292a6ee6d9047538c176df80205d98abcb736c70653b7f126ccfa5', 'hex');
 
 async function deployLib(privateKey) {
   let compiled, address;
@@ -77,4 +77,4 @@ async function deployLib(privateKey) {
   return true;
 }
 
-deployLib(devPrivateKey);
+deployLib(libOwnerPrivateKey);
