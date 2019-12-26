@@ -508,6 +508,7 @@ namespace htlc {
         #ifdef _DEBUG_API
         ACTION gethash(std::string value);
         ACTION truncate(eosio::name table, std::string scope);
+        ACTION query(eosio::name table, std::string scope);
         ACTION leftlocktime(eosio::name table, std::string xHash);
         #endif
 
@@ -592,7 +593,6 @@ namespace htlc {
         ACTION unregtoken(eosio::name code, eosio::symbol sym);
 
         ACTION setratio(uint64_t ratio);
-        ACTION updateratio(uint64_t ratio);
         #ifdef _DEBUG_API
         ACTION printratio();
         #endif
