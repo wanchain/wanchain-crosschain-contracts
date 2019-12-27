@@ -293,4 +293,8 @@ library HTLCLib {
 
         info.baseTx.status = TxStatus.Revoked;
     }
+
+    function getLockedTime() internal pure returns(uint) {
+        return DEF_LOCKED_TIME;
+    }
 }

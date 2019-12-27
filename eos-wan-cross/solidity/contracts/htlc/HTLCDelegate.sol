@@ -32,6 +32,7 @@ import "./lib/HTLCSmgLib.sol";
 import "./lib/HTLCUserLib.sol";
 import "../components/Halt.sol";
 import "./HTLCStorage.sol";
+import "./lib/HTLCLib.sol";
 
 contract HTLCDelegate is HTLCStorage, Halt {
     using SafeMath for uint;
@@ -304,8 +305,8 @@ contract HTLCDelegate is HTLCStorage, Halt {
     /// @return tokenManagerAddr             address of the token manager
     /// @return storemanGroupAdminAddr       address of the storeman group
     /// @return revokeFeeRatio               revoke ratio, the denominator is DEFAULT_PRECISE
-    function getEconomics() external view returns(address, address, uint) {
-        return (address(htlcStorageData.tokenManager), htlcStorageData.storemanGroupAdmin, htlcStorageData.revokeFeeRatio);
+    function getEconomics() external view returns(address, address, uint, uint) {
+        return (address(htlcStorageData.tokenManager), htlcStorageData.storemanGroupAdmin, htlcStorageData.revokeFeeRatio, HTLCLib.getLockedTime());
     }
 
     /// @notice                             get the detailed quota info. of this storeman group
