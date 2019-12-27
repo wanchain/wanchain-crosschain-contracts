@@ -3,14 +3,17 @@ const tool = require('./tool');
 const solc = require('solc');
 const linker = require('solc/linker')
 const Web3 = require('web3');
-const web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:9545'));
 const cfg = require('../config.json');
 const source = require('../source');
 const contractAddress = require('../contractAddress');
 const keythereum = require('keythereum');
 const wanUtil = require('wanchain-util');
-// const Tx = wanUtil.wanchainTx;
-const Tx = require('ethereumjs-tx');
+let Tx = wanUtil.wanchainTx;
+let web3 = new Web3(new Web3.providers.HttpProvider('http://192.168.1.58:18545'));
+if (cfg.mode == 'debug') {
+  Tx = require('ethereumjs-tx');
+  web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:9545/'));
+}
 
 function getImport(filePath) {
   let fileName = path.basename(filePath);
@@ -73,10 +76,9 @@ const serializeTx = (data, nonce, contractAddr, value, filePath, privateKey) => 
   nonce = '0x' + nonce.toString(16);
 
   rawTx = {
-      // Txtype: 0x01,
+      Txtype: 0x01, // wanchain only
       nonce: nonce,
       gasPrice: cfg.gasPrice,
-      // gas: cfg.gas,
       gasLimit: cfg.gasLimit,
       to: contractAddr,
       value: value,
@@ -148,9 +150,18 @@ const getDeployedContract = async (name, address) => {
   return new web3.eth.Contract(JSON.parse(compiled.interface), address);
 }
 
-const getNonce = async (address) => {
+const getNonce = async (roleOrAddress) => {
+  let address = '';
+  if (roleOrAddress.length != 42) { // role
+    address = cfg.account[roleOrAddress].address.toLowerCase();
+    if (cfg.mode == 'debug') {
+      address = cfg.debug[roleOrAddress].address;
+    }
+  } else {
+    address = roleOrAddress;
+  }
   let nonce = await web3.eth.getTransactionCount(address);
-  // console.log("getNonce: %s, %d", address, nonce);
+  // console.log("getNonce: %s(%s), %d", roleOrAddress, address, nonce);
   return nonce;
 }
 

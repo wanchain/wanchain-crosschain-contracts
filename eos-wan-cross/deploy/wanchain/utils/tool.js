@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const keythereum = require('keythereum');
 const cfg = require('../config.json')
 
 const createFolder = (filePath) => { 
@@ -42,16 +43,32 @@ const str2hex = (str) => {
 
 const getNonce = (role) => {
   let nonce = JSON.parse(readFromFile(getOutputPath('nonce')));
-  return nonce[cfg[role]];
+  let address = cfg.account[role].address;
+  if (cfg.mode == 'debug') {
+    address = cfg.debug[role].address;
+  }
+  return nonce[address];
 }
 
 const updateNonce = (role, nonce) => {
   let n = {};
+  let address = cfg.account[role].address;
+  if (cfg.mode == 'debug') {
+    address = cfg.debug[role].address;
+  }  
   try {
     n = JSON.parse(readFromFile(getOutputPath('nonce')));
   } catch {}
-  n[cfg[role]] = nonce;
+  n[address] = nonce;
   write2file(getOutputPath('nonce'), JSON.stringify(n));
+}
+
+const getPrivateKey = (role) => {
+  let dir = path.join(__dirname, "../keystore/" + role);
+  let files = fs.readdirSync(dir);
+  let keystore = JSON.parse(fs.readFileSync(path.join(dir, files[0]), "utf8"));
+  let privateKey = keythereum.recover(cfg.account[role].keystorePwd, keystore);
+  return privateKey;
 }
 
 module.exports = {
@@ -60,5 +77,6 @@ module.exports = {
   getOutputPath,
   str2hex,
   getNonce,
-  updateNonce
+  updateNonce,
+  getPrivateKey
 }

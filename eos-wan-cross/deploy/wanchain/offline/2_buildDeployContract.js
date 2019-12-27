@@ -1,16 +1,19 @@
 const path = require('path');
+const cfg = require('../config.json');
 const tool = require('../utils/tool');
 const scTool = require('../utils/scTool');
-
-// '0x938cE70246CB3e62fa4BA12D70D9bb84FF6C9274'
-const adminPrivateKey = new Buffer.from('7d3e5d150fce5a3ca580e0a5728dac020be97396394948c6ff03de94cc468e7e', 'hex');
 
 const txDataDir = tool.getOutputPath('txData');
 
 async function buildDeployContract(privateKey) {
-  let adminNonce = tool.getNonce('admin');
   let compiled, txData;
  
+  let adminNonce = tool.getNonce('admin');
+
+  if (typeof(privateKey) == 'string') { // role
+    privateKey = tool.getPrivateKey(privateKey);
+  }
+
   /* 
    * build TokenManager contracts
    */
@@ -59,4 +62,8 @@ async function buildDeployContract(privateKey) {
   tool.updateNonce('admin', adminNonce);
 }
 
-buildDeployContract(adminPrivateKey);
+if (cfg.mode == 'release') {
+  buildDeployContract('admin'); // role or privateKey
+} else { // 'debug'
+  buildDeployContract(new Buffer.from(cfg.debug['admin'].privateKey, 'hex'));
+}

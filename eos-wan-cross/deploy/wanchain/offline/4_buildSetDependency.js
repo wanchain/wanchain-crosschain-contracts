@@ -4,14 +4,16 @@ const tool = require('../utils/tool');
 const scTool = require('../utils/scTool');
 const contractAddress = require('../contractAddress');
 
-// '0x938cE70246CB3e62fa4BA12D70D9bb84FF6C9274'
-const adminPrivateKey = new Buffer.from('7d3e5d150fce5a3ca580e0a5728dac020be97396394948c6ff03de94cc468e7e', 'hex');
-
 const txDataDir = tool.getOutputPath('txData');
 
 async function buildDependency(privateKey) {
-  let adminNonce = tool.getNonce('admin');
   let contract, txData;
+
+  let adminNonce = tool.getNonce('admin');
+
+  if (typeof(privateKey) == 'string') { // role
+    privateKey = tool.getPrivateKey(privateKey);
+  }  
 
   let tmProxyAddress = contractAddress.getAddress('TokenManagerProxy');
   let tmDelegateAddress = contractAddress.getAddress('TokenManagerDelegate');
@@ -60,4 +62,8 @@ async function buildDependency(privateKey) {
   tool.updateNonce('admin', adminNonce);
 }
 
-buildDependency(adminPrivateKey);
+if (cfg.mode == 'release') {
+  buildDependency('admin'); // role or privateKey
+} else { // 'debug'
+  buildDependency(new Buffer.from(cfg.debug['admin'].privateKey, 'hex'));
+}
