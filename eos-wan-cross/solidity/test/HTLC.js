@@ -212,6 +212,7 @@ let tmAddress, smgAddress, precise;
 contract('Test HTLC', async (accounts) => {
     before("init...   -> success", async () => {
         try {
+            await testInit();
             // get the instance
             let deploy;
             deploy = await StoremanGroupProxy.deployed();
@@ -527,9 +528,17 @@ contract('Test HTLC', async (accounts) => {
         let address;
         try {
             let htlcProxy = await HTLCProxy.deployed();
-            await htlcProxy.upgradeTo(htlcInst.address);
+            let ret = await htlcProxy.upgradeTo(htlcInst.address);
             address = await htlcProxy.implementation();
             assert.equal(address, htlcInst.address);
+
+            assert.web3Event(ret, {
+                event: 'Upgraded',
+                args: {
+                    implementation:address
+                }
+            });
+
         } catch (err) {
             assert.fail(err.toString());
         }
@@ -609,7 +618,7 @@ contract('Test HTLC', async (accounts) => {
                 '0x' + htlcSmgLockParamsTemp.value.toString(16));
             htlcSmgLockParamsTemp.s = schnorr.getS(htlcSmgLockParamsTemp.skSmg, typeList, ValueList);
 
-            await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
+            let ret = await htlcInstProxy.inSmgLock(htlcSmgLockParamsTemp.tokenOrigAccount,
                 htlcSmgLockParamsTemp.xHash,
                 htlcSmgLockParamsTemp.wanAddr,
                 htlcSmgLockParamsTemp.value,
@@ -617,6 +626,16 @@ contract('Test HTLC', async (accounts) => {
                 htlcSmgLockParamsTemp.r,
                 htlcSmgLockParamsTemp.s);
 
+            assert.web3Event(ret, {
+                event: 'InboundLockLogger',
+                args: {
+                    wanAddr: htlcSmgLockParamsTemp.wanAddr,
+                    xHash: htlcSmgLockParamsTemp.xHash,
+                    value: htlcSmgLockParamsTemp.value.toString(),
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    storemanGroupPK: htlcSmgLockParamsTemp.storemanGroupPK
+                }
+            });
         } catch (err) {
             assert.fail(err);
         }
@@ -649,7 +668,6 @@ contract('Test HTLC', async (accounts) => {
     it('EOS->WAN inUserRedeem ==> Token manager is null', async () => {
         try {
             await htlcInstNotInit.inUserRedeem(htlcUserRedeemParams.x);
-
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
         }
@@ -657,7 +675,22 @@ contract('Test HTLC', async (accounts) => {
 
     it('EOS->WAN inUserRedeem ==> success', async () => {
         try {
-            await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x, {from: accounts[1]});
+
+            let bnBeforeTotalSupply = new BN(await getTotalSupply(tokenInfo.tokenOrigAccount));
+            let bnAfterTotalSupply = bnBeforeTotalSupply.add(new BN(htlcSmgLockParams.value.toString()));
+
+            let ret = await htlcInstProxy.inUserRedeem(htlcUserRedeemParams.x, {from: accounts[1]});
+            assert.web3Event(ret, {
+                event: 'InboundRedeemLogger',
+                args: {
+                    wanAddr: accounts[1],
+                    xHash: htlcSmgLockParams.xHash,
+                    x:htlcUserRedeemParams.x,
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    storemanGroupPK: htlcSmgLockParams.storemanGroupPK
+                }
+            });
+
             let balance = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
             assert.equal(balance, htlcSmgLockParams.value, "Redeemed token is not equal the locked value");
         } catch (err) {
@@ -843,7 +876,15 @@ contract('Test HTLC', async (accounts) => {
     it('EOS->WAN inSmgRevoke  ==>success', async () => {
         try {
             await sleep(lockedTime);
-            await htlcInstProxy.inSmgRevoke(xHash5);
+            let ret = await htlcInstProxy.inSmgRevoke(xHash5);
+            assert.web3Event(ret, {
+                event: 'InboundRevokeLogger',
+                args: {
+                    xHash: xHash5,
+                    tokenOrigAccount: htlcSmgLockParams.tokenOrigAccount,
+                    storemanGroupPK: htlcSmgLockParams.storemanGroupPK
+                }
+            })
         } catch (err) {
             assert.fail(err);
         }
@@ -1046,6 +1087,18 @@ contract('Test HTLC', async (accounts) => {
                 htlcUserLockParamsTemp.userOrigAccount,
                 htlcUserLockParamsTemp.storemanGroupPK, {from: accounts[1], value: htlcUserLockParams.value});
 
+            ret = txLockRpt;
+            assert.web3Event(ret, {
+                event: 'OutboundLockLogger',
+                args: {
+                    xHash: htlcUserLockParamsTemp.xHash,
+                    value: htlcUserLockParamsTemp.value.toString(),
+                    tokenOrigAccount: htlcUserLockParamsTemp.tokenOrigAccount,
+                    userOrigAccount:htlcUserLockParamsTemp.userOrigAccount.toString().toLowerCase(),
+                    storemanGroupPK: htlcUserLockParamsTemp.storemanGroupPK
+                }
+            });
+
             //console.log(txLockRpt);
             let txLock = await web3.eth.getTransaction(txLockRpt.tx);
             //console.log(txLock);
@@ -1189,9 +1242,30 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcSmgRedeemParamsTemp.x);
             htlcSmgRedeemParamsTemp.s = schnorr.getS(skSmg1, typeList, ValueList);
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
+            let bnBeforeTotalSupply = new BN(await getTotalSupply(tokenInfo.tokenOrigAccount));
+            let bnAfterTotalSupply = bnBeforeTotalSupply.sub(new BN(htlcSmgLockParams.value.toString()));
+
+            let ret = await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
                 htlcSmgRedeemParamsTemp.r,
                 htlcSmgRedeemParamsTemp.s);
+
+            let txFee = (new BN(htlcUserLockParams.value))
+                .div(new BN(10).pow(new BN(tokenInfo.decimals)))
+                .mul(new BN(10).pow(new BN(18)))
+                .mul(new BN(tokenInfo.token2WanRatio))
+                .mul(new BN(addSmgParams.txFeeRatio))
+                .div(new BN(DEFAULT_PRECISE))
+                .div(new BN(DEFAULT_PRECISE));
+
+            assert.web3Event(ret, {
+                event: 'OutboundRedeemLogger',
+                args: {
+                    hashX: xHash2,
+                    x: x2,
+                    tokenOrigAccount: htlcSmgLockParams.tokenOrigAccount,
+                    fee: txFee.toString()
+                }
+            });
 
         } catch (err) {
             assert.fail(err);
@@ -1348,6 +1422,9 @@ contract('Test HTLC', async (accounts) => {
             //console.log("beforeCoin:"+beforeCoin.toString());
 
             let txRevokeRpt = await htlcInstProxy.outUserRevoke(xHash4, {from:accounts[1]});
+
+
+
             let txRevoke = await web3.eth.getTransaction(txRevokeRpt.tx);
 
             let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
@@ -1369,11 +1446,17 @@ contract('Test HTLC', async (accounts) => {
             let txRevokeFee = txLockFee.mul(new BN(revokeFeeRatio)).div(new BN(DEFAULT_PRECISE));
             let returnCoin = txLockFee.sub(txRevokeFee);
 
-            //console.log("txRevokeFee:"+txRevokeFee.toString());
-            //console.log("returnCoin:"+returnCoin.toString());
+            ret = txRevokeRpt;
+            assert.web3Event(ret, {
+                event: 'OutboundRevokeLogger',
+                args: {
+                    wanAddr: accounts[1],
+                    xHash: xHash4,
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    revokeFee: txRevokeFee.toString()
+                }
+            });
 
-            //console.log("gasUsed:"+txRevokeRpt.receipt.gasUsed);
-            //console.log("gasPrice:"+txRevoke.gasPrice);
             // check coin
             let bnGasCoin = new BN(txRevokeRpt.receipt.gasUsed).mul(new BN(txRevoke.gasPrice));
 
@@ -1627,7 +1710,7 @@ contract('Test HTLC', async (accounts) => {
                 '0x' + htlcDebtLockParamsTemp.value.toString(16));
             htlcDebtLockParamsTemp.s = schnorr.getS(htlcDebtLockParamsTemp.skDstSmg, typeList1, ValueList1);
 
-            await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
+            let ret = await htlcInstProxy.inDebtLock(tokenInfo.tokenOrigAccount,
                 htlcDebtLockParamsTemp.xHash,
                 htlcDebtLockParamsTemp.srcStoremanPK,
                 htlcDebtLockParamsTemp.value,
@@ -1635,6 +1718,16 @@ contract('Test HTLC', async (accounts) => {
                 htlcDebtLockParamsTemp.r,
                 htlcDebtLockParamsTemp.s);
 
+            assert.web3Event(ret, {
+                event: 'DebtLockLogger',
+                args: {
+                    xHash: htlcDebtLockParamsTemp.xHash,
+                    value: htlcDebtLockParamsTemp.value.toString(),
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    srcStoremanPK: htlcDebtLockParamsTemp.srcStoremanPK,
+                    dstStoremanPK:htlcDebtLockParamsTemp.dstStoremanPK
+                }
+            });
             srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.srcStoremanPK);
             dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.dstStoremanPK);
 
@@ -1653,9 +1746,20 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcDebtRedeemParamsTemp.x);
             htlcDebtRedeemParamsTemp.s = schnorr.getS(htlcDebtRedeemParamsTemp.skSmg, typeList, ValueList);
 
-            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
+            let ret = await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
                 htlcDebtRedeemParamsTemp.r,
                 htlcDebtRedeemParamsTemp.s);
+
+            assert.web3Event(ret, {
+                event: 'DebtRedeemLogger',
+                args: {
+                    xHash: htlcDebtLockParams.xHash,
+                    x:htlcDebtRedeemParamsTemp.x,
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    srcStoremanPK: htlcDebtLockParams.srcStoremanPK,
+                    dstStoremanPK:htlcDebtLockParams.dstStoremanPK
+                }
+            });
 
         } catch (err) {
             assert.fail(err.toString());
@@ -1932,7 +2036,17 @@ contract('Test HTLC', async (accounts) => {
             let htlcDebtLockParamsTemp = Object.assign({}, htlcDebtLockParams);
             htlcDebtLockParamsTemp.xHash = xHash11;
             await sleep(2 * lockedTime);
-            await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
+            let ret = await htlcInstProxy.inDebtRevoke(htlcDebtLockParamsTemp.xHash);
+
+            assert.web3Event(ret, {
+                event: 'DebtRevokeLogger',
+                args: {
+                    xHash: htlcDebtLockParamsTemp.xHash,
+                    tokenOrigAccount: tokenInfo.tokenOrigAccount,
+                    srcStoremanPK: srcDebtStoremanPK1,
+                    dstStoremanPK: htlcDebtLockParams.dstStoremanPK
+                }
+            });
 
         } catch (err) {
             assert.fail(err.toString());
@@ -1963,8 +2077,18 @@ contract('Test HTLC', async (accounts) => {
             let bnSmgFee = new BN(await htlcInstProxy.getStoremanFee(dstDebtStoremanPK));
             let bnRcvCoin = new BN(await web3.eth.getBalance(accounts[6]));
             let bnRcvCoinExpect = bnRcvCoin.add(bnSmgFee);
-            await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp),accounts[6], R, tempS);
+            let ret= await  htlcInstProxy.smgWithdrawFee(dstDebtStoremanPK,new BN(nowTimeStamp),accounts[6], R, tempS);
             let bnRcvCoinActual = new BN(await web3.eth.getBalance(accounts[6]));
+
+            assert.web3Event(ret, {
+                event: 'SmgWithdrawFeeLogger',
+                args: {
+                    receiver: accounts[6],
+                    storemanGroupPK: dstDebtStoremanPK,
+                    timeStamp:(new BN(nowTimeStamp)).toString(),
+                    fee:bnSmgFee.toString()
+                }
+            });
 
             assert.equal(bnRcvCoinExpect.toString(),bnRcvCoinActual.toString());
         } catch (err) {
@@ -1986,6 +2110,7 @@ contract('Test HTLC', async (accounts) => {
       assert.include(err.toString(),"The receiver address expired");
     }
   });
+
 });
 
 async function sleep(time) {
@@ -2002,6 +2127,14 @@ async function getValueFromContract(tokenOrigAccount, userAccountAddress) {
     let wanTokenSCAddr = ret[3];
     let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
     let balance = await wanTokenScInst.balanceOf(userAccountAddress);
+    return balance.toString();
+};
+
+async function getTotalSupply(tokenOrigAccount) {
+    let ret = await tmInstProxy.getTokenInfo(tokenInfo.tokenOrigAccount);
+    let wanTokenSCAddr = ret[3];
+    let wanTokenScInst = await WanToken.at(wanTokenSCAddr);
+    let balance = await wanTokenScInst.totalSupply();
     return balance.toString();
 };
 
@@ -2026,4 +2159,61 @@ function buildParametersArray(...args) {
         ret.push(arg);
     }
     return ret;
+}
+
+function buildObservedEventsForComparison(observedTransactionResult, expectedEvents, filterByName) {
+    let observedEvents = new Array();
+
+    observedTransactionResult.logs.forEach(function(logEntry) {
+        let expectedEntry = expectedEvents.find(function(evt) {
+            return (evt.event === logEntry.event)
+        });
+
+        // When filtering, ignore events that are not expected
+        if ((! filterByName) || expectedEntry) {
+            // Event name
+            let event = {
+                event: logEntry.event
+            };
+
+            // Event arguments
+            // Ignore the arguments when they are not tested
+            // (ie. expectedEntry.args is undefined)
+            if ((! expectedEntry) || (expectedEntry && expectedEntry.args)) {
+                event.args = Object.keys(logEntry.args).reduce(function(previous, current) {
+                    previous[current] =
+                        (typeof logEntry.args[current].toNumber === 'function')
+                            ? logEntry.args[current].toString()
+                            : logEntry.args[current];
+                    return previous;
+                }, {});
+            }
+
+            observedEvents.push(event);
+        }
+    });
+
+    return observedEvents;
+}
+
+async function testInit(){
+    if (typeof assert !== 'undefined') {
+
+        assert.web3Event = function(observedTransactionResult, expectedEvent, message) {
+            let entries = buildObservedEventsForComparison(observedTransactionResult, [expectedEvent], true);
+            let entry = entries[0];
+            if(entry == null){
+                assert.fail("Not get the expected event");
+            }
+            assert.equal(entry.event, expectedEvent.event);
+            let expectArgs = expectedEvent.args;
+            let entryArgs = entry.args;
+            for(let key of Object.keys(expectArgs)){
+                if(expectArgs[key] != entryArgs[key]){
+                    assert.fail("Not get the expected event");
+                    break;
+                }
+            }
+        };
+    }
 }
