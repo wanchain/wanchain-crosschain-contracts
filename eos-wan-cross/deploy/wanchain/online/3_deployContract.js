@@ -26,7 +26,7 @@ async function deployContract(index) {
   let scName = scArray[index];
   let txFile = path.join(txDataDir, "deploy" + scName + ".dat");
   let txHash = await scTool.sendSerializedTx(txFile);
-  let address = await scTool.waitReceipt(txHash, 30, true);
+  let address = await scTool.waitReceipt(txHash, true);
   if (address) {
     contractAddress.setAddress(scName, address);
     console.log("deployed %s address: %s", scName, address);

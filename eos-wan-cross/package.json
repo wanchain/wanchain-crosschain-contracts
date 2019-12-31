@@ -23,7 +23,8 @@
     "ethereum-common": "^0.0.18",
     "ethereumjs-tx": "^1.3.6",
     "ethereumjs-util": "^5.1.2",
-    "keythereum": "^1.0.4"
+    "keythereum": "^1.0.4",
+    "iwan-sdk": "^1.1.0"
   },
   "scripts": {
     "eos": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c",

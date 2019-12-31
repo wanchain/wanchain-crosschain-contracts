@@ -24,7 +24,7 @@ async function setDependency(index) {
   let txName = txArray[index];
   let txFile = path.join(txDataDir, txName + ".dat");
   let txHash = await scTool.sendSerializedTx(txFile);
-  let success = await scTool.waitReceipt(txHash, 30, false);
+  let success = await scTool.waitReceipt(txHash, false);
   if (success) {
     console.log(txName + " success");
     return setDependency(index + 1);

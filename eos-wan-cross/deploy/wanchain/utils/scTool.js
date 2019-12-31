@@ -8,12 +8,26 @@ const source = require('../source');
 const contractAddress = require('../contractAddress');
 const keythereum = require('keythereum');
 const wanUtil = require('wanchain-util');
+const iwanSdk = require('iwan-sdk');
 let Tx = wanUtil.wanchainTx;
-let web3 = new Web3(new Web3.providers.HttpProvider('http://192.168.1.58:18545'));
+let web3 = new Web3();
 if (cfg.mode == 'debug') {
   Tx = require('ethereumjs-tx');
   web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:9545/'));
 }
+
+const iwanCfg = {
+  options: {
+    url: "apitest.wanchain.org",
+    port: 8443,
+    flag: "ws",
+    version: "v3"
+  },
+  apiKey: "e43c0f18710ed763d73d87cff6458563b7b05e2b200fdcaab29f3ad468de438a",
+  secretKey: "305d6d1a718eb9f63ebd03bd10acf7f02426bd353681f26afbc717ec4c2da09d"
+};
+
+const iwan = new iwanSdk(iwanCfg.apiKey, iwanCfg.secretKey, iwanCfg.options);
 
 function getImport(filePath) {
   let fileName = path.basename(filePath);
@@ -73,7 +87,6 @@ const serializeTx = (data, nonce, contractAddr, value, filePath, privateKey) => 
   value = web3.utils.toWei(value, 'ether');
   value = new web3.utils.BN(value);
   value = '0x' + value.toString(16);
-  nonce = '0x' + nonce.toString(16);
 
   rawTx = {
       Txtype: 0x01, // wanchain only
@@ -104,28 +117,44 @@ const sendSerializedTx = async (tx) => {
   if (typeof(tx) == 'string') { // filePath
     tx = tool.readFromFile(tx);
   }
-  let receipt = await web3.eth.sendSignedTransaction('0x' + tx.toString('hex'));
-  return receipt.transactionHash;
+  let txData = '0x' + tx.toString('hex');
+  if (cfg.mode == 'debug') {
+    let receipt = await web3.eth.sendSignedTransaction(txData);
+    return receipt.transactionHash;
+  } else {
+    let txHash = await iwan.sendRawTransaction('WAN', txData);
+    return txHash;
+  }
 }
 
-const waitReceipt = async (txHash, waitBlocks, isDeploySc) => {
-  if (waitBlocks == 0) {
+const waitReceipt = async (txHash, isDeploySc, times = 0) => {
+  if (times >= 100) {
     return null;
   }
-  let receipt = await web3.eth.getTransactionReceipt(txHash);
+  let receipt = null;
+  try {
+    if (cfg.mode == 'debug') {
+      receipt = await web3.eth.getTransactionReceipt(txHash);
+    } else {
+      receipt = await iwan.getTransactionReceipt('WAN', txHash);
+    }
+  } catch {
+    // console.log("%s times %d no receipt", txHash, times);
+  }
   if (receipt) {
-    // console.log("%s times %d receipt: %O", txHash, waitBlocks, receipt);
+    // console.log("%s times %d receipt: %O", txHash, times, receipt);
     if (isDeploySc) {
       if (receipt.status) {
         return receipt.contractAddress;
       } else {
+        console.log("%s times %d receipt failed", txHash, times);
         return null;
       }
     } else {
       return (receipt.status == 0x1);
     }
   } else {
-    return await waitReceipt(txHash, waitBlocks - 1, isDeploySc);
+    return await waitReceipt(txHash, times + 1, isDeploySc);
   }
 }
 
@@ -135,7 +164,7 @@ const deployContract = async (name, compiled, privateKey) => {
   let serialized = serializeTx(txData, nonce, '', '0', null, privateKey);
   let txHash = await sendSerializedTx(serialized);
   // console.log("deploy %s txHash: %s", name, txHash);
-  let address = await waitReceipt(txHash, 30, true);
+  let address = await waitReceipt(txHash, true);
   if (address) {
     console.log("deployed %s address: %s", name, address);
     return address;
@@ -151,7 +180,7 @@ const getDeployedContract = async (name, address) => {
 }
 
 const getNonce = async (roleOrAddress) => {
-  let address = '';
+  let nonce, address = '';
   if (roleOrAddress.length != 42) { // role
     address = cfg.account[roleOrAddress].address.toLowerCase();
     if (cfg.mode == 'debug') {
@@ -160,9 +189,36 @@ const getNonce = async (roleOrAddress) => {
   } else {
     address = roleOrAddress;
   }
-  let nonce = await web3.eth.getTransactionCount(address);
+  if (cfg.mode == 'debug') {
+    nonce = await web3.eth.getTransactionCount(address);
+  } else {
+    nonce = Number(await iwan.getNonce('WAN', address));
+  }
   // console.log("getNonce: %s(%s), %d", roleOrAddress, address, nonce);
   return nonce;
+}
+
+const getTxLog = async (txHash, contract, eventName, eventIndex) => {
+  let abi = contract._jsonInterface;
+  let item, eventAbi = null;
+  for (let i = 0; i < abi.length; i++) {
+    item = abi[i];
+    if ((item.type == 'event') && (item.name == eventName)) {
+      eventAbi = item.inputs;
+    }
+  }
+  if (eventAbi == null) {
+    console.error("event %s not found", eventName);
+    return null;
+  }
+  let receipt;
+  if (cfg.mode == 'debug') {
+    receipt = await web3.eth.getTransactionReceipt(txHash);
+  } else {
+    receipt = await iwan.getTransactionReceipt('WAN', txHash);
+  } 
+  let log = await web3.eth.abi.decodeLog(eventAbi, receipt.logs[eventIndex].data, receipt.logs[eventIndex].topics);
+  return log;
 }
 
 const wan2win = (wan) => {
@@ -179,5 +235,6 @@ module.exports = {
   deployContract,
   getDeployedContract,
   getNonce,
+  getTxLog,
   wan2win
 }
