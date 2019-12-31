@@ -6,3 +6,4 @@ coverage.json
 coverageEnv
 scTopics
 allFiredEvents
+.DS_Store

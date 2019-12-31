@@ -1,0 +1,47 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.1",
+    "types": [],
+    "structs": [
+        {
+            "name": "verify",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "randomPoint",
+                    "type": "string"
+                },
+                {
+                    "name": "signature",
+                    "type": "string"
+                },
+                {
+                    "name": "groupKey",
+                    "type": "string"
+                },
+                {
+                    "name": "message",
+                    "type": "string"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "verify",
+            "type": "verify",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [],
+    "ricardian_clauses": [],
+    "variants": []
+}

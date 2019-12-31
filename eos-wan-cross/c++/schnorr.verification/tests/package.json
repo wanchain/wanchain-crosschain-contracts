@@ -1,0 +1,13 @@
+{
+  "name": "eoslime_tut",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "eoslime": "^1.0.0",
+    "mocha": "^6.2.2"
+  }
+}
