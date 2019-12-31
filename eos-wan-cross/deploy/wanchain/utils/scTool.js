@@ -129,6 +129,7 @@ const sendSerializedTx = async (tx) => {
 
 const waitReceipt = async (txHash, isDeploySc, times = 0) => {
   if (times >= 100) {
+    console.log("%s receipt timeout", txHash);
     return null;
   }
   let receipt = null;
@@ -147,14 +148,14 @@ const waitReceipt = async (txHash, isDeploySc, times = 0) => {
       if (receipt.status) {
         return receipt.contractAddress;
       } else {
-        console.log("%s times %d receipt failed", txHash, times);
+        console.error("%s times %d receipt failed", txHash, times);
         return null;
       }
     } else {
       return (receipt.status == 0x1);
     }
   } else {
-    return await waitReceipt(txHash, times + 1, isDeploySc);
+    return await waitReceipt(txHash, isDeploySc, times + 1);
   }
 }
 
