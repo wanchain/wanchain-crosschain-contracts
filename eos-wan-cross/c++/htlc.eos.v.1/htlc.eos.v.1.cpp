@@ -66,22 +66,6 @@ ACTION htlc::truncate(eosio::name table, std::string scope) {
             }
             break;
         }
-//        case hTable::table::accounts.value: {
-//            accounts account_table(get_self(), eosio::name(scope).value);
-//            auto aItr = account_table.begin();
-//            while (aItr != account_table.end()) {
-//                aItr = account_table.erase(aItr);
-//            }
-//            break;
-//        }
-//        case hTable::table::tokens.value: {
-//            tokens token_table(get_self(), eosio::name(scope).value);
-//            auto tItr = token_table.begin();
-//            while (tItr != token_table.end()) {
-//                tItr = token_table.erase(tItr);
-//            }
-//            break;
-//        }
         case hTable::table::longlongs.value: {
             longlongs ll_table(get_self(), eosio::name(scope).value);
             auto lItr = ll_table.begin();
@@ -147,14 +131,6 @@ ACTION htlc::query(eosio::name table, std::string scope) {
             }
             break;
         }
-        // case hTable::table::debts.value: {
-        //     debts debt_table(get_self(), eosio::name(scope).value);
-        //     auto dItr = debt_table.begin();
-        //     while (dItr != debt_table.end()) {
-        //         dItr = debt_table.erase(dItr);
-        //     }
-        //     break;
-        // }
         case hTable::table::signer.value: {
             eosio::print(",scope:", eosio::name(scope).value, "]\t");
             signer signer_table(get_self(), eosio::name(scope).value);
@@ -165,26 +141,6 @@ ACTION htlc::query(eosio::name table, std::string scope) {
             }
             break;
         }
-//        case hTable::table::accounts.value: {
-//            eosio::print(",scope:", eosio::name(scope).value, "]\t");
-//            accounts account_table(get_self(), eosio::name(scope).value);
-//            auto aItr = account_table.begin();
-//            while (aItr != account_table.end()) {
-//                eosio::print("\t[code:", (*aItr).code, ", action:", (*aItr).action, "]\t");
-//                ++aItr;
-//            }
-//            break;
-//        }
-//        case hTable::table::tokens.value: {
-//            eosio::print(",scope:", eosio::name(scope).value, "]\t");
-//            tokens token_table(get_self(), eosio::name(scope).value);
-//            auto tItr = token_table.begin();
-//            while (tItr != token_table.end()) {
-//                eosio::print("\t[symbol:", (*tItr).sym, "]\t");
-//                ++tItr;
-//            }
-//            break;
-//        }
         case hTable::table::longlongs.value: {
             eosio::print(",scope:", eosio::name(scope).value, "]\t");
             longlongs ll_table(get_self(), eosio::name(scope).value);
@@ -286,129 +242,6 @@ ACTION htlc::unregsig(eosio::name code) {
     dItr = sig_table.erase(dItr);
 }
 
-/* register token contract info, by htlc-self */
-//ACTION htlc::regacct(eosio::name code, eosio::name action) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    #ifdef _DEBUG_PRINT
-//    eosio::print("\t[regacct => code:", code, ", action:", action, "]\t");
-//    #endif
-//    accounts account_table(get_self(), get_self().value);
-//    auto aItr = account_table.find(code.value);
-//    eosio::check(aItr == account_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
-//
-//    account_table.emplace(get_self(), [&](auto &s) {
-//        s.code = code;
-//        s.action = action;
-//        #ifdef _DEBUG_PRINT
-//        eosio::print("\t[regacct => code ", s.code, " and action ", s.action, "]\t");
-//        #endif
-//    });
-//}
-
-//ACTION htlc::updateacct(eosio::name code, eosio::name nCode, eosio::name nAction) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    accounts account_table(get_self(), get_self().value);
-//    auto aItr = account_table.find(code.value);
-//    eosio::check(aItr != account_table.end(), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-//
-//    account_table.modify(aItr, get_self(), [&](auto &s) {
-//        s.code = nCode;
-//        s.action = nAction;
-//        #ifdef _DEBUG_PRINT
-//        eosio::print("\t[updateacct => code ", s.code, " and action ", s.action, "]\t");
-//        #endif
-//    });
-//}
-
-//ACTION htlc::unregaccnt(eosio::name code) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    accounts account_table(get_self(), get_self().value);
-//    auto tItr = account_table.find(code.value);
-//    eosio::check(tItr != account_table.end(), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-//
-//    cleanTokens(code.value);
-//    tItr = account_table.erase(tItr);
-//}
-
-/* register token info */
-//ACTION htlc::regtoken(eosio::name code, eosio::symbol sym) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    #ifdef _DEBUG_PRINT
-//    eosio::print("\t[regtoken => code:", code, ", action:", sym, "]\t");
-//    #endif
-//
-//    tokens token_table(get_self(), code.value);
-//    auto tItr = token_table.find(sym.raw());
-//    eosio::check(tItr == token_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
-//
-//    token_table.emplace(get_self(), [&](auto &s) {
-//        s.sym = sym;
-//        #ifdef _DEBUG_PRINT
-//        eosio::print("\t[regtoken => symbol ", s.sym, "]\t");
-//        #endif
-//    });
-//}
-// ACTION htlc::regtoken(eosio::name code, const vector<eosio::symbol>& syms) {
-//     eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-
-//     #ifdef _DEBUG_PRINT
-//     eosio::print("\t[regtoken => code:", code, ", action:", action, "]\t");
-//     #endif
-
-//     tokens token_table(get_self(), code.value);
-//     std::for_each(syms.begin(), syms.end(), [](eosio::symbol *pSym) {
-//         auto tItr = token_table.find((*pSym).value);
-//         eosio::check(tItr == token_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
-
-//         token_table.emplace(get_self(), [&](auto &s) {
-//             s.sym = *pSym;
-//             #ifdef _DEBUG_PRINT
-//             eosio::print("\t[register token => symbol ", s.sym, "]\t");
-//             #endif
-//         });
-//     });
-// }
-
-//ACTION htlc::updatetoken(eosio::name code, eosio::symbol sym, eosio::symbol nSym) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    tokens token_table(get_self(), code.value);
-//    auto tItr = token_table.find(sym.raw());
-//    eosio::check(tItr != token_table.end(), hError::error::NOT_FOUND_TOKEN_RECORD.data());
-//
-//    token_table.modify(tItr, get_self(), [&](auto &s) {
-//        s.sym = nSym;
-//        #ifdef _DEBUG_PRINT
-//        eosio::print("\t[update token => symbol ", s.sym, "]\t");
-//        #endif
-//    });
-//}
-
-//ACTION htlc::unregtoken(eosio::name code, eosio::symbol sym) {
-//    eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-//
-//    tokens token_table(get_self(), code.value);
-//    auto tItr = token_table.find(sym.raw());
-//    eosio::check(tItr != token_table.end(), hError::error::NOT_FOUND_TOKEN_RECORD.data());
-//
-//    tItr = token_table.erase(tItr);
-//}
-// ACTION htlc::unregtoken(eosio::name code, const vector<eosio::symbol>& syms) {
-//     eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::token});
-
-//     tokens token_table(get_self(), code.value);
-//     std::for_each(syms.begin(), syms.end(), [](eosio::symbol *pSym) {
-//         auto tItr = token_table.find((*pSym).value);
-//         eosio::check(tItr == token_table.end(), hError::error::NOT_FOUND_TOKEN_RECORD.data());
-
-//         tItr = token_table.erase(tItr);
-//     });
-// }
-
 /* pk modification, by storeman-self */
 ACTION htlc::updatepk(eosio::name storeman, std::string npk, std::string pk, std::string r, std::string s) {
     #ifdef _DEBUG_PRINT
@@ -507,7 +340,6 @@ ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
     eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
     eosio::require_auth(storeman);
     eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
-    //eosio::check(existTokenAccount(account.value), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
 
     /* lockdebt */
     {
@@ -517,7 +349,6 @@ ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
         #ifdef _DEBUG_PRINT
         eosio::print("\t[lockdebt => pk => id:", pkInfo.id, ", pk:", pkInfo.pk, ", pkHash:", pkInfo.pkHash, "]\t");
         #endif
-        // eosio::check(!isNPkDebt(pkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
 
         htlc::pk_t npkInfo;
         eosio::checksum256 npkHash = hashMsg(npk);
@@ -527,7 +358,6 @@ ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
         #ifdef _DEBUG_PRINT
         eosio::print("\t[lockdebt => npk => id:", npkInfo.id, ", pk:", npkInfo.pk, ", pkHash:", npkInfo.pkHash, "]\t");
         #endif
-        // eosio::check(!isPkDebt(npkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
 
         /* check debts table by xHash */
         eosio::checksum256 xHashValue = parseXHash(xHash);
@@ -623,9 +453,6 @@ ACTION htlc::redeemdebt(eosio::name storeman, std::string x, std::string r, std:
 
         /* delete row (by xHash) from table debts */
         dItr = dXHashTable.erase(dItr);
-        // dXHashTable.modify(dItr, get_self(), [&](auto &s) {
-        //     s.status = hStatus::status::redeemdebt;
-        // });
     }
 
     /* signature verification */
@@ -666,11 +493,7 @@ ACTION htlc::revokedebt(std::string xHash, std::string r, std::string s) {
             ", status:", dItr->status, ", id:", dItr->id, ", pid:", dItr->pid, \
             ", npid:", dItr->npid, ", xHash:", dItr->xHash, ", sym:", dItr->quantity, "]\t");
         #endif
-
         dItr = dXHashTable.erase(dItr);
-        // dXHashTable.modify(dItr, get_self(), [&](auto &s) {
-        //     s.status = hStatus::status::revokedebt;
-        // });
     }
 
     /* signature verification */
@@ -738,15 +561,10 @@ ACTION htlc::inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, s
 
     eosio::name account = eosio::name(v[tMemo::inlock::account]);
     eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
-    //eosio::check(existTokenAccount(account.value), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
 
     std::string_view xHashView = v[tMemo::inlock::xHash];
     std::string_view wanAddrView = v[tMemo::inlock::wanAddr];
     std::string_view pkView = v[tMemo::inlock::pk];
-
-    // eosio::check(xHashView.size() == hLimit::xHash, hError::error::INVALID_XHASH);
-    // eosio::check(wanAddrView.size() == hLimit::wanAddr, hError::error::INVALID_WAN_ADDR);
-    // eosio::check(and pkView.size() == hLimit::pk, hError::error::INVALID_PK);
 
     htlc::pk_t pkInfo;
     eosio::checksum256 pkHash = hashMsg(pkView);
@@ -820,9 +638,6 @@ ACTION htlc::inredeem(eosio::name storeman, std::string x, std::string r, std::s
             ", quantity:", tItr->quantity, ", xHash:", tItr->xHash, ", wanAddr:", tItr->wanAddr, " ]\t");
         #endif
         tItr = tXHashTable.erase(tItr);
-        // tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-        //     s.status = hStatus::status::inredeem;
-        // });
     }
 
     /* signature verification */
@@ -896,11 +711,6 @@ ACTION htlc::inrevoke(std::string xHash) {
         #endif
 
         // eosio.token's action [transfer] will notify user that user inrevoked by memo
-        //htlc::account_t tokenAccountInfo;
-        //eosio::check(getTokenAccountInfo(tItr->account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-//        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//            std::make_tuple(this->get_self(), tItr->user, left, memo)).send();
-
         eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItr->account, TRANSFER_NAME,
                       std::make_tuple(this->get_self(), tItr->user, left, memo)).send();
     } else {
@@ -924,9 +734,6 @@ ACTION htlc::inrevoke(std::string xHash) {
     #endif
 
     tItr = tXHashTable.erase(tItr);
-    // tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-    //     s.status = hStatus::status::inrevoke;
-    // });
     return;
 }
 
@@ -949,7 +756,7 @@ ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::name account
     eosio::check(eosio::is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
     eosio::check(quantity.is_valid() and quantity.amount > 0, hError::error::INVALID_QUANTITY.data());
     eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
-    //eosio::check(existTokenAccount(account.value), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
+
     /* outlock */
     {
         eosio::checksum256 xHashValue = parseXHash(xHash);
@@ -1046,24 +853,6 @@ ACTION htlc::outredeem(eosio::name user, std::string x) {
             ", lockedTime: ", tItr->lockedTime, "]\t");
         #endif
 
-        // /* pk asset should be more than cross-quantity */
-        // // eosio::asset totalAsset = tItr->quantity - tItr->quantity;
-        // eosio::asset totalAsset(0, tItr->quantity.symbol);
-        // getAssetFrom(tItr->pid, tItr->account, &totalAsset);
-        // #ifdef _DEBUG_PRINT
-        // eosio::print("\t[outredeem => asset: ", totalAsset, "]\t");
-        // #endif
-        // eosio::check(totalAsset >= tItr->quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
-
-        // /* pk asset should be more than (cross-quantity add all pendingAsset) */
-        // // eosio::asset outPendQuantity = tItr->quantity - tItr->quantity;
-        // eosio::asset outPendAsset(0, tItr->quantity.symbol);
-        // getOutPendAssetFrom(tItr->pid, tItr->account, &outPendAsset);
-        // #ifdef _DEBUG_PRINT
-        // eosio::print("\t[outredeem => pend asset: ", outPendAsset, "]\t");
-        // #endif
-        // eosio::check(totalAsset >= (outPendAsset), hError::error::NOE_ENOUGH_QUANTITY.data());
-
         /*quota reduce*/
         subAssetFrom(tItr->pid, tItr->account, tItr->quantity);
         /*end for quota reduce*/
@@ -1083,18 +872,11 @@ ACTION htlc::outredeem(eosio::name user, std::string x) {
         #endif
 
         // eosio.token's action [transfer] will notify user that user outredeemed by memo
-//        htlc::account_t tokenAccountInfo;
-//        eosio::check(getTokenAccountInfo(tItr->account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-//        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//            std::make_tuple(this->get_self(), tItr->user, tItr->quantity, memo)).send();
 
           eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItr->account, TRANSFER_NAME,
                   std::make_tuple(this->get_self(), tItr->user, tItr->quantity, memo)).send();
 
         tItr = tXHashTable.erase(tItr);
-        // tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-        //     s.status = hStatus::status::outredeem;
-        // });
     }
 }
 
@@ -1128,9 +910,6 @@ ACTION htlc::outrevoke(std::string xHash) {
     #endif
 
     tItr = tXHashTable.erase(tItr);
-    // tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-    //     s.status = hStatus::status::outrevoke;
-    // });
 }
 
 ACTION htlc::setratio(uint64_t ratio) {
@@ -1251,54 +1030,6 @@ bool htlc::getSignature(void *sigInfo) {
     static_cast<signature_t *>(sigInfo)->action = sItr->action;
     return true;
 }
-
-//bool htlc::existTokenAccount(uint64_t code) {
-//    /* get the signature contract info */
-//
-//    accounts account_table(get_self(), get_self().value);
-//    auto tItr = account_table.find(code);
-//    return !(tItr == account_table.end());
-//}
-
-//bool htlc::getTokenAccountInfo(eosio::name code, void *tokenAccountInfo) {
-//    /* get the signature contract info */
-//
-//    eosio::check(tokenAccountInfo != nullptr, hError::error::INVALID_PARAM.data());
-//    accounts account_table(get_self(), get_self().value);
-//    auto tItr = account_table.find(code.value);
-//    if (tItr == account_table.end()) {
-//        return false;
-//    }
-//
-//    static_cast<account_t *>(tokenAccountInfo)->code = tItr->code;
-//    static_cast<account_t *>(tokenAccountInfo)->action = tItr->action;
-//    return true;
-//}
-
-//bool htlc::getTokenAccountInfo(std::vector<account_t *> &v) {
-//    /* get the signature contract info */
-//
-//    accounts account_table(get_self(), get_self().value);
-//    if (account_table.begin() == account_table.end()) {
-//        return false;
-//    }
-//
-//    auto tItr = account_table.begin();
-//    do {
-//        v.push_back(const_cast<account_t *>(&(*tItr)));
-//    } while (tItr != account_table.end());
-//    return true;
-//}
-
-//void htlc::cleanTokens(uint64_t cid) {
-//    tokens token_table(get_self(), cid);
-//
-//    /* clean token from table tokens */
-//    auto tItr = token_table.begin();
-//    while (tItr != token_table.end()) {
-//        tItr = token_table.erase(tItr);
-//    }
-//}
 
 void htlc::savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo) {
     /* add table fees */
@@ -1442,11 +1173,6 @@ bool htlc::isPkDebt(uint64_t pid) {
 bool htlc::isPkDebt(std::string_view pkView) {
     htlc::pk_t pkInfo;
     eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-    // /* check fees table if exist by pk */
-    // fees fee_table(get_self(), pkInfo.id);
-    // eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
     return isPkDebt(pkInfo.id);
 }
 
@@ -1478,10 +1204,6 @@ bool htlc::isPkDebt(std::string_view pkView, const eosio::name &account, const e
     htlc::pk_t pkInfo;
     eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
 
-    // /* check fees table if exist by pk */
-    // fees fee_table(get_self(), pkInfo.id);
-    // eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
     return isPkDebt(pkInfo.id, account, sym);
 }
 
@@ -1511,10 +1233,6 @@ bool htlc::isNPkDebt(uint64_t pid) {
 bool htlc::isNPkDebt(std::string_view pkView) {
     htlc::pk_t pkInfo;
     eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-    // /* check fees table if exist by pk */
-    // fees fee_table(get_self(), pkInfo.id);
-    // eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
 
     return isNPkDebt(pkInfo.id);
 }
@@ -1547,8 +1265,6 @@ bool htlc::isNPkDebt(std::string_view pkView, const eosio::name &account, const 
     eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
 
     // /* check fees table if exist by pk */
-    // fees fee_table(get_self(), pkInfo.id);
-    // eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
 
     return isNPkDebt(pkInfo.id, account, sym);
 }
@@ -1790,11 +1506,6 @@ void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView,
             #endif
 
             // eosio.token's action [transfer] will notify user that user inrevoked by memo
-//            account_t tokenAccountInfo;
-//            eosio::check(getTokenAccountInfo(fItr->account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-
-//            eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//                std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
 
             eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, fItr->account, TRANSFER_NAME,
                           std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
@@ -1807,8 +1518,6 @@ void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView,
     eosio::name account = eosio::name(acctView);
     eosio::check(eosio::is_account(eosio::name(account)) and eosio::name(account) != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
 
-//    account_t tokenAccountInfo;
-//    eosio::check(getTokenAccountInfo(account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
 
     if (symView.empty()) {
         auto fAcctIndex = fee_table.get_index<hTable::key::acct>();
@@ -1816,9 +1525,7 @@ void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView,
         while (fItr != fAcctIndex.end()) {
             #ifdef _DEBUG_PRINT
             eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:", fItr->fee, "]\t");
-            #endif
-//            eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//                std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
+			#endif
 
             eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account, TRANSFER_NAME,
                           std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
@@ -1836,11 +1543,7 @@ void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView,
         eosio::check(fItr != fSymAcctIndex.end(), hError::error::NOT_FOUND_RECORD.data());
         #ifdef _DEBUG_PRINT
             eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:", fItr->fee, " ]\t");
-        #endif
-
-        // eosio.token's action [transfer] will notify user that user inrevoked by memo
-//        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//            std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
+		#endif
 
         eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account, TRANSFER_NAME,
                       std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
@@ -2019,19 +1722,11 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
         /* call common htlc action */
         switch (action) {
             #ifdef _DEBUG_API
-//            EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-//                (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
-//                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio)\
-//                (printratio)(query)(truncate)(leftlocktime)(gethash))
-
             EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
                 (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
                 (setratio)\
                 (printratio)(query)(truncate)(leftlocktime)(gethash))
             #else
-//            EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-//                (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
-//                (regacct)(updateacct)(unregaccnt)(regtoken)(updatetoken)(unregtoken)(setratio))
             EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
                 (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
                 (setratio))

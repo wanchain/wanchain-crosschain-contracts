@@ -89,8 +89,6 @@ namespace htlc {
             static constexpr eosio::name fees = eosio::name("fees");
             static constexpr eosio::name debts = eosio::name("debts");
             static constexpr eosio::name signer = eosio::name("signer");
-//            static constexpr eosio::name accounts = eosio::name("accounts");
-//            static constexpr eosio::name tokens = eosio::name("tokens");
             static constexpr eosio::name longlongs = eosio::name("longlongs");
         } table;
 
@@ -132,8 +130,6 @@ namespace htlc {
 
             static constexpr std::string_view INVALID_X = "invalid x";
             static constexpr std::string_view INVALID_XHASH = "invalid xHash";
-            // static constexpr std::string_view INVALID_WAN_ADDR = "invalid WAN address";
-            // static constexpr std::string_view INVALID_PK = "invalid pk";
 
             static constexpr std::string_view REDUPLICATIVE_RECORD = "reduplicative record";
             static constexpr std::string_view REDUPLICATIVE_XHASH = "reduplicative xHash";
@@ -394,7 +390,7 @@ namespace htlc {
             // va_list args;
             // va_start(args, msg);
             strncpy(buf, msg->data(), msg->size());
-            
+
             while(1) {
                 tmp = va_arg(args, Type);
                 if (tmp->empty()) {
@@ -413,7 +409,7 @@ namespace htlc {
             va_list args;
             va_start(args, str);
             strncpy(buf, str->data(), str->size());
-            
+
             while(1) {
                 tmp = va_arg(args, std::string_view *);
                 if (tmp->empty()) {
@@ -451,7 +447,7 @@ namespace htlc {
                 endPos = str.find(separator, startPos);
                 if (foundCount == index) {
                     endPos = (endPos != std::string_view::npos) ? endPos : str.size() - startPos + 1;
-                    
+
                     outStr = static_cast<std::string>(str.substr(startPos, endPos - startPos));
                     break;
                 }
@@ -582,17 +578,6 @@ namespace htlc {
 
         ACTION revokedebt(std::string xHash, std::string r, std::string s);
 
-        /* token contract */
-//        ACTION regacct(eosio::name code, eosio::name action);
-//        ACTION updateacct(eosio::name code, eosio::name nCode, eosio::name nAction);
-//        ACTION unregaccnt(eosio::name code);
-        // ACTION regtoken(eosio::name code, const vector<eosio::name>& syms);
-        // ACTION updatetoken(eosio::name code, eosio::name sym, eosio::name nSym);
-        // ACTION unregtoken(eosio::name code, const vector<eosio::name>& syms);
-//        ACTION regtoken(eosio::name code, eosio::symbol sym);
-//        ACTION updatetoken(eosio::name code, eosio::symbol sym, eosio::symbol nSym);
-//        ACTION unregtoken(eosio::name code, eosio::symbol sym);
-
         ACTION setratio(uint64_t ratio);
         #ifdef _DEBUG_API
         ACTION printratio();
@@ -604,17 +589,6 @@ namespace htlc {
             eosio::asset           quantity;
             std::string            memo;
         };
-
-        /* listen TOKEN the issue contract transfer */
-//        TABLE account_t {
-//            eosio::name                  code;
-//            eosio::name                  action;
-//
-//            uint64_t primary_key() const { return code.value; }
-//        };
-        //inline bool existTokenAccount(uint64_t code);
-        //inline bool getTokenAccountInfo(eosio::name code, void *tokenAccountInfo);
-        //inline bool getTokenAccountInfo(std::vector<account_t *> &v);
 
         /* only one record */
         TABLE signature_t {
@@ -664,11 +638,6 @@ namespace htlc {
                 return static_cast<uint128_t>(pid) << 64 | \
                     static_cast<uint128_t>(account.value);
             }
-            // eosio::checksum256 sym_acct_pid_key() const { 
-            //     // sym_acct_pid
-            //     return static_cast<uint128_t>(quantity.symbol.raw()) << 64 | \
-            //         static_cast<uint128_t>(account.value);
-            // }
         };
 
         /* TABLE pks
@@ -748,18 +717,6 @@ namespace htlc {
             eosio::checksum256 xhash_key() const { return xHash; /* unique */ }
         };
 
-        /* TABLE tokens
-        ** scope code.value from TABLE accounts
-        */
-//        TABLE token_t {
-//            eosio::symbol                sym;
-//
-//            uint64_t primary_key() const { return sym.raw(); }
-//        };
-
-        /* TABLE tokens
-        ** scope code.value from TABLE accounts
-        */
         TABLE num64_t {
             eosio::name             flag;
             uint64_t                value;
@@ -770,10 +727,6 @@ namespace htlc {
         typedef eosio::multi_index<hTable::table::signer, signature_t> signer;
 
         typedef eosio::multi_index<hTable::table::longlongs, num64_t> longlongs;
-
-        //typedef eosio::multi_index<hTable::table::accounts, account_t> accounts;
-
-        //typedef eosio::multi_index<hTable::table::tokens, token_t> tokens;
 
         typedef eosio::multi_index<hTable::table::fees, fee_t
             , eosio::indexed_by<hTable::key::acct, \
@@ -886,8 +839,6 @@ namespace htlc {
                 // checksum256 is composed of little endian int128_t
                 uint8_t idx = i / 16 * 16 + 15 - (i % 16);
                 reinterpret_cast <char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
-                // static_cast<char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
-                // reinterpret_cast<char *>(outValue.data())[idx] = (d1 << 4)  + d2;
             }
             return true;
         }
@@ -932,13 +883,9 @@ namespace htlc {
 
         inline std::string Uint256ToHexStr(const internal::Uint256_t &value) {
             return common::toHexStr((char *) value.data, sizeof(value));
-            // eosio::checksum256 result = convertEndian(value);
-            // return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
         }
         inline std::string checksum256ToHexStr(const eosio::checksum256 &value) {
             return common::toHexStr((char *) value.data(), sizeof(value.get_array()));
-            // eosio::checksum256 result = convertEndian(value);
-            // return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
         }
     };
 
