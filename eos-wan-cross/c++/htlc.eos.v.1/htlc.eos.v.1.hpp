@@ -17,6 +17,7 @@
 // #define _SIGN_MSG_DETAIL
 
 namespace htlc {
+    static constexpr eosio::name   TRANSFER_NAME="transfer"_n;
     // if time_t is defined in namespace hash, using hTime::time_t in eosio contract table,
     // it will report "invalid type time_t" when query table,
     // so, all self-defined types define here, but not in other namespace
@@ -88,8 +89,8 @@ namespace htlc {
             static constexpr eosio::name fees = eosio::name("fees");
             static constexpr eosio::name debts = eosio::name("debts");
             static constexpr eosio::name signer = eosio::name("signer");
-            static constexpr eosio::name accounts = eosio::name("accounts");
-            static constexpr eosio::name tokens = eosio::name("tokens");
+//            static constexpr eosio::name accounts = eosio::name("accounts");
+//            static constexpr eosio::name tokens = eosio::name("tokens");
             static constexpr eosio::name longlongs = eosio::name("longlongs");
         } table;
 
@@ -582,15 +583,15 @@ namespace htlc {
         ACTION revokedebt(std::string xHash, std::string r, std::string s);
 
         /* token contract */
-        ACTION regacct(eosio::name code, eosio::name action);
-        ACTION updateacct(eosio::name code, eosio::name nCode, eosio::name nAction);
-        ACTION unregaccnt(eosio::name code);
+//        ACTION regacct(eosio::name code, eosio::name action);
+//        ACTION updateacct(eosio::name code, eosio::name nCode, eosio::name nAction);
+//        ACTION unregaccnt(eosio::name code);
         // ACTION regtoken(eosio::name code, const vector<eosio::name>& syms);
         // ACTION updatetoken(eosio::name code, eosio::name sym, eosio::name nSym);
         // ACTION unregtoken(eosio::name code, const vector<eosio::name>& syms);
-        ACTION regtoken(eosio::name code, eosio::symbol sym);
-        ACTION updatetoken(eosio::name code, eosio::symbol sym, eosio::symbol nSym);
-        ACTION unregtoken(eosio::name code, eosio::symbol sym);
+//        ACTION regtoken(eosio::name code, eosio::symbol sym);
+//        ACTION updatetoken(eosio::name code, eosio::symbol sym, eosio::symbol nSym);
+//        ACTION unregtoken(eosio::name code, eosio::symbol sym);
 
         ACTION setratio(uint64_t ratio);
         #ifdef _DEBUG_API
@@ -605,15 +606,15 @@ namespace htlc {
         };
 
         /* listen TOKEN the issue contract transfer */
-        TABLE account_t {
-            eosio::name                  code;
-            eosio::name                  action;
-
-            uint64_t primary_key() const { return code.value; }
-        };
-        inline bool existTokenAccount(uint64_t code);
-        inline bool getTokenAccountInfo(eosio::name code, void *tokenAccountInfo);
-        inline bool getTokenAccountInfo(std::vector<account_t *> &v);
+//        TABLE account_t {
+//            eosio::name                  code;
+//            eosio::name                  action;
+//
+//            uint64_t primary_key() const { return code.value; }
+//        };
+        //inline bool existTokenAccount(uint64_t code);
+        //inline bool getTokenAccountInfo(eosio::name code, void *tokenAccountInfo);
+        //inline bool getTokenAccountInfo(std::vector<account_t *> &v);
 
         /* only one record */
         TABLE signature_t {
@@ -750,11 +751,11 @@ namespace htlc {
         /* TABLE tokens
         ** scope code.value from TABLE accounts
         */
-        TABLE token_t {
-            eosio::symbol                sym;
-
-            uint64_t primary_key() const { return sym.raw(); }
-        };
+//        TABLE token_t {
+//            eosio::symbol                sym;
+//
+//            uint64_t primary_key() const { return sym.raw(); }
+//        };
 
         /* TABLE tokens
         ** scope code.value from TABLE accounts
@@ -770,9 +771,9 @@ namespace htlc {
 
         typedef eosio::multi_index<hTable::table::longlongs, num64_t> longlongs;
 
-        typedef eosio::multi_index<hTable::table::accounts, account_t> accounts;
+        //typedef eosio::multi_index<hTable::table::accounts, account_t> accounts;
 
-        typedef eosio::multi_index<hTable::table::tokens, token_t> tokens;
+        //typedef eosio::multi_index<hTable::table::tokens, token_t> tokens;
 
         typedef eosio::multi_index<hTable::table::fees, fee_t
             , eosio::indexed_by<hTable::key::acct, \
