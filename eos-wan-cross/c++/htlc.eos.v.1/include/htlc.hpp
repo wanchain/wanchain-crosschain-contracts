@@ -313,14 +313,7 @@ namespace htlc {
 		bool isPkInHtlc(uint64_t pid);
 
 		bool isPkDebt(uint64_t pid);
-		bool isPkDebt(std::string_view pkView);
-		bool isPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym);
 		bool isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
-
-		bool isNPkDebt(uint64_t pid);
-		bool isNPkDebt(std::string_view pkView);
-		bool isNPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym);
-		bool isNPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
 		void verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
             uint64_t size, std::string_view *msg, ...);
