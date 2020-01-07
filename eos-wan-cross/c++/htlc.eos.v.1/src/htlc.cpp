@@ -249,96 +249,10 @@ namespace htlc {
 		dItr = sig_table.erase(dItr);
 	}
 
-/* pk modification, by storeman-self */
-	ACTION htlc::updatepk(eosio::name storeman, std::string npk, std::string pk, std::string r, std::string s) {
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[updatepk => storeman:", storeman, ", npk:", npk.data(), ", pk:", pk.data(), "]\t");
-#endif
-
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
-
-		/* update PK */
-		{
-			/* hashMsg(pk) */
-			eosio::checksum256 pkHash = hashMsg(pk);
-
-			/* find from pks table by hashMsg(pk) */
-			pks pk_table(get_self(), get_self().value);
-			auto pkHashTable = pk_table.get_index<hTable::key::pkHash>();
-			auto pItr = pkHashTable.find(pkHash);
-			eosio::check(pItr != pkHashTable.end(), hError::error::NOT_FOUND_PK_RECORD.data());
-			eosio::check(!isPkDebt(pItr->id) and !isNPkDebt(pItr->id), hError::error::BUSY_PK.data());
-
-			/* check unique pk */
-			eosio::checksum256 npkHash = hashMsg(npk);
-			auto npItr = pkHashTable.find(npkHash);
-			eosio::check(npItr == pkHashTable.end(), hError::error::REDUPLICATIVE_RECORD.data());
-
-			pkHashTable.modify(pItr, get_self(), [&](auto &s) {
-				s.pk = npk;
-				s.pkHash = npkHash;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[updatepk => update pk ", pk, " to ", npk, "]\t");
-#endif
-			});
-			eosio::require_recipient(storeman);
-		}
-
-		/* signature verification */
-		{
-			std::string_view storemanView = storeman.to_string();
-			std::string_view npkView = npk;
-			int32_t maxSize = storemanView.size() + npkView.size() + tMemo::updatePk::total - 1;
-			verifySignature(hStatus::status::updatepk, pk, r, s, maxSize, &storemanView, &npkView, &common::strEOF);
-		}
-	}
-
-	ACTION htlc::removepk(eosio::name storeman, std::string pk, std::string r, std::string s) {
-
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
-
-		/* remove PK */
-		{
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[removepk => storeman:", storeman, ", pk:", pk.data(), "]\t");
-#endif
-
-			/* hashMsg(pk) */
-			eosio::checksum256 pkHash = hashMsg(pk);
-
-			/* find from pks table by hashMsg(pk) */
-			pks pk_table(get_self(), get_self().value);
-			auto pkHashTable = pk_table.get_index<hTable::key::pkHash>();
-			auto pItr = pkHashTable.find(pkHash);
-			eosio::check(pItr != pkHashTable.end(), hError::error::NOT_FOUND_PK_RECORD.data());
-			eosio::check(!isPkDebt(pItr->id) and !isNPkDebt(pItr->id) and !isPkInHtlc(pItr->id), \
-            hError::error::BUSY_PK.data());
-
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[removepk => pk => id:", pItr->id, ", pk:", pItr->pk, ", pkHash:", pItr->pkHash, "]\t");
-#endif
-
-			eosio::check(!existAsset(pItr->id), hError::error::EXIST_ASSET_RECORD.data());
-			eosio::check(!existFee(pItr->id), hError::error::EXIST_FEE_RECORD.data());
-
-			pItr = pkHashTable.erase(pItr);
-			eosio::require_recipient(storeman);
-		}
-
-		/* signature verification */
-		{
-			std::string_view storemanView = storeman.to_string();
-			int32_t maxSize = storemanView.size() + tMemo::removePk::total - 1;
-			verifySignature(hStatus::status::removepk, pk, r, s, maxSize, &storemanView, &common::strEOF);
-		}
-	}
-
-/* debt, by storeman-self and the storeman-match */
+	/* debt, by storeman-self and the storeman-match */
 	ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
-    eosio::asset quantity, std::string npk, std::string xHash, \
-    std::string pk, std::string r, std::string s) {
+							eosio::asset quantity, std::string npk, std::string xHash, \
+							std::string pk, std::string r, std::string s) {
 
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[lockdebt => storeman:", storeman, ", account:", account, \
@@ -357,8 +271,6 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[lockdebt => pk => id:", pkInfo.id, ", pk:", pkInfo.pk, ", pkHash:", pkInfo.pkHash, "]\t");
 #endif
-			// eosio::check(!isNPkDebt(pkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
-
 			htlc::pk_t npkInfo;
 			eosio::checksum256 npkHash = hashMsg(npk);
 			if (!findPK(npkHash, &npkInfo)) {
@@ -368,8 +280,6 @@ namespace htlc {
 			eosio::print("\t[lockdebt => npk => id:", npkInfo.id, ", pk:", npkInfo.pk, ", pkHash:", npkInfo.pkHash,
 						 "]\t");
 #endif
-			// eosio::check(!isPkDebt(npkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
-
 			/* check debts table by xHash */
 			eosio::checksum256 xHashValue = parseXHash(xHash);
 			/* should be no debt-record by xHash */

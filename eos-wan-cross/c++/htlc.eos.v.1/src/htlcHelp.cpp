@@ -171,7 +171,7 @@ namespace htlc {
 	}
 
 	void htlc::cleanPk(uint64_t pid) {
-		if (existAsset(pid) or existFee(pid) or isPkInHtlc(pid) or isPkDebt(pid) or isNPkDebt(pid)) {
+		if (existAsset(pid) or existFee(pid) or isPkInHtlc(pid) or isPkDebt(pid)) {
 			return;
 		}
 
@@ -183,7 +183,6 @@ namespace htlc {
 		}
 	}
 
-// using for update pk
 	bool htlc::isPkInHtlc(uint64_t pid) {
 		bool isBusy = false;
 
@@ -200,7 +199,6 @@ namespace htlc {
 		return isBusy;
 	}
 
-// using for update pk
 	bool htlc::isPkDebt(uint64_t pid) {
 		bool isBusy = false;
 
@@ -218,23 +216,9 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
 #endif
-
 		return isBusy;
 	}
 
-// using for update pk
-	bool htlc::isPkDebt(std::string_view pkView) {
-		htlc::pk_t pkInfo;
-		eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-		// /* check fees table if exist by pk */
-		// fees fee_table(get_self(), pkInfo.id);
-		// eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
-		return isPkDebt(pkInfo.id);
-	}
-
-// using for update pk
 	bool htlc::isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
 		bool isBusy = false;
 
@@ -253,92 +237,11 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
 #endif
-
 		return isBusy;
-	}
-
-// using for update pk
-	bool htlc::isPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym) {
-		htlc::pk_t pkInfo;
-		eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-		// /* check fees table if exist by pk */
-		// fees fee_table(get_self(), pkInfo.id);
-		// eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
-		return isPkDebt(pkInfo.id, account, sym);
-	}
-
-// using for update pk
-	bool htlc::isNPkDebt(uint64_t pid) {
-		bool isBusy = false;
-
-		debts debt_table(get_self(), get_self().value);
-		// check debts table if pid exists
-		auto dPidIndex = debt_table.get_index<hTable::key::pid>();
-		auto dItr = dPidIndex.find(pid);
-		isBusy = (dItr != dPidIndex.end());
-
-		if (!isBusy) {
-			auto dNPidIndex = debt_table.get_index<hTable::key::npid>();
-			auto dItr = dNPidIndex.find(pid);
-			isBusy = (dItr != dNPidIndex.end());
-		}
-#ifdef _DEBUG_PRINT
-		eosio::print("isNPkDebt => pk:", pid, ", isBusy:", isBusy);
-#endif
-
-		return isBusy;
-	}
-
-// using for update pk
-	bool htlc::isNPkDebt(std::string_view pkView) {
-		htlc::pk_t pkInfo;
-		eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-		// /* check fees table if exist by pk */
-		// fees fee_table(get_self(), pkInfo.id);
-		// eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
-		return isNPkDebt(pkInfo.id);
-	}
-
-// using for update pk
-	bool htlc::isNPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
-		bool isBusy = false;
-
-		debts debt_table(get_self(), get_self().value);
-		// check debts table if pid exists
-		uint128_t pidAcctKey = common::makeU128(pid, account.value);
-		auto dNPidAcctIndex = debt_table.get_index<hTable::key::npid_acct>();
-		auto dItr = dNPidAcctIndex.find(pidAcctKey);
-		do {
-			if (sym.raw() == dItr->quantity.symbol.raw()) {
-				isBusy = true;
-				break;
-			}
-		} while (dItr != dNPidAcctIndex.end());
-#ifdef _DEBUG_PRINT
-		eosio::print("isNPkDebt => pk:", pid, ", isBusy:", isBusy);
-#endif
-
-		return isBusy;
-	}
-
-// using for update pk
-	bool htlc::isNPkDebt(std::string_view pkView, const eosio::name &account, const eosio::symbol &sym) {
-		htlc::pk_t pkInfo;
-		eosio::check(findPK(pkView, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-		// /* check fees table if exist by pk */
-		// fees fee_table(get_self(), pkInfo.id);
-		// eosio::check(fee_table.begin() == fee_table.end(), hError::error::EXIST_FEE_RECORD.data());
-
-		return isNPkDebt(pkInfo.id, account, sym);
 	}
 
 	void htlc::verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-    uint64_t size, std::string_view *msg, ...) {
+								uint64_t size, std::string_view *msg, ...) {
 
 		/* signature verification */
 		// make action data
