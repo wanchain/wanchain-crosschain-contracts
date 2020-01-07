@@ -47,14 +47,15 @@ namespace htlc {
 		static constexpr int pk 		= 130; // pk
 		static constexpr int status 	= 6; // inlock
 
-		constexpr uint64_t ratioPrecise = 10000;
+		static constexpr uint64_t ratioPrecise = 10000;
 
 #ifdef _DEBUG_HTLC
-		constexpr time_t lockedTime 	= time_t(3600);
+		static constexpr time_t lockedTime 	= time_t(3600);
 #else
-		constexpr time_t lockedTime 	= time_t(3600 * 36);
+		//static constexpr time_t lockedTime 	= time_t(3600 * 36);
+		static constexpr time_t lockedTime 	= time_t(3600);
 #endif
-		constexpr time_t doubleLockedTime = lockedTime * 2;
+		static constexpr time_t doubleLockedTime = lockedTime * 2;
 	}
 
 	// htlc status description
