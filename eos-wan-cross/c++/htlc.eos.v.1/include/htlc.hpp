@@ -14,11 +14,9 @@
 #define _DEBUG_HTLC
 #define _DEBUG_PRINT
 #define _DEBUG_API
-// #define _SIGN_MSG_DETAIL
 
 namespace htlc {
 
-	//class [[eosio::contract("htlc.eos.v.1")]] htlc : public eosio::contract {
 	class [[eosio::contract("htlc")]] htlc : public eosio::contract {
 	public:
 		using contract::contract;
@@ -34,7 +32,7 @@ namespace htlc {
 		/// @param user                name        account name of user initiated the Tx
 		/// @param quantity            asset       exchange quantity
 		/// @param memo                string      status(6):xHash(64):wanAddr(40):pk(130):eosTokenAccount(12) => 256 bytes
-		// / @param memo                string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
+		// / @param memo               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
 		/// @param xHash               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
 		/// @param wanAddr             string      origin chain address(42)
 		/// @param pk                  string      storemanAgent pk
@@ -43,42 +41,42 @@ namespace htlc {
 		// ACTION inlock(eosio::name user, eosio::asset quantity, std::string xHash, std::string wanAddr, std::string pk);
 		ACTION inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, std::string memo);
 
-		/// @notice               type        comment
-		/// @param user           name        account name of user initiated the Tx
-		/// @param storeman  name        storeman account name
-		/// @param xHash          string      hash of HTLC random number
-		/// @param x              string      HTLC random number
+		/// @notice               		type        comment
+		/// @param user           		name        account name of user initiated the Tx
+		/// @param storeman  			name        storeman account name
+		/// @param xHash          		string      hash of HTLC random number
+		/// @param x              		string      HTLC random number
 		ACTION inredeem(eosio::name storeman, std::string x, std::string r, std::string s);
 
-		/// @notice               type        comment
-		/// @param user           name        account name of user initiated the Tx
-		/// @param xHash          string      hash of HTLC random number
-		/// memo                  string      status(8):xHash(64):pk(130):eosTokenAccount(12) => 256 bytes
+		/// @notice               		type        comment
+		/// @param user           		name        account name of user initiated the Tx
+		/// @param xHash          		string      hash of HTLC random number
+		/// memo                  		string      status(8):xHash(64):pk(130):eosTokenAccount(12) => 256 bytes
 		ACTION inrevoke(std::string xHash);
 
-		/// @notice               type        comment
-		/// @param user           name        account name of user initiated the Tx
-		/// @param storeman  name        storeman account name
-		/// @param quantity       asset       exchange quantity
-		/// @param memo           string      xHash:wanAddr:user:status
+		/// @notice               		type        comment
+		/// @param user           		name        account name of user initiated the Tx
+		/// @param storeman  			name        storeman account name
+		/// @param quantity       		asset       exchange quantity
+		/// @param memo           		string      xHash:wanAddr:user:status
 		/// TOKEN locked in htlc
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
 		ACTION outlock(eosio::name storeman, eosio::name user, eosio::name account, eosio::asset quantity, \
                     std::string xHash, std::string pk, std::string r, std::string s);
 
-		/// @notice               type        comment
-		/// @param user           name        account name of user initiated the Tx
-		/// @param storeman  name        storeman account name
-		/// @param xHash          string      hash of HTLC random number
-		/// @param x              string      HTLC random number
+		/// @notice               		type        comment
+		/// @param user           		name        account name of user initiated the Tx
+		/// @param storeman  			name        storeman account name
+		/// @param xHash          		string      hash of HTLC random number
+		/// @param x              		string      HTLC random number
 		ACTION outredeem(eosio::name user, std::string x);
 
-		/// @notice               type        comment
-		/// @param xHash          string      hash of HTLC random number
+		/// @notice               		type        comment
+		/// @param xHash          		string      hash of HTLC random number
 		ACTION outrevoke(std::string xHash);
 
 
-		/// @param sym          string      precision,symbol_code
+		/// @param sym          		string      precision,symbol_code
 		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r, std::string s);
 
 		/* signature contract */
@@ -287,7 +285,8 @@ namespace htlc {
 		, eosio::indexed_by<hTable::key::npid_acct, \
                 eosio::const_mem_fun<debt_t, uint128_t, &debt_t::npid_acct_key>>
 		> debts;
-		/***************************************************************************************/
+
+		/******************************internal function*******************************************************/
 
 		inline eosio::checksum256 parseXHash(std::string_view xHashView);
 
@@ -296,50 +295,48 @@ namespace htlc {
 
 		inline void getRatio(uint64_t &ratio);
 
-		void cleanTokens(uint64_t codeId);
+		void 	savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo);
+		bool 	findPK(std::string_view pkView, void *pkInfo);
+		bool 	findPK(const eosio::checksum256 &pkHash, void *pkInfo);
+		bool 	findPK(uint64_t pid, void *pkInfo);
+		bool 	hasPK(uint64_t pid);
+		void 	cleanPk(uint64_t pid);
 
-		void savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo);
-		bool findPK(std::string_view pkView, void *pkInfo);
-		bool findPK(const eosio::checksum256 &pkHash, void *pkInfo);
-		bool findPK(uint64_t pid, void *pkInfo);
-		bool hasPK(uint64_t pid);
-		void cleanPk(uint64_t pid);
+		bool 	isPkInHtlc(uint64_t pid);
 
-		bool isPkInHtlc(uint64_t pid);
+		bool 	isPkDebt(uint64_t pid);
+		bool 	isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
-		bool isPkDebt(uint64_t pid);
-		bool isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+		void 	verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
+            		uint64_t size, std::string_view *msg, ...);
 
-		void verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-            uint64_t size, std::string_view *msg, ...);
+		void 	addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
+		void 	subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
 
-		void addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
-		void subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
+		void 	getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		void 	getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		void 	getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity, std::string_view status);
+		void 	getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		bool 	existAsset(uint64_t pid);
+		bool 	existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
-		void getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
-		void getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
-		void getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity, std::string_view status);
-		void getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
-		bool existAsset(uint64_t pid);
-		bool existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+		bool 	existFee(uint64_t pid);
+		bool 	existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+		void 	addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee);
+		void 	issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView, std::string_view memo);
 
-		bool existFee(uint64_t pid);
-		bool existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
-		void addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee);
-		void issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView, std::string_view memo);
+		void 	inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
+            		const eosio::checksum256 &xHashValue, std::string_view wanAddrView);
+		void 	outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
+            		const eosio::checksum256 &xHashValue);
+		void 	lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
+            		const eosio::checksum256 &xHashValue);
 
-		void inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
-            const eosio::checksum256 &xHashValue, std::string_view wanAddrView);
-		void outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
-            const eosio::checksum256 &xHashValue);
-		void lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
-            const eosio::checksum256 &xHashValue);
-
-		void hexStrToUint256(std::string_view hexStr, internal::Uint256_t &outValue) {
+		void 	hexStrToUint256(std::string_view hexStr, internal::Uint256_t &outValue) {
 			common::str2Hex(hexStr, (char *)outValue.data, sizeof(outValue));
 		}
 
-		bool hexStrToChecksum256(std::string_view hexStr, const eosio::checksum256 &outValue) {
+		bool 	hexStrToChecksum256(std::string_view hexStr, const eosio::checksum256 &outValue) {
 			if (hexStr.size() != 64)
 				return false;
 
@@ -360,7 +357,7 @@ namespace htlc {
 		}
 
 		/* hex string to  checksum256 */
-		inline eosio::checksum256 hexStrToChecksum256(std::string_view hex_str, bool needHash = false) {
+		inline 	eosio::checksum256 hexStrToChecksum256(std::string_view hex_str, bool needHash = false) {
 			eosio::checksum256 hexValue;
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[hexStrToChecksum256=> init:", hexValue, ", size:", sizeof(hexValue.get_array()), "]\t");
@@ -382,7 +379,7 @@ namespace htlc {
 		}
 
 		/* x-hex-string to xHash eosio::checksum256 */
-		inline eosio::checksum256 hashHexMsg(std::string_view hexView) {
+		inline 	eosio::checksum256 hashHexMsg(std::string_view hexView) {
 			internal::Uint256_t hexValue;
 			hexStrToUint256(hexView, hexValue);
 			eosio::checksum256 hashValue = eosio::sha256((char *)hexValue.data, sizeof(hexValue));
@@ -393,16 +390,16 @@ namespace htlc {
 		}
 
 		/* x-hex-string to xHash eosio::checksum256 */
-		inline eosio::checksum256 hashMsg(std::string_view msgView) {
+		inline 	eosio::checksum256 hashMsg(std::string_view msgView) {
 			return eosio::sha256((char *)msgView.data(), msgView.size());
 		}
 
-		inline std::string Uint256ToHexStr(const internal::Uint256_t &value) {
+		inline 	std::string Uint256ToHexStr(const internal::Uint256_t &value) {
 			return common::toHexStr((char *) value.data, sizeof(value));
 			// eosio::checksum256 result = convertEndian(value);
 			// return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
 		}
-		inline std::string checksum256ToHexStr(const eosio::checksum256 &value) {
+		inline 	std::string checksum256ToHexStr(const eosio::checksum256 &value) {
 			return common::toHexStr((char *) value.data(), sizeof(value.get_array()));
 			// eosio::checksum256 result = convertEndian(value);
 			// return common::toHexStr((char *) result.data(), sizeof(result.get_array()));

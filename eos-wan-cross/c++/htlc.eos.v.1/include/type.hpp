@@ -33,8 +33,6 @@ namespace htlc {
 		typedef struct level_t {
 			/* should less than 12 charapters */
 			static constexpr eosio::name active 	= eosio::name("active");
-			static constexpr eosio::name token 		= eosio::name("token");
-			static constexpr eosio::name sign 		= eosio::name("sign");
 		} level;
 	};
 
@@ -54,7 +52,7 @@ namespace htlc {
 		constexpr uint64_t ratioPrecise = 10000;
 
 #ifdef _DEBUG_HTLC
-		constexpr time_t lockedTime = time_t(3600);
+		constexpr time_t lockedTime 	= time_t(3600);
 #else
 		constexpr time_t lockedTime 	= time_t(3600 * 36);
 #endif
@@ -72,8 +70,6 @@ namespace htlc {
 			static constexpr std::string_view outredeem 	= "outredeem";
 			static constexpr std::string_view outrevoke 	= "outrevoke";
 			static constexpr std::string_view withdraw 		= "withdraw";
-			static constexpr std::string_view updatepk 		= "updatepk";
-			static constexpr std::string_view removepk 		= "removepk";
 			static constexpr std::string_view lockdebt 		= "lockdebt";
 			static constexpr std::string_view redeemdebt 	= "redeemdebt";
 			static constexpr std::string_view revokedebt 	= "revokedebt";
@@ -154,141 +150,122 @@ namespace htlc {
 
 	// eosio.token transfer memo description
 	namespace tMemo {
-		constexpr char separator = ':';
-		constexpr char outSeparator = '-';
+		constexpr char separator 			= ':';
+		constexpr char outSeparator 		= '-';
 
 		typedef struct inlock_t {
-			static constexpr int status = 0;
-			static constexpr int xHash = 1;
-			static constexpr int wanAddr = 2;
-			static constexpr int pk = 3;
-			static constexpr int account = 4;
-			static constexpr int total = 5;
+			static constexpr int status		= 0;
+			static constexpr int xHash 		= 1;
+			static constexpr int wanAddr 	= 2;
+			static constexpr int pk 		= 3;
+			static constexpr int account 	= 4;
+			static constexpr int total 		= 5;
 		} inlock;
 
 		typedef struct inredeem_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int x = 1;
-#endif
-			static constexpr int total = 2;
+
+//			static constexpr int storeman 	= 0;
+//			static constexpr int x 			= 1;
+
+			static constexpr int total 		= 2;
 		} inredeem;
 
 		typedef struct inrevoke_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int status = 0;
-			static constexpr int xHash = 1;
-			static constexpr int account = 2;
-#endif
-			static constexpr int total = 3;
+//			static constexpr int status 	= 0;
+//			static constexpr int xHash 		= 1;
+//			static constexpr int account 	= 2;
+
+			static constexpr int total 		= 3;
 		} inrevoke;
 
 		typedef struct outlock_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int user = 1;
-			static constexpr int account = 2;
-			static constexpr int quantity = 3;
-			static constexpr int xHash = 4;
-#endif
-			static constexpr int total = 5;
+
+//			static constexpr int storeman 	= 0;
+//			static constexpr int user 		= 1;
+//			static constexpr int account 	= 2;
+//			static constexpr int quantity 	= 3;
+//			static constexpr int xHash 		= 4;
+
+			static constexpr int total 		= 5;
 		} outlock;
 
 		typedef struct outredeem_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int status = 0;
-			static constexpr int x = 1;
-			static constexpr int account = 2;
-#endif
-			static constexpr int total = 3;
+
+//			static constexpr int status 	= 0;
+//			static constexpr int x 			= 1;
+//			static constexpr int account 	= 2;
+
+			static constexpr int total 		= 3;
 		} outredeem;
 
 		typedef struct lockDebt_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int account = 1;
-			static constexpr int quantity = 2;
-			static constexpr int pk = 3;
-			static constexpr int xHash = 4;
-#endif
-			static constexpr int total = 5;
+
+//			static constexpr int storeman 	= 0;
+//			static constexpr int account 	= 1;
+//			static constexpr int quantity 	= 2;
+//			static constexpr int pk 		= 3;
+//			static constexpr int xHash 		= 4;
+
+			static constexpr int total 		= 5;
 		} lockDebt;
 
 		typedef struct redeemDebt_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int x = 1;
-#endif
-			static constexpr int total = 2;
+
+//			static constexpr int storeman 	= 0;
+//			static constexpr int x 			= 1;
+
+			static constexpr int total 		= 2;
 		} redeemDebt;
 
 		typedef struct revokeDebt_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int xHash = 0;
-#endif
-			static constexpr int total = 1;
+
+//			static constexpr int xHash 		= 0;
+
+			static constexpr int total 		= 1;
 		} revokeDebt;
 
 		typedef struct withdraw_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int account = 1;
-			static constexpr int sym = 2;
-#endif
-			static constexpr int total = 3;
+
+//			static constexpr int storeman 	= 0;
+//			static constexpr int account 	= 1;
+//			static constexpr int sym 		= 2;
+
+			static constexpr int total 		= 3;
 		} withdraw;
-
-		typedef struct updatePk_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-			static constexpr int pk = 1;
-#endif
-			static constexpr int total = 2;
-		} updatePk;
-
-		typedef struct removePk_t {
-#ifdef _SIGN_MSG_DETAIL
-			static constexpr int storeman = 0;
-#endif
-			static constexpr int total = 1;
-		} removePk;
 
 		typedef struct memo_size_t {
 			struct inlock {
-				static constexpr int min = 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::min +
+				static constexpr int min 	= 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::min +
 										   sysLimit::account::min;
-				static constexpr int max = 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::max +
+				static constexpr int max 	= 4 + hLimit::xHash + hLimit::wanAddr + hLimit::pk + sysLimit::account::max +
 										   sysLimit::account::max;
 			};
 		} size;
 	};
 
 	namespace hSymbol {
-		constexpr char separator = ',';
+		constexpr char separator 			= ',';
 		typedef struct item_t {
-			static constexpr int precision = 0;
-			static constexpr int symCode = 1;
-			static constexpr int total = 2;
+			static constexpr int precision 	= 0;
+			static constexpr int symCode 	= 1;
+			static constexpr int total 		= 2;
 		} item;
 	}
 
 	namespace hAsset {
-		constexpr char separator = ' ';
-		constexpr char dot = '.';
+		constexpr char separator 			= ' ';
+		constexpr char dot 					= '.';
 		typedef struct item_t {
-			static constexpr int value = 0;
-			static constexpr int symCode = 1;
-			static constexpr int total = 2;
+			static constexpr int value 		= 0;
+			static constexpr int symCode 	= 1;
+			static constexpr int total 		= 2;
 		} item;
 
 		typedef struct amount_t {
-			static constexpr int integer = 0;
-			static constexpr int decimal = 1;
-			static constexpr int total = 2;
+			static constexpr int integer 	= 0;
+			static constexpr int decimal 	= 1;
+			static constexpr int total 		= 2;
 		} amount;
 	}
-
-
-
 };
 #endif
