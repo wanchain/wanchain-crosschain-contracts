@@ -205,7 +205,7 @@ namespace htlc {
 
 /* register signature verification info, by htlc-self */
 	ACTION htlc::regsig(eosio::name code, eosio::name action) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::sign});
+		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[regsig => code:", code, ", action:", action, "]\t");
@@ -224,7 +224,7 @@ namespace htlc {
 	}
 
 	ACTION htlc::updatesig(eosio::name code, eosio::name nCode, eosio::name nAction) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::sign});
+		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
 		signer sig_table(get_self(), get_self().value);
 		auto dItr = sig_table.find(code.value);
@@ -240,7 +240,7 @@ namespace htlc {
 	}
 
 	ACTION htlc::unregsig(eosio::name code) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::sign});
+		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
 		signer sig_table(get_self(), get_self().value);
 		auto dItr = sig_table.find(code.value);
@@ -880,7 +880,7 @@ namespace htlc {
 	}
 
 	ACTION htlc::setratio(uint64_t ratio) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::sign});
+		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
 		longlongs ll_table(get_self(), get_self().value);
 		auto lItr = ll_table.find(hTable::key::ratio.value);
@@ -996,11 +996,11 @@ namespace htlc {
 			switch (action) {
 #ifdef _DEBUG_API
 				EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-                (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
+                (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig) \
                 (setratio)(printratio)(query)(truncate)(leftlocktime)(gethash))
 #else
 				EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-				(lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig)(updatepk)(removepk)\
+				(lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig) \
 				(setratio))
 #endif
 			}
