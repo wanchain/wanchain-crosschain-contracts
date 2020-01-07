@@ -573,8 +573,7 @@ namespace htlc {
 		});
 	}
 
-	void
-	htlc::outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
+	void htlc::outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue) {
 
 		transfers transfers_table(get_self(), get_self().value);
