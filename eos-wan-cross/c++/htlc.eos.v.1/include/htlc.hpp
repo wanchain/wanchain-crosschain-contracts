@@ -86,11 +86,6 @@ namespace htlc {
 		ACTION updatesig(eosio::name code, eosio::name nCode, eosio::name nAction);
 		ACTION unregsig(eosio::name code);
 
-		/* updatePK */
-		ACTION updatepk(eosio::name storeman, std::string npk, std::string pk, std::string r, std::string s);
-
-		ACTION removepk(eosio::name storeman, std::string pk, std::string r, std::string s);
-
 		/* debt storeman like inlock */
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
 		ACTION lockdebt(eosio::name storeman, eosio::name account, eosio::asset quantity, std::string npk, std::string xHash, std::string pk, std::string r, std::string s);
