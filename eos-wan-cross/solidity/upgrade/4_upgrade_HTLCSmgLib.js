@@ -8,23 +8,12 @@ const HTLCProxy = artifacts.require('HTLCProxy');
 const HTLCDelegate = artifacts.require('HTLCDelegate');
 
 module.exports = async (deployer) => {
-  /* upgrade HTLCLib and HTLCDelegate, affect HTLCDebtLib, HTLCSmgLib, HTLCUserLib */
-
-  await deployer.deploy(HTLCLib);
-
-  await deployer.link(SchnorrVerifier, HTLCDebtLib);
-  await deployer.link(QuotaLib, HTLCDebtLib);
-  await deployer.link(HTLCLib, HTLCDebtLib);
-  await deployer.deploy(HTLCDebtLib);
+  /* upgrade HTLCSmgLib and HTLCDelegate */
 
   await deployer.link(SchnorrVerifier, HTLCSmgLib);
   await deployer.link(QuotaLib, HTLCSmgLib);
   await deployer.link(HTLCLib, HTLCSmgLib);
   await deployer.deploy(HTLCSmgLib);
-
-  await deployer.link(QuotaLib, HTLCUserLib);
-  await deployer.link(HTLCLib, HTLCUserLib);
-  await deployer.deploy(HTLCUserLib);
 
   await deployer.link(SchnorrVerifier, HTLCDelegate);
   await deployer.link(QuotaLib, HTLCDelegate);
