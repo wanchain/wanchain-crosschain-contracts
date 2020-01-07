@@ -137,17 +137,13 @@ contract HTLCDelegate is HTLCStorage, Halt {
 
     /// @notice                                 storeman redeem transaction on wanchain,which invokes burn token
     /// @param  x                               HTLC random number
-    /// @param  r                               signature
-    /// @param  s                               signature
-    function outSmgRedeem(bytes32 x, bytes r, bytes32 s)
+    function outSmgRedeem(bytes32 x)
         external
         initialized
         notHalted
     {
         HTLCSmgLib.HTLCSmgRedeemParams memory params = HTLCSmgLib.HTLCSmgRedeemParams({
             tokenManager: htlcStorageData.tokenManager,
-            r: r,
-            s: s,
             x: x
         });
         HTLCSmgLib.outSmgRedeem(htlcStorageData, params);

@@ -1200,9 +1200,7 @@ contract('Test HTLC', async (accounts) => {
         await htlcInstProxy.setHalt(true);
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x,
-                htlcSmgRedeemParams.r,
-                htlcSmgRedeemParams.s);
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x);
         } catch (err) {
             assert.include(err.toString(), "Smart contract is halted");
         }
@@ -1213,9 +1211,7 @@ contract('Test HTLC', async (accounts) => {
 
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstNotInit.outSmgRedeem(htlcSmgRedeemParams.x,
-                htlcSmgRedeemParams.r,
-                htlcSmgRedeemParams.s);
+            await htlcInstNotInit.outSmgRedeem(htlcSmgRedeemParams.x);
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
         }
@@ -1225,9 +1221,7 @@ contract('Test HTLC', async (accounts) => {
     it('WAN->EOS outSmgRedeem ==> use wrong x', async () => {
         try {
             htlcSmgRedeemParams.x = x1;
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x,
-                htlcSmgRedeemParams.r,
-                htlcSmgRedeemParams.s);
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParams.x);
         } catch (err) {
             assert.include(err.toString(), "not locked");
         }
@@ -1245,9 +1239,7 @@ contract('Test HTLC', async (accounts) => {
             let bnBeforeTotalSupply = new BN(await getTotalSupply(tokenInfo.tokenOrigAccount));
             let bnAfterTotalSupply = bnBeforeTotalSupply.sub(new BN(htlcSmgLockParams.value.toString()));
 
-            let ret = await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
-                htlcSmgRedeemParamsTemp.r,
-                htlcSmgRedeemParamsTemp.s);
+            let ret = await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x);
 
             let txFee = (new BN(htlcUserLockParams.value))
                 .div(new BN(10).pow(new BN(tokenInfo.decimals)))
@@ -1312,9 +1304,7 @@ contract('Test HTLC', async (accounts) => {
             let htlcSmgRedeemParamsTemp = Object.assign({}, htlcSmgRedeemParams);
             htlcSmgRedeemParamsTemp.x = x13;
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
-                htlcSmgRedeemParamsTemp.r,
-                htlcSmgRedeemParamsTemp.s);
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), "Redeem timeout");
@@ -1327,9 +1317,7 @@ contract('Test HTLC', async (accounts) => {
             let htlcSmgRedeemParamsTemp = Object.assign({}, htlcSmgRedeemParams);
             htlcSmgRedeemParamsTemp.x = x2;
 
-            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x,
-                htlcSmgRedeemParamsTemp.r,
-                htlcSmgRedeemParamsTemp.s);
+            await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), "Status is not locked");

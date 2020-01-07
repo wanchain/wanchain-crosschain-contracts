@@ -57,8 +57,6 @@ library HTLCSmgLib {
     /// @notice struct of HTLC storeman redeem parameters
     struct HTLCSmgRedeemParams {
         ITokenManager tokenManager;     /// interface of token manager
-        bytes r;                        /// R in schnorr signature
-        bytes32 s;                      /// s in schnorr signature
         bytes32 x;                      /// HTLC random number
     }
 
@@ -135,7 +133,6 @@ library HTLCSmgLib {
         bytes memory tokenOrigAccount;
         (, , value, storemanGroupPK,tokenOrigAccount) = htlcStorageData.htlcData.getUserTx(xHash);
 
-        commonLib.verifySignature(sha256(abi.encode(params.x)), storemanGroupPK, params.r, params.s);
         htlcStorageData.quotaData.outRedeem(tokenOrigAccount, storemanGroupPK, value);
 
         params.tokenManager.burnToken(tokenOrigAccount, value);
