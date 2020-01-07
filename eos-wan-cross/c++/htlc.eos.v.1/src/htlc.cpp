@@ -466,11 +466,6 @@ namespace htlc {
 #endif
 
 			// eosio.token's action [transfer] will notify user that user inrevoked by memo
-			//htlc::account_t tokenAccountInfo;
-			//eosio::check(getTokenAccountInfo(tItr->account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-//        eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//            std::make_tuple(this->get_self(), tItr->user, left, memo)).send();
-
 			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItr->account,
 						  TRANSFER_NAME,
 						  std::make_tuple(this->get_self(), tItr->user, left, memo)).send();
@@ -510,9 +505,8 @@ namespace htlc {
 	ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::name account, eosio::asset quantity, \
     std::string xHash, std::string pk, std::string r, std::string s) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[outlock => storeman:", storeman, ", user:", user, ", account:", account, ", quantity:",
-					 quantity\
-, ", xHash:", xHash, ", pk:", pk, ", r:", r, ", s:", s, "]\t");
+		eosio::print("\t[outlock => storeman:", storeman, ", user:", user, ", account:", account, ", quantity:", \
+					 quantity, ", xHash:", xHash, ", pk:", pk, ", r:", r, ", s:", s, "]\t");
 #endif
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		// eosio::require_auth(storeman);
@@ -645,9 +639,6 @@ namespace htlc {
 						  std::make_tuple(this->get_self(), tItr->user, tItr->quantity, memo)).send();
 
 			tItr = tXHashTable.erase(tItr);
-			// tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-			//     s.status = hStatus::status::outredeem;
-			// });
 		}
 	}
 
@@ -679,11 +670,7 @@ namespace htlc {
         ", status:", tItr->status, ", id:", tItr->id, ", user:", tItr->user, ", pid:", tItr->pid, \
         ", quantity:", tItr->quantity, ", xHash:", tItr->xHash, ", account:", tItr->account, "]\t");
 #endif
-
 		tItr = tXHashTable.erase(tItr);
-		// tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-		//     s.status = hStatus::status::outrevoke;
-		// });
 	}
 
 	ACTION htlc::setratio(uint64_t ratio) {
@@ -710,7 +697,7 @@ namespace htlc {
 		}
 	}
 
-	extern "C" {
+extern "C" {
 
 	void applyTransferAction(uint64_t receiver, uint64_t code, uint64_t action) {
 		auto self = receiver;
@@ -753,7 +740,7 @@ namespace htlc {
 			}
 		}
 	}
-	}
+}
 
 	extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
 
