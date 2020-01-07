@@ -11,9 +11,7 @@
 #include <eosio/time.hpp>
 #include <eosio/crypto.hpp>
 
-#define _DEBUG_HTLC
-#define _DEBUG_PRINT
-#define _DEBUG_API
+#include "./debugFlag.hpp"
 
 namespace htlc {
 
@@ -26,6 +24,7 @@ namespace htlc {
 		ACTION truncate(eosio::name table, std::string scope);
 		ACTION query(eosio::name table, std::string scope);
 		ACTION leftlocktime(eosio::name table, std::string xHash);
+		ACTION printratio();
 #endif
 
 		/// @notice                    type        comment
@@ -93,9 +92,7 @@ namespace htlc {
 		ACTION revokedebt(std::string xHash, std::string r, std::string s);
 
 		ACTION setratio(uint64_t ratio);
-#ifdef _DEBUG_API
-		ACTION printratio();
-#endif
+
 
 		struct transfer_data {
 			eosio::name            from;

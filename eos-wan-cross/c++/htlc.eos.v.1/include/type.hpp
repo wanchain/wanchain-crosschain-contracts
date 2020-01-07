@@ -11,9 +11,7 @@
 #include <eosio/time.hpp>
 #include <eosio/crypto.hpp>
 
-#define _DEBUG_HTLC
-#define _DEBUG_PRINT
-#define _DEBUG_API
+#include "./debugFlag.hpp"
 
 namespace htlc {
 	static constexpr eosio::name TRANSFER_NAME = "transfer"_n;
