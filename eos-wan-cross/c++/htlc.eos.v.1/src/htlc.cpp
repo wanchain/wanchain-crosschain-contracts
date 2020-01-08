@@ -57,8 +57,8 @@ namespace htlc {
 	}
 
 	/* debt, by storeman-self and the storeman-match */
-	ACTION htlc::lockdebt(eosio::name storeman, eosio::name account, \
-							eosio::asset quantity, std::string npk, std::string xHash, \
+	ACTION htlc::lockdebt(eosio::name storeman, std::string npk, eosio::name account, \
+							eosio::asset quantity,std::string xHash, \
 							std::string pk, std::string r, std::string s) {
 
 #ifdef _DEBUG_PRINT
@@ -121,10 +121,10 @@ namespace htlc {
 			std::string_view npkView = npk;
 			std::string_view xHashView = xHash;
 
-			int32_t maxSize = acctView.size() + qView.size() + npkView.size() + xHashView.size() +
+			int32_t maxSize = npkView.size() + acctView.size() + qView.size() + xHashView.size() +
 							  tMemo::lockDebt::total - 1;
-			verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &acctView, &qView, \
-            &npkView, &xHashView, &common::strEOF);
+			verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &npkView, &acctView, &qView, \
+             &xHashView, &common::strEOF);
 		}
 	}
 
@@ -227,13 +227,25 @@ namespace htlc {
 
 /* withdraw fee, by storeman-self */
 	ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r,
-						  std::string s) {
+						  std::string s, std::string timeStamp) {
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[withdraw => storeman:", storeman, ", account:", account, ", sym:", sym, ", pk:", pk, ", r:", r,
 					 ", s:", s, " ]\t");
 #endif
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		eosio::require_auth(storeman);
+
+		// check now < timeStamp + smgFeeReceiverTimeout
+
+		auto nowTimeTps = eosio::time_point_sec(eosio::current_time_point());
+		auto smgTimeoutTps = eosio::time_point_sec(hLimit::smgFeeReceiverTimeout);
+		auto ts = std::strtoul(timeStamp.c_str(),NULL,10);
+		eosio::check(ts < std::numeric_limits<uint32_t>::max() and ts > std::numeric_limits<uint32_t>::min(), \
+		hError::error::TIMESTAMP_TOO_BIG.data());
+
+		auto tsTps = eosio::time_point_sec(ts);
+		tsTps += smgTimeoutTps;
+		eosio::check((nowTimeTps < tsTps), hError::error::TIMESTAMP_TIMEOUT.data());
 
 		/* withdraw */
 		{
@@ -247,7 +259,9 @@ namespace htlc {
 			std::string_view storemanView = storeman.to_string();
 			std::string_view acctView = account;
 			std::string_view symView = sym;
-			int32_t maxSize = acctView.size() + symView.size() + tMemo::withdraw::total - 1;
+			std::string_view timeStampView = timeStamp;
+
+			int32_t maxSize = timeStampView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
 			// check sym and fee
 			if (acctView.empty() || symView.empty()) {
 				if (acctView.empty()) {
@@ -257,7 +271,7 @@ namespace htlc {
 				}
 			}
 
-			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &acctView, &symView,
+			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &timeStampView, &acctView, &symView,
 							&common::strEOF);
 		}
 	}

@@ -71,7 +71,8 @@ namespace htlc {
 
 
 		/// @param sym          		string      precision,symbol_code
-		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r, std::string s);
+		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r, \
+					std::string s,std::string timeStamp);
 
 		/* signature contract */
 		ACTION regsig(eosio::name code, eosio::name action);
@@ -80,7 +81,7 @@ namespace htlc {
 
 		/* debt storeman like inlock */
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
-		ACTION lockdebt(eosio::name storeman, eosio::name account, eosio::asset quantity, std::string npk, std::string xHash, std::string pk, std::string r, std::string s);
+		ACTION lockdebt(eosio::name storeman, std::string npk, eosio::name account, eosio::asset quantity,  std::string xHash, std::string pk, std::string r, std::string s);
 
 		ACTION redeemdebt(eosio::name storeman, std::string x);
 

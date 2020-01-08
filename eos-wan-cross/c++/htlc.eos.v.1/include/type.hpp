@@ -56,6 +56,8 @@ namespace htlc {
 		static constexpr time_t lockedTime 	= time_t(3600);
 #endif
 		static constexpr time_t doubleLockedTime = lockedTime * 2;
+
+		static constexpr time_t smgFeeReceiverTimeout = time_t(600);
 	}
 
 	// htlc status description
@@ -143,6 +145,9 @@ namespace htlc {
 			static constexpr std::string_view EXIST_FEE_RECORD 					= "fee exists";
 			static constexpr std::string_view EXIST_ASSET_RECORD 				= "asset exists";
 			static constexpr std::string_view BUSY_PK 							= "pk is busy";
+
+			static constexpr std::string_view TIMESTAMP_TOO_BIG 				= "time stamp (uint:s) is too big";
+			static constexpr std::string_view TIMESTAMP_TIMEOUT 				= "timeout for store man receiver key during withdraw";
 
 		} error;
 	};
