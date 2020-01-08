@@ -82,9 +82,9 @@ namespace htlc {
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
 		ACTION lockdebt(eosio::name storeman, eosio::name account, eosio::asset quantity, std::string npk, std::string xHash, std::string pk, std::string r, std::string s);
 
-		ACTION redeemdebt(eosio::name storeman, std::string x, std::string r, std::string s);
+		ACTION redeemdebt(eosio::name storeman, std::string x);
 
-		ACTION revokedebt(std::string xHash, std::string r, std::string s);
+		ACTION revokedebt(std::string xHash);
 
 		ACTION setratio(uint64_t ratio);
 

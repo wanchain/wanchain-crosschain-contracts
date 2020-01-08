@@ -131,12 +131,10 @@ namespace htlc {
 /// @notice               type        comment
 /// @param storeman       name        storeman account name
 /// @param x              string      HTLC random number
-/// @param r              string      randoms for signature verification
-/// @param s              string      signature for signature verification
 /// coin flow: htlc -> storeman
-	ACTION htlc::redeemdebt(eosio::name storeman, std::string x, std::string r, std::string s) {
+	ACTION htlc::redeemdebt(eosio::name storeman, std::string x) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[redeemdebt => storeman:", storeman, ", x:", x, ", r:", r, ", s:", s, " ]\t");
+		eosio::print("\t[redeemdebt => storeman:", storeman, ", x:", x, " ]\t");
 #endif
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		eosio::require_auth(storeman);
@@ -188,19 +186,9 @@ namespace htlc {
 			//     s.status = hStatus::status::redeemdebt;
 			// });
 		}
-
-		/* signature verification */
-		{
-			std::string_view storemanView = storeman.to_string();
-			std::string_view xView = x;
-			int32_t maxSize = storemanView.size() + xView.size() + tMemo::redeemDebt::total - 1;
-
-			verifySignature(hStatus::status::redeemdebt, npkInfo.pk, r, s, maxSize, &storemanView, &xView,
-							&common::strEOF);
-		}
 	}
 
-	ACTION htlc::revokedebt(std::string xHash, std::string r, std::string s) {
+	ACTION htlc::revokedebt(std::string xHash) {
 		htlc::pk_t pkInfo;
 		{
 			/* check xHash */
@@ -234,14 +222,6 @@ namespace htlc {
 			// dXHashTable.modify(dItr, get_self(), [&](auto &s) {
 			//     s.status = hStatus::status::revokedebt;
 			// });
-		}
-
-		/* signature verification */
-		{
-			std::string_view xHashView = xHash;
-			int32_t maxSize = +xHashView.size() + tMemo::revokeDebt::total - 1;
-
-			verifySignature(hStatus::status::revokedebt, pkInfo.pk, r, s, maxSize, &xHashView, &common::strEOF);
 		}
 	}
 
