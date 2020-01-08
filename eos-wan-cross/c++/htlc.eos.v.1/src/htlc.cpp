@@ -342,16 +342,14 @@ namespace htlc {
 		inlockTx(pkInfo.id, user, account, quantity, xHashValue, wanAddrView);
 	}
 
-/// @notice               type        comment
-/// @param storeman  name        storeman account name
-/// @param xHash          string      hash of HTLC random number
-/// @param x              string      HTLC random number
-/// @param r              string      randoms for signature verification
-/// @param s              string      signature for signature verification
+/// @notice               	type        comment
+/// @param storeman  		name        storeman account name
+/// @param xHash          	string      hash of HTLC random number
+/// @param x              	string      HTLC random number
 /// coin flow: htlc -> storeman
-	ACTION htlc::inredeem(eosio::name storeman, std::string x, std::string r, std::string s) {
+	ACTION htlc::inredeem(eosio::name storeman, std::string x) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[inredeem => storeman:", storeman, ", x:", x, ", r:", r, ", s:", s, " ]\t");
+		eosio::print("\t[inredeem => storeman:", storeman, ", x:", x, " ]\t");
 #endif
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		eosio::require_auth(storeman);
@@ -392,15 +390,6 @@ namespace htlc {
 			// });
 		}
 
-		/* signature verification */
-		{
-			std::string_view storemanView = storeman.to_string();
-			std::string_view xView = x;
-			int32_t maxSize = storemanView.size() + xView.size() + tMemo::inredeem::total - 1;
-
-			verifySignature(hStatus::status::inredeem, pkInfo.pk, r, s, maxSize, &storemanView, &xView,
-							&common::strEOF);
-		}
 	}
 
 /// @notice               type        comment
@@ -446,13 +435,15 @@ namespace htlc {
 			left -= left;
 		}
 
+		auto tItrData = *tItr;
+		auto tItrRet = tXHashTable.erase(tItr);
+
 		if (left.amount > 0) {
 			/* find from pks table by pk id */
-			// eosio::check(hasPK(tItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
 
 			std::string memo;
 			std::string_view xHashView = xHash;
-			std::string_view acctView = tItr->account.to_string();
+			std::string_view acctView = tItrData.account.to_string();
 
 			int32_t maxSize =
 					hStatus::status::inrevoke.size() + xHashView.size() + acctView.size() + tMemo::inrevoke::total - 1;
@@ -466,12 +457,12 @@ namespace htlc {
 #endif
 
 			// eosio.token's action [transfer] will notify user that user inrevoked by memo
-			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItr->account,
+			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItrData.account,
 						  TRANSFER_NAME,
-						  std::make_tuple(this->get_self(), tItr->user, left, memo)).send();
+						  std::make_tuple(this->get_self(), tItrData.user, left, memo)).send();
 		} else {
 			// notify user that user inrevoked when not enough quantity left to give back
-			eosio::require_recipient(tItr->user);
+			eosio::require_recipient(tItrData.user);
 		}
 
 		if (fee.amount > 0) {
@@ -480,19 +471,14 @@ namespace htlc {
 			eosio::print("\t [inrevoke => cost fee:", fee, "]\t");
 #endif
 
-			addFeeTo(tItr->pid, tItr->account, fee);
+			addFeeTo(tItrData.pid, tItrData.account, fee);
 		}
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[inrevoke => beginTime:", tItr->beginTime.sec_since_epoch(), ", lockedTime:", tItr->lockedTime, \
-        ", status:", tItr->status, ", id:", tItr->id, ", user:", tItr->user, ", pid:", tItr->pid, \
-        ", quantity:", tItr->quantity, ", left:", left, ", fee:", fee, ", xHash:", tItr->xHash, \
-        ", wanAddr:", tItr->wanAddr, " ]\t");
+		eosio::print("\t[inrevoke => beginTime:", tItrData.beginTime.sec_since_epoch(), ", lockedTime:", tItrData.lockedTime, \
+        ", status:", tItrData.status, ", id:", tItrData.id, ", user:", tItrData.user, ", pid:", tItrData.pid, \
+        ", quantity:", tItrData.quantity, ", left:", left, ", fee:", fee, ", xHash:", tItrData.xHash, \
+        ", wanAddr:", tItrData.wanAddr, " ]\t");
 #endif
-
-		tItr = tXHashTable.erase(tItr);
-		// tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-		//     s.status = hStatus::status::inrevoke;
-		// });
 		return;
 	}
 
@@ -634,11 +620,16 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 			eosio::print("\t [outredeem => memo: ", memo, "]\t");
 #endif
-			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItr->account,
-						  TRANSFER_NAME,
-						  std::make_tuple(this->get_self(), tItr->user, tItr->quantity, memo)).send();
+			auto quantityTemp 	= tItr->quantity;
+			auto userTemp 		= tItr->user;
+			auto accountTemp 	= tItr->account;
 
 			tItr = tXHashTable.erase(tItr);
+
+			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, accountTemp,
+						  TRANSFER_NAME,
+						  std::make_tuple(this->get_self(), userTemp, quantityTemp, memo)).send();
+
 		}
 	}
 

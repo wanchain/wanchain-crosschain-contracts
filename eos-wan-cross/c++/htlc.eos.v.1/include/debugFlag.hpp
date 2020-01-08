@@ -1,7 +1,7 @@
 #ifndef __DEBGUG_FLAG_H
 #define __DEBGUG_FLAG_H
 
-//#define _DEBUG_HTLC_ALL
+#define _DEBUG_HTLC_ALL
 
 #ifdef  _DEBUG_HTLC_ALL
 

@@ -228,12 +228,13 @@ namespace htlc {
 		auto dPidAcctIndex = debt_table.get_index<hTable::key::pid_acct>();
 		auto dItr = dPidAcctIndex.find(pidAcctKey);
 
-		do {
+		while(dItr != dPidAcctIndex.end()){
 			if (sym.raw() == dItr->quantity.symbol.raw()) {
 				isBusy = true;
 				break;
 			}
-		} while (dItr != dPidAcctIndex.end());
+			++dItr;
+		}
 #ifdef _DEBUG_PRINT
 		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
 #endif
@@ -359,8 +360,8 @@ namespace htlc {
 			do {
 				if (dItr->quantity.symbol == (*pQuantity).symbol) {
 					lockedBalance += dItr->quantity;
-					++dItr;
 				}
+				++dItr;
 			} while (dItr != dPidAcctIndex.end());
 
 			pQuantity->set_amount(lockedBalance.amount);

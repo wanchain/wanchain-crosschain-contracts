@@ -31,7 +31,7 @@ namespace htlc {
 		/// @param user                name        account name of user initiated the Tx
 		/// @param quantity            asset       exchange quantity
 		/// @param memo                string      status(6):xHash(64):wanAddr(40):pk(130):eosTokenAccount(12) => 256 bytes
-		// / @param memo               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
+		///  @param memo               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
 		/// @param xHash               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
 		/// @param wanAddr             string      origin chain address(42)
 		/// @param pk                  string      storemanAgent pk
@@ -41,14 +41,11 @@ namespace htlc {
 		ACTION inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, std::string memo);
 
 		/// @notice               		type        comment
-		/// @param user           		name        account name of user initiated the Tx
 		/// @param storeman  			name        storeman account name
-		/// @param xHash          		string      hash of HTLC random number
 		/// @param x              		string      HTLC random number
-		ACTION inredeem(eosio::name storeman, std::string x, std::string r, std::string s);
+		ACTION inredeem(eosio::name storeman, std::string x);
 
 		/// @notice               		type        comment
-		/// @param user           		name        account name of user initiated the Tx
 		/// @param xHash          		string      hash of HTLC random number
 		/// memo                  		string      status(8):xHash(64):pk(130):eosTokenAccount(12) => 256 bytes
 		ACTION inrevoke(std::string xHash);
@@ -65,8 +62,6 @@ namespace htlc {
 
 		/// @notice               		type        comment
 		/// @param user           		name        account name of user initiated the Tx
-		/// @param storeman  			name        storeman account name
-		/// @param xHash          		string      hash of HTLC random number
 		/// @param x              		string      HTLC random number
 		ACTION outredeem(eosio::name user, std::string x);
 
