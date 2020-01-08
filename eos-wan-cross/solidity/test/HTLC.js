@@ -1734,9 +1734,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList = buildParametersArray(htlcDebtRedeemParamsTemp.x);
             htlcDebtRedeemParamsTemp.s = schnorr.getS(htlcDebtRedeemParamsTemp.skSmg, typeList, ValueList);
 
-            let ret = await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
-                htlcDebtRedeemParamsTemp.r,
-                htlcDebtRedeemParamsTemp.s);
+            let ret = await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x);
 
             assert.web3Event(ret, {
                 event: 'DebtRedeemLogger',
@@ -1758,9 +1756,7 @@ contract('Test HTLC', async (accounts) => {
 
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
-                htlcDebtRedeemParamsTemp.r,
-                htlcDebtRedeemParamsTemp.s);
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), "Status is not locked");
@@ -1829,9 +1825,7 @@ contract('Test HTLC', async (accounts) => {
         await htlcInstProxy.setHalt(true);
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
-                htlcDebtRedeemParamsTemp.r,
-                htlcDebtRedeemParamsTemp.s);
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), err.toString(), "Smart contract is halted");
@@ -1843,9 +1837,6 @@ contract('Test HTLC', async (accounts) => {
         try {
 
             let htlcDebtLockParamsTemp = Object.assign({}, htlcDebtLockParams);
-
-            let srcQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.srcStoremanPK);
-            let dstQuata = await queryStoremanGroupQuota(tokenInfo.tokenOrigAccount, htlcDebtLockParamsTemp.dstStoremanPK);
 
             // for redeem timeout
             htlcDebtLockParamsTemp.value = v5;
@@ -1878,9 +1869,7 @@ contract('Test HTLC', async (accounts) => {
             let ValueList1 = buildParametersArray(htlcDebtRedeemParamsTemp.x);
 
             htlcDebtRedeemParamsTemp.s = schnorr.getS(htlcDebtRedeemParamsTemp.skSmg, typeList1, ValueList1);
-            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
-                htlcDebtRedeemParamsTemp.r,
-                htlcDebtRedeemParamsTemp.s);
+            await htlcInstProxy.inDebtRedeem(htlcDebtRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), "Redeem timeout");
@@ -1891,9 +1880,7 @@ contract('Test HTLC', async (accounts) => {
 
         let htlcDebtRedeemParamsTemp = Object.assign({}, htlcDebtRedeemParams);
         try {
-            await htlcInstNotInit.inDebtRedeem(htlcDebtRedeemParamsTemp.x,
-                htlcDebtRedeemParamsTemp.r,
-                htlcDebtRedeemParamsTemp.s);
+            await htlcInstNotInit.inDebtRedeem(htlcDebtRedeemParamsTemp.x);
 
         } catch (err) {
             assert.include(err.toString(), "Token manager is null");
