@@ -121,9 +121,9 @@ namespace htlc {
 			std::string_view npkView = npk;
 			std::string_view xHashView = xHash;
 
-			int32_t maxSize = storemanView.size() + acctView.size() + qView.size() + npkView.size() + xHashView.size() +
+			int32_t maxSize = acctView.size() + qView.size() + npkView.size() + xHashView.size() +
 							  tMemo::lockDebt::total - 1;
-			verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &storemanView, &acctView, &qView, \
+			verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &acctView, &qView, \
             &npkView, &xHashView, &common::strEOF);
 		}
 	}
@@ -247,7 +247,7 @@ namespace htlc {
 			std::string_view storemanView = storeman.to_string();
 			std::string_view acctView = account;
 			std::string_view symView = sym;
-			int32_t maxSize = storemanView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
+			int32_t maxSize = acctView.size() + symView.size() + tMemo::withdraw::total - 1;
 			// check sym and fee
 			if (acctView.empty() || symView.empty()) {
 				if (acctView.empty()) {
@@ -257,7 +257,7 @@ namespace htlc {
 				}
 			}
 
-			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &storemanView, &acctView, &symView,
+			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &acctView, &symView,
 							&common::strEOF);
 		}
 	}
@@ -535,10 +535,10 @@ namespace htlc {
 			std::string_view xHashView = xHash;
 
 			int32_t maxSize =
-					storemanView.size() + userView.size() + acctView.size() + qView.size() + xHashView.size() +
+					userView.size() + acctView.size() + qView.size() + xHashView.size() +
 					tMemo::outlock::total - 1;
 
-			verifySignature(hStatus::status::outlock, pk, r, s, maxSize, &storemanView, &userView, \
+			verifySignature(hStatus::status::outlock, pk, r, s, maxSize, &userView, \
             &acctView, &qView, &xHashView, &common::strEOF);
 		}
 	}
