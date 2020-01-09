@@ -114,6 +114,7 @@ namespace htlc {
 			static constexpr std::string_view INVALID_SG_ACCOUNT 				= "invalid storeman account";
 			static constexpr std::string_view INVALID_USER_ACCOUNT 				= "invalid user account";
 			static constexpr std::string_view INVALID_TOKEN_ACCOUNT 			= "invalid token account";
+			static constexpr std::string_view INVALID_RECEIVER_ACCOUNT 			= "invalid receiver account";
 
 #ifdef _DEBUG_API
 			static constexpr std::string_view INVALID_TABLE 					= "invalid table";
@@ -215,9 +216,10 @@ namespace htlc {
 
 		typedef struct withdraw_t {
 //			static constexpr int timestamp 	= 0;
-//			static constexpr int account 	= 1;
-//			static constexpr int sym 		= 2;
-			static constexpr int total 		= 3;
+//			static constexpr int receiver 	= 1;
+//			static constexpr int account 	= 2;
+//			static constexpr int sym 		= 3;
+			static constexpr int total 		= 4;
 		} withdraw;
 
 		typedef struct memo_size_t {

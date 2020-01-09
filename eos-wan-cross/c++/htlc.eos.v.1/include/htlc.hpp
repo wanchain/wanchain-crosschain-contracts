@@ -71,9 +71,9 @@ namespace htlc {
 
 
 		/// @param sym          		string      precision,symbol_code
-		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r, \
-					std::string s,std::string timeStamp);
-
+		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string timeStamp, \
+						eosio::name receiver,std::string r,std::string s);
+		
 		/* signature contract */
 		ACTION regsig(eosio::name code, eosio::name action);
 		ACTION updatesig(eosio::name code, eosio::name nCode, eosio::name nAction);

@@ -213,14 +213,15 @@ namespace htlc {
 	}
 
 /* withdraw fee, by storeman-self */
-	ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string r,
-						  std::string s, std::string timeStamp) {
+	ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string timeStamp,
+			eosio::name receiver,std::string r,std::string s) {
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[withdraw => storeman:", storeman, ", account:", account, ", sym:", sym, ", pk:", pk, ", r:", r,
 					 ", s:", s, " ]\t");
 #endif
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		eosio::require_auth(storeman);
+		eosio::check(eosio::is_account(receiver) and receiver != get_self(), hError::error::INVALID_RECEIVER_ACCOUNT.data());
 
 		// check now < timeStamp + smgFeeReceiverTimeout
 
@@ -238,7 +239,7 @@ namespace htlc {
 		{
 			htlc::pk_t pkInfo;
 			eosio::check(findPK(pk, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-			issueFeeFrom(pkInfo.id, storeman, account, sym, hStatus::status::withdraw);
+			issueFeeFrom(pkInfo.id, receiver, account, sym, hStatus::status::withdraw);
 		}
 
 		/* signature verification */
@@ -246,8 +247,9 @@ namespace htlc {
 			std::string_view acctView = account;
 			std::string_view symView = sym;
 			std::string_view timeStampView = timeStamp;
+			std::string_view receiverView = receiver.to_string();
 
-			int32_t maxSize = timeStampView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
+			int32_t maxSize = timeStampView.size() + receiverView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
 			// check sym and fee
 			if (acctView.empty() || symView.empty()) {
 				if (acctView.empty()) {
@@ -257,7 +259,7 @@ namespace htlc {
 				}
 			}
 
-			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &timeStampView, &acctView, &symView,
+			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &timeStampView, &receiverView, &acctView, &symView,
 							&common::strEOF);
 		}
 	}
