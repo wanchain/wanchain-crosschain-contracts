@@ -115,7 +115,6 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::string_view storemanView = storeman.to_string();
 			std::string_view acctView = account.to_string();
 			std::string_view qView = quantity.to_string();
 			std::string_view npkView = npk;
@@ -139,7 +138,6 @@ namespace htlc {
 		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
 		eosio::require_auth(storeman);
 
-		htlc::pk_t npkInfo;
 		/* redeemdebt */
 		{
 			/* check debts table by xHash */
@@ -168,12 +166,7 @@ namespace htlc {
 
 			/* check pks table */
 			eosio::check(hasPK(dItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
-			eosio::check(findPK(dItr->npid, &npkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[redeemdebt => find pk id:", npkInfo.id, ", pk:", npkInfo.pk, ", pkHash:", npkInfo.pkHash,
-						 "]\t");
-#endif
+			eosio::check(hasPK(dItr->npid), hError::error::NOT_FOUND_PK_RECORD.data());
 
 			/* clean pk from table pks if pk is not used */
 			subAssetFrom(dItr->pid, dItr->account, dItr->quantity);
@@ -250,7 +243,6 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::string_view storemanView = storeman.to_string();
 			std::string_view acctView = account;
 			std::string_view symView = sym;
 			std::string_view timeStampView = timeStamp;
@@ -445,10 +437,11 @@ namespace htlc {
 			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItrData.account,
 						  TRANSFER_NAME,
 						  std::make_tuple(this->get_self(), tItrData.user, left, memo)).send();
-		} else {
-			// notify user that user inrevoked when not enough quantity left to give back
-			eosio::require_recipient(tItrData.user);
 		}
+		// else {
+		// 	// notify user that user inrevoked when not enough quantity left to give back
+		// 	eosio::require_recipient(tItrData.user);
+		// }
 
 		if (fee.amount > 0) {
 			// record fee for storeman, then storeman will get it by withdraw
@@ -528,12 +521,11 @@ namespace htlc {
 
 			outlockTx(pkInfo.id, user, account, quantity, xHashValue);
 
-			eosio::require_recipient(user, storeman);
+			// eosio::require_recipient(user, storeman);
 		}
 
 		/* signature verification */
 		{
-			std::string_view storemanView = storeman.to_string();
 			std::string_view userView = user.to_string();
 			std::string_view acctView = account.to_string();
 			std::string_view qView = quantity.to_string();
@@ -640,7 +632,7 @@ namespace htlc {
 		eosio::check((tItr->beginTime + tItr->lockedTime) < nowTime, hError::error::REVOKE_TIMEOUT.data());
 
 		// notify user that storeman outrevoked
-		eosio::require_recipient(tItr->user);
+		// eosio::require_recipient(tItr->user);
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[outrevoke => beginTime:", tItr->beginTime.sec_since_epoch(), ", lockedTime:", tItr->lockedTime, \
         ", status:", tItr->status, ", id:", tItr->id, ", user:", tItr->user, ", pid:", tItr->pid, \
@@ -734,7 +726,6 @@ extern "C" {
 		htlc _htlc(eosio::name(receiver), eosio::name(code), eosio::datastream<const char *>(nullptr, 0));
 
 		if (action == TRANSFER_NAME.value) {
-			//if (_htlc.getTokenAccountInfo(eosio::name(code), &tokenAccountInfo) and action == eosio::name(tokenAccountInfo.action).value) {
 #ifdef _DEBUG_PRINT
 			//eosio::print(tokenAccountInfo.code, " => ACTION");
 			eosio::print(TRANSFER_NAME, " => ACTION");

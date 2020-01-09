@@ -493,9 +493,6 @@ namespace htlc {
 		eosio::check(eosio::is_account(eosio::name(account)) and eosio::name(account) != get_self(),
 					 hError::error::INVALID_TOKEN_ACCOUNT.data());
 
-//    account_t tokenAccountInfo;
-//    eosio::check(getTokenAccountInfo(account, &tokenAccountInfo), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
-
 		if (symView.empty()) {
 			auto fAcctIndex = fee_table.get_index<hTable::key::acct>();
 			auto fItr = fAcctIndex.find(account.value);
