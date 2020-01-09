@@ -101,7 +101,7 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[lockdebt => asset: ", totalAsset, "]\t");
 #endif
-			eosio::check(totalAsset >= quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
+			// eosio::check(totalAsset >= quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
 
 			eosio::asset outPendAsset(0, quantity.symbol);
 			getOutPendAssetFrom(pkInfo.id, account, &outPendAsset);
@@ -160,7 +160,7 @@ namespace htlc {
 
 			// check lockedTime
 			auto nowTime = eosio::time_point_sec(eosio::current_time_point());
-			eosio::check((dItr->beginTime + dItr->lockedTime) > nowTime, hError::error::REDEEM_TIMEOUT.data());
+			eosio::check((dItr->beginTime + dItr->lockedTime) >= nowTime, hError::error::REDEEM_TIMEOUT.data());
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[redeemdebt => eosio::current_time_point:", nowTime.sec_since_epoch(), \
             ", beginTime: ", dItr->beginTime.sec_since_epoch(), ", lockedTime: ", dItr->lockedTime, "]\t");
@@ -178,13 +178,11 @@ namespace htlc {
 			/* clean pk from table pks if pk is not used */
 			subAssetFrom(dItr->pid, dItr->account, dItr->quantity);
 			addAssetTo(dItr->npid, dItr->account, dItr->quantity);
-			cleanPk(dItr->pid);
 
+			uint64_t pid = dItr->pid;
 			/* delete row (by xHash) from table debts */
 			dItr = dXHashTable.erase(dItr);
-			// dXHashTable.modify(dItr, get_self(), [&](auto &s) {
-			//     s.status = hStatus::status::redeemdebt;
-			// });
+			cleanPk(pid);
 		}
 	}
 
@@ -217,11 +215,7 @@ namespace htlc {
             ", status:", dItr->status, ", id:", dItr->id, ", pid:", dItr->pid, \
             ", npid:", dItr->npid, ", xHash:", dItr->xHash, ", sym:", dItr->quantity, "]\t");
 #endif
-
 			dItr = dXHashTable.erase(dItr);
-			// dXHashTable.modify(dItr, get_self(), [&](auto &s) {
-			//     s.status = hStatus::status::revokedebt;
-			// });
 		}
 	}
 
@@ -363,7 +357,7 @@ namespace htlc {
 
 			/* check lockedTime */
 			auto nowTime = eosio::time_point_sec(eosio::current_time_point());
-			eosio::check((tItr->beginTime + tItr->lockedTime) > nowTime, hError::error::REDEEM_TIMEOUT.data());
+			eosio::check((tItr->beginTime + tItr->lockedTime) >= nowTime, hError::error::REDEEM_TIMEOUT.data());
 
 			/* find from pks table by pk id */
 			eosio::check(findPK(tItr->pid, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
@@ -379,9 +373,6 @@ namespace htlc {
             ", quantity:", tItr->quantity, ", xHash:", tItr->xHash, ", wanAddr:", tItr->wanAddr, " ]\t");
 #endif
 			tItr = tXHashTable.erase(tItr);
-			// tXHashTable.modify(tItr, get_self(), [&](auto &s) {
-			//     s.status = hStatus::status::inredeem;
-			// });
 		}
 
 	}
@@ -406,7 +397,7 @@ namespace htlc {
 
 		// check lockedTime
 		auto nowTime = eosio::time_point_sec(eosio::current_time_point());
-		eosio::check((tItr->beginTime + tItr->lockedTime) <= nowTime, hError::error::REVOKE_TIMEOUT.data());
+		eosio::check((tItr->beginTime + tItr->lockedTime) < nowTime, hError::error::REVOKE_TIMEOUT.data());
 
 		uint64_t revokeRatio;
 		getRatio(revokeRatio);
@@ -524,7 +515,7 @@ namespace htlc {
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[outlock => asset: ", totalAsset, "]\t");
 #endif
-			eosio::check(totalAsset >= quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
+			// eosio::check(totalAsset >= quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
 
 			/* pk asset should be more than (cross-quantity add all pendingAsset) */
 			// eosio::asset outPendQuantity = quantity - quantity;

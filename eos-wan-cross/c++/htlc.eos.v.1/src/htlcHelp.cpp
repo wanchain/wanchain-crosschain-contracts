@@ -110,20 +110,21 @@ namespace htlc {
 
 
 		eosio::checksum256 pkHash = hashMsg(pkView);
+		return findPK(pkHash, pkInfo);
 
-		/* find from pks table by hashMsg(pk) */
-		pks pk_table(get_self(), get_self().value);
-		auto pkHashTable = pk_table.get_index<hTable::key::pkHash>();
-		auto pItr = pkHashTable.find(pkHash);
-		if (pItr == pkHashTable.end()) {
-			return false;
-		}
+		// /* find from pks table by hashMsg(pk) */
+		// pks pk_table(get_self(), get_self().value);
+		// auto pkHashTable = pk_table.get_index<hTable::key::pkHash>();
+		// auto pItr = pkHashTable.find(pkHash);
+		// if (pItr == pkHashTable.end()) {
+		// 	return false;
+		// }
 
-		static_cast<pk_t *>(pkInfo)->id = pItr->id;
-		static_cast<pk_t *>(pkInfo)->pkHash = pItr->pkHash;
-		static_cast<pk_t *>(pkInfo)->pk = pItr->pk;
+		// static_cast<pk_t *>(pkInfo)->id = pItr->id;
+		// static_cast<pk_t *>(pkInfo)->pkHash = pItr->pkHash;
+		// static_cast<pk_t *>(pkInfo)->pk = pItr->pk;
 
-		return true;
+		// return true;
 	}
 
 	bool htlc::findPK(const eosio::checksum256 &pkHash, void *pkInfo) {
@@ -327,7 +328,7 @@ namespace htlc {
 	}
 
 	void htlc::getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity) {
-		eosio::asset balance = *pQuantity;
+		eosio::asset balance(0, (*pQuantity).symbol);
 
 		uint128_t symAcctKey = common::makeU128((*pQuantity).symbol.raw(), account.value);
 		assets asset_table(get_self(), pid);
@@ -349,26 +350,22 @@ namespace htlc {
 		uint128_t pidAcctKey = common::makeU128(pid, account.value);
 		auto dPidAcctIndex = debt_table.get_index<hTable::key::pid_acct>();
 		auto dItr = dPidAcctIndex.find(pidAcctKey);
+
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[getPendDebtAssetFrom => account: ", account, " pid: ", pid, " => pidAcctKey:", pidAcctKey,
 					 "]\t");
 #endif
-
-		if (dItr != dPidAcctIndex.end()) {
-			eosio::asset lockedBalance = *pQuantity;
-
-			do {
-				if (dItr->quantity.symbol == (*pQuantity).symbol) {
-					lockedBalance += dItr->quantity;
-				}
-				++dItr;
-			} while (dItr != dPidAcctIndex.end());
-
-			pQuantity->set_amount(lockedBalance.amount);
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[getPendDebtAssetFrom => balance:", lockedBalance, "]\t");
-#endif
+		eosio::asset lockedBalance(0, (*pQuantity).symbol);
+		while (dItr != dPidAcctIndex.end()) {
+			if (dItr->quantity.symbol == (*pQuantity).symbol) {
+				lockedBalance += dItr->quantity;
+			}
+			++dItr;
 		}
+		pQuantity->set_amount(lockedBalance.amount);
+#ifdef _DEBUG_PRINT
+		eosio::print("\t[getPendDebtAssetFrom => balance:", lockedBalance, "]\t");
+#endif
 	}
 
 	void htlc::getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity) {
@@ -393,23 +390,20 @@ namespace htlc {
 		eosio::print("\t[getHtlcPendAssetFrom => pid: ", pid, ", statusView:", static_cast<std::string>(statusView), \
         ", pidAcctKey:", pidAcctKey, "]\t");
 #endif
+		eosio::asset lockedBalance(0, (*pQuantity).symbol);
+		eosio::name status = eosio::name(statusView);
 
-		if (tItr != tPidAcctIndex.end()) {
-			eosio::asset lockedBalance = *pQuantity;
-			eosio::name status = eosio::name(statusView);
-
-			do {
-				if (eosio::name(tItr->status) == status and tItr->quantity.symbol == (*pQuantity).symbol) {
-					lockedBalance += tItr->quantity;
-				}
-				++tItr;
-			} while (tItr != tPidAcctIndex.end());
-			(*pQuantity).set_amount(lockedBalance.amount);
+		while (tItr != tPidAcctIndex.end()) {
+			if (eosio::name(tItr->status) == status and tItr->quantity.symbol == (*pQuantity).symbol) {
+				lockedBalance += tItr->quantity;
+			}
+			++tItr;
+		}
+		(*pQuantity).set_amount(lockedBalance.amount);
 
 #ifdef _DEBUG_PRINT
-			eosio::print("\t[getHtlcPendAssetFrom => balance:", lockedBalance, "]\t");
+		eosio::print("\t[getHtlcPendAssetFrom => balance:", lockedBalance, "]\t");
 #endif
-		}
 	}
 
 	bool htlc::existAsset(uint64_t pid) {
