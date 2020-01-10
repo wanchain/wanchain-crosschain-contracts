@@ -242,33 +242,23 @@ namespace htlc {
 		return isBusy;
 	}
 
-	void htlc::verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-								uint64_t size, std::string_view *msg, ...) {
-
+	void htlc::verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, std::vector<std::string_view> &v) {
 		/* signature verification */
 		// make action data
 		std::string actionData;
 		std::string encodedActionData;
-		actionData.resize(size);
 
-		va_list args;
-		va_start(args, msg);
-		common::join<std::string_view *>(const_cast<char *>(actionData.data()), tMemo::separator, msg, args);
-		va_end(args);
+		actionData = common::join(v, tMemo::separator);
 
 		crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
+		
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[verifySignature => base64 Data: ", actionData, "]\t");
-#endif
-
-		/* for debug */
-#ifdef _DEBUG_PRINT
 		std::string decodedActionData;
 		crypto::base64::decode(encodedActionData, decodedActionData);
 		eosio::print("\t[verifySignature => origin Data: ", actionData, "]\t");
 		eosio::print("\t[verifySignature => decode Data: ", decodedActionData, "]\t");
 #endif
-		/* for debug end */
 
 		// call signature contract to check mpc signature
 		signature_t sigInfo;

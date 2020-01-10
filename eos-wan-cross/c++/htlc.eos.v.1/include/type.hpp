@@ -164,63 +164,7 @@ namespace htlc {
 			static constexpr int wanAddr 	= 2;
 			static constexpr int pk 		= 3;
 			static constexpr int account 	= 4;
-			static constexpr int total 		= 5;
 		} inlock;
-
-		typedef struct inredeem_t {
-//			static constexpr int storeman 	= 0;
-//			static constexpr int x 			= 1;
-			static constexpr int total 		= 2;
-		} inredeem;
-
-		typedef struct inrevoke_t {
-//			static constexpr int status 	= 0;
-//			static constexpr int xHash 		= 1;
-//			static constexpr int account 	= 2;
-			static constexpr int total 		= 3;
-		} inrevoke;
-
-		typedef struct outlock_t {
-//			static constexpr int user 		= 0;
-//			static constexpr int account 	= 1;
-//			static constexpr int quantity 	= 2;
-//			static constexpr int xHash 		= 3;
-			static constexpr int total 		= 4;
-		} outlock;
-
-		typedef struct outredeem_t {
-//			static constexpr int status 	= 0;
-//			static constexpr int x 			= 1;
-//			static constexpr int account 	= 2;
-			static constexpr int total 		= 3;
-		} outredeem;
-
-		typedef struct lockDebt_t {
-//			static constexpr int account 	= 0;
-//			static constexpr int quantity 	= 1;
-//			static constexpr int pk 		= 2;
-//			static constexpr int xHash 		= 3;
-			static constexpr int total 		= 4;
-		} lockDebt;
-
-		typedef struct redeemDebt_t {
-//			static constexpr int storeman 	= 0;
-//			static constexpr int x 			= 1;
-			static constexpr int total 		= 2;
-		} redeemDebt;
-
-		typedef struct revokeDebt_t {
-//			static constexpr int xHash 		= 0;
-			static constexpr int total 		= 1;
-		} revokeDebt;
-
-		typedef struct withdraw_t {
-//			static constexpr int timestamp 	= 0;
-//			static constexpr int receiver 	= 1;
-//			static constexpr int account 	= 2;
-//			static constexpr int sym 		= 3;
-			static constexpr int total 		= 4;
-		} withdraw;
 
 		typedef struct memo_size_t {
 			struct inlock {

@@ -115,15 +115,13 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::string_view acctView = account.to_string();
-			std::string_view qView = quantity.to_string();
-			std::string_view npkView = npk;
-			std::string_view xHashView = xHash;
+			std::vector<std::string> v;
+			v.push_back(account.to_string());
+			v.push_back(quantity.to_string());
+			v.push_back(npk);
+			v.push_back(xHash);
 
-			int32_t maxSize = npkView.size() + acctView.size() + qView.size() + xHashView.size() +
-							  tMemo::lockDebt::total - 1;
-			verifySignature(hStatus::status::lockdebt, pk, r, s, maxSize, &npkView, &acctView, &qView, \
-             &xHashView, &common::strEOF);
+			verifySignature(hStatus::status::lockdebt, pk, r, s, v);
 		}
 	}
 
@@ -244,23 +242,13 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::string_view acctView = account;
-			std::string_view symView = sym;
-			std::string_view timeStampView = timeStamp;
-			std::string_view receiverView = receiver.to_string();
+			std::vector<std::string> v;
+			v.push_back(account);
+			v.push_back(sym);
+			v.push_back(timeStamp);
+			v.push_back(receiver.to_string());
 
-			int32_t maxSize = timeStampView.size() + receiverView.size() + acctView.size() + symView.size() + tMemo::withdraw::total - 1;
-			// check sym and fee
-			if (acctView.empty() || symView.empty()) {
-				if (acctView.empty()) {
-					maxSize -= 2;
-				} else {
-					--maxSize;
-				}
-			}
-
-			verifySignature(hStatus::status::withdraw, pk, r, s, maxSize, &timeStampView, &receiverView, &acctView, &symView,
-							&common::strEOF);
+			verifySignature(hStatus::status::withdraw, pk, r, s, v);
 		}
 	}
 
@@ -418,23 +406,11 @@ namespace htlc {
 		auto tItrRet = tXHashTable.erase(tItr);
 
 		if (left.amount > 0) {
-			/* find from pks table by pk id */
-
-			std::string memo;
-			std::string_view xHashView = xHash;
-			std::string_view acctView = tItrData.account.to_string();
-
-			int32_t maxSize =
-					hStatus::status::inrevoke.size() + xHashView.size() + acctView.size() + tMemo::inrevoke::total - 1;
-			memo.resize(maxSize);
-
-			common::join(const_cast<char *>(memo.data()), tMemo::separator, \
-            &hStatus::status::inrevoke, &xHashView, &acctView, &common::strEOF);
+			std::string memo = hStatus::status::inrevoke;
 
 #ifdef _DEBUG_PRINT
 			eosio::print("\t [inrevoke => quantity left memo:", memo, "]\t");
 #endif
-
 			// eosio.token's action [transfer] will notify user that user inrevoked by memo
 			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tItrData.account,
 						  TRANSFER_NAME,
@@ -528,17 +504,13 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::string_view userView = user.to_string();
-			std::string_view acctView = account.to_string();
-			std::string_view qView = quantity.to_string();
-			std::string_view xHashView = xHash;
+			std::vector<std::string> v;
+			v.push_back(user.to_string());
+			v.push_back(account.to_string());
+			v.push_back(quantity.to_string());
+			v.push_back(xHash);
 
-			int32_t maxSize =
-					userView.size() + acctView.size() + qView.size() + xHashView.size() +
-					tMemo::outlock::total - 1;
-
-			verifySignature(hStatus::status::outlock, pk, r, s, maxSize, &userView, \
-            &acctView, &qView, &xHashView, &common::strEOF);
+			verifySignature(hStatus::status::outlock, pk, r, s, v);
 		}
 	}
 
@@ -580,22 +552,13 @@ namespace htlc {
 						 tItr->beginTime.sec_since_epoch(), \
             ", lockedTime: ", tItr->lockedTime, "]\t");
 #endif
-
 			/*quota reduce*/
 			subAssetFrom(tItr->pid, tItr->account, tItr->quantity);
 			/*end for quota reduce*/
 
 			// make memo
-			std::string memo;
-			std::string_view xView = x;
-			std::string_view acctView = tItr->account.to_string();
+			std::string memo = hStatus::status::outredeem;
 
-			int32_t maxSize =
-					hStatus::status::outredeem.size() + xView.size() + acctView.size() + tMemo::outredeem::total - 1;
-			memo.resize(maxSize);
-
-			common::join(const_cast<char *>(memo.data()), tMemo::separator, &hStatus::status::outredeem, \
-            &xView, &acctView, &common::strEOF);
 #ifdef _DEBUG_PRINT
 			eosio::print("\t [outredeem => memo: ", memo, "]\t");
 #endif
@@ -608,7 +571,6 @@ namespace htlc {
 			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, accountTemp,
 						  TRANSFER_NAME,
 						  std::make_tuple(this->get_self(), userTemp, quantityTemp, memo)).send();
-
 		}
 	}
 

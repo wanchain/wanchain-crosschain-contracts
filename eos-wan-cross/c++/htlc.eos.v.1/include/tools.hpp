@@ -99,46 +99,16 @@ namespace htlc {
 	};
 
 	namespace common {
-		constexpr std::string_view strEOF = "";
+		inline string join(std::vector<std::string_view>& v, char sep) {
+			string result = "";
 
-		/* arguments end with empty string ""*/
-		template<typename Type>
-		inline void join(char *buf, char sep, Type msg, va_list &args) {
-			Type tmp;
-
-			// va_list args;
-			// va_start(args, msg);
-			strncpy(buf, msg->data(), msg->size());
-
-			while(1) {
-				tmp = va_arg(args, Type);
-				if (tmp->empty()) {
-					break;
-				} else {
-					*(buf + strlen(buf)) = sep;
-					strncpy((buf + strlen(buf)), tmp->data(), tmp->size());
+			for (int i = 0; i < v.size(); i++) {
+				result += v[i];
+				if (i != v.size() - 1) {
+					result += sep;
 				}
 			}
-			// va_end(args);
-		}
-
-		inline void join(char *buf, char sep, const std::string_view *str, ...) {
-			std::string_view *tmp;
-
-			va_list args;
-			va_start(args, str);
-			strncpy(buf, str->data(), str->size());
-
-			while(1) {
-				tmp = va_arg(args, std::string_view *);
-				if (tmp->empty()) {
-					break;
-				} else {
-					*(buf + strlen(buf)) = sep;
-					strncpy((buf + strlen(buf)), tmp->data(), tmp->size());
-				}
-			}
-			va_end(args);
+			return result;
 		}
 
 		inline void split(std::string_view str, char separator, std::vector<std::string_view>& v) {
