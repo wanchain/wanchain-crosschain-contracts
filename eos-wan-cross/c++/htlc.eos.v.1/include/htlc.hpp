@@ -300,8 +300,7 @@ namespace htlc {
 		bool 	isPkDebt(uint64_t pid);
 		bool 	isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
-		void 	verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, \
-            		uint64_t size, std::string_view *msg, ...);
+		void	verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, std::vector<std::string_view> &v);
 
 		void 	addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
 		void 	subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
