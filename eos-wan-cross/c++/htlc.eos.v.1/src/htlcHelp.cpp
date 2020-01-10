@@ -477,14 +477,15 @@ namespace htlc {
 				eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:",
 							 fItr->fee, " ]\t");
 #endif
+				auto account = fItr->account;
+				auto fee = fItr->fee;
+				fItr = fee_table.erase(fItr);
 
 				// eosio.token's action [transfer] will notify user that user inrevoked by memo
-				eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, fItr->account,
+				eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account,
 							  TRANSFER_NAME,
-							  std::make_tuple(this->get_self(), to, fItr->fee,
+							  std::make_tuple(this->get_self(), to, fee,
 											  static_cast<std::string>(memoView))).send();
-
-				fItr = fee_table.erase(fItr);
 			}
 			return;
 		}
@@ -501,15 +502,13 @@ namespace htlc {
 				eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:",
 							 fItr->fee, "]\t");
 #endif
-//            eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, tokenAccountInfo.code, tokenAccountInfo.action,
-//                std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
+				auto fee = fItr->fee;
+				fItr = fAcctIndex.erase(fItr);
 
 				eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account,
 							  TRANSFER_NAME,
-							  std::make_tuple(this->get_self(), to, fItr->fee,
+							  std::make_tuple(this->get_self(), to, fee,
 											  static_cast<std::string>(memoView))).send();
-
-				fItr = fAcctIndex.erase(fItr);
 			}
 			return;
 		}
@@ -526,12 +525,11 @@ namespace htlc {
 #endif
 
 			// eosio.token's action [transfer] will notify user that user inrevoked by memo
-
-			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account, TRANSFER_NAME,
-						  std::make_tuple(this->get_self(), to, fItr->fee, static_cast<std::string>(memoView))).send();
-
+			auto fee = fItr->fee;
 			fItr = fSymAcctIndex.erase(fItr);
 
+			eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, account, TRANSFER_NAME,
+						  std::make_tuple(this->get_self(), to, fee, static_cast<std::string>(memoView))).send();
 			return;
 		}
 	}
