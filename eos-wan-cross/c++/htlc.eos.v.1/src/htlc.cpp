@@ -115,7 +115,7 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::vector<std::string> v;
+			std::vector<std::string_view> v;
 			v.push_back(account.to_string());
 			v.push_back(quantity.to_string());
 			v.push_back(npk);
@@ -242,7 +242,7 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::vector<std::string> v;
+			std::vector<std::string_view> v;
 			v.push_back(account);
 			v.push_back(sym);
 			v.push_back(timeStamp);
@@ -406,7 +406,7 @@ namespace htlc {
 		auto tItrRet = tXHashTable.erase(tItr);
 
 		if (left.amount > 0) {
-			std::string memo = hStatus::status::inrevoke;
+			std::string memo = static_cast<std::string>(hStatus::status::inrevoke);
 
 #ifdef _DEBUG_PRINT
 			eosio::print("\t [inrevoke => quantity left memo:", memo, "]\t");
@@ -504,7 +504,7 @@ namespace htlc {
 
 		/* signature verification */
 		{
-			std::vector<std::string> v;
+			std::vector<std::string_view> v;
 			v.push_back(user.to_string());
 			v.push_back(account.to_string());
 			v.push_back(quantity.to_string());
@@ -557,7 +557,7 @@ namespace htlc {
 			/*end for quota reduce*/
 
 			// make memo
-			std::string memo = hStatus::status::outredeem;
+			std::string memo = static_cast<std::string>(hStatus::status::outredeem);
 
 #ifdef _DEBUG_PRINT
 			eosio::print("\t [outredeem => memo: ", memo, "]\t");
