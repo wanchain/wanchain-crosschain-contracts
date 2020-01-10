@@ -116,9 +116,10 @@ namespace htlc {
 		/* signature verification */
 		{
 			std::vector<std::string_view> v;
+
+			v.push_back(npk);
 			v.push_back(account.to_string());
 			v.push_back(quantity.to_string());
-			v.push_back(npk);
 			v.push_back(xHash);
 
 			verifySignature(hStatus::status::lockdebt, pk, r, s, v);
@@ -243,10 +244,11 @@ namespace htlc {
 		/* signature verification */
 		{
 			std::vector<std::string_view> v;
-			v.push_back(account);
-			v.push_back(sym);
+
 			v.push_back(timeStamp);
 			v.push_back(receiver.to_string());
+			v.push_back(account);
+			v.push_back(sym);
 
 			verifySignature(hStatus::status::withdraw, pk, r, s, v);
 		}
