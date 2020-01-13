@@ -57,16 +57,14 @@ namespace htlc {
 	}
 
 	/* debt, by storeman-self and the storeman-match */
-	ACTION htlc::lockdebt(eosio::name storeman, std::string npk, eosio::name account, \
+	ACTION htlc::lockdebt(std::string npk, eosio::name account, \
 							eosio::asset quantity,std::string xHash, \
 							std::string pk, std::string r, std::string s) {
 
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[lockdebt => storeman:", storeman, ", account:", account, \
+		eosio::print("\t[lockdebt => account:", account, \
         ", quantity:", quantity, ", npk:", npk, ", xHash:", xHash, ", pk:", pk, ", r:", r, ", s:", s, "]\t");
 #endif
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
 		eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
 		//eosio::check(existTokenAccount(account.value), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
 
@@ -127,16 +125,12 @@ namespace htlc {
 	}
 
 /// @notice               type        comment
-/// @param storeman       name        storeman account name
 /// @param x              string      HTLC random number
 /// coin flow: htlc -> storeman
-	ACTION htlc::redeemdebt(eosio::name storeman, std::string x) {
+	ACTION htlc::redeemdebt(std::string x) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[redeemdebt => storeman:", storeman, ", x:", x, " ]\t");
+		eosio::print("\t[redeemdebt => x:", x, " ]\t");
 #endif
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
-
 		/* redeemdebt */
 		{
 			/* check debts table by xHash */
@@ -212,14 +206,12 @@ namespace htlc {
 	}
 
 /* withdraw fee, by storeman-self */
-	ACTION htlc::withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string timeStamp,
+	ACTION htlc::withdraw(std::string account, std::string sym, std::string pk, std::string timeStamp,
 			eosio::name receiver,std::string r,std::string s) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[withdraw => storeman:", storeman, ", account:", account, ", sym:", sym, ", pk:", pk, ", r:", r,
+		eosio::print("\t[withdraw => account:", account, ", sym:", sym, ", pk:", pk, ", timestamp:", timeStamp, ", receiver:", receiver, ", r:", r,
 					 ", s:", s, " ]\t");
 #endif
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
 		eosio::check(eosio::is_account(receiver) and receiver != get_self(), hError::error::INVALID_RECEIVER_ACCOUNT.data());
 
 		// check now < timeStamp + smgFeeReceiverTimeout
@@ -276,15 +268,10 @@ namespace htlc {
 
 		eosio::name account = eosio::name(v[tMemo::inlock::account]);
 		eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
-		//eosio::check(existTokenAccount(account.value), hError::error::NOT_FOUND_TOKEN_ACCOUNT_RECORD.data());
 
 		std::string_view xHashView = v[tMemo::inlock::xHash];
 		std::string_view wanAddrView = v[tMemo::inlock::wanAddr];
 		std::string_view pkView = v[tMemo::inlock::pk];
-
-		// eosio::check(xHashView.size() == hLimit::xHash, hError::error::INVALID_XHASH);
-		// eosio::check(wanAddrView.size() == hLimit::wanAddr, hError::error::INVALID_WAN_ADDR);
-		// eosio::check(and pkView.size() == hLimit::pk, hError::error::INVALID_PK);
 
 		htlc::pk_t pkInfo;
 		eosio::checksum256 pkHash = hashMsg(pkView);
@@ -315,50 +302,35 @@ namespace htlc {
 	}
 
 /// @notice               	type        comment
-/// @param storeman  		name        storeman account name
 /// @param xHash          	string      hash of HTLC random number
 /// @param x              	string      HTLC random number
 /// coin flow: htlc -> storeman
-	ACTION htlc::inredeem(eosio::name storeman, std::string x) {
+	ACTION htlc::inredeem(std::string x) {
+		/* get record by xHash */
+		eosio::checksum256 xHashValue = hashHexMsg(x);
+
+		transfers transfers_table(get_self(), get_self().value);
+		auto tXHashTable = transfers_table.get_index<hTable::key::xHash>();
+		auto tItr = tXHashTable.find(xHashValue);
+		eosio::check(tItr != tXHashTable.end() and \
+		eosio::name(tItr->status).value == eosio::name(hStatus::status::inlock).value, \
+		hError::error::NOT_FOUND_RECORD.data());
+
+		/* check lockedTime */
+		auto nowTime = eosio::time_point_sec(eosio::current_time_point());
+		eosio::check((tItr->beginTime + tItr->lockedTime) >= nowTime, hError::error::REDEEM_TIMEOUT.data());
+
+		/* find from pks table by pk id */
+		eosio::check(hasPK(tItr->pid), hError::error::NOT_FOUND_PK_RECORD.data());
+
+		addAssetTo(tItr->pid, tItr->account, tItr->quantity);
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[inredeem => storeman:", storeman, ", x:", x, " ]\t");
+		eosio::print("\t[inredeem => beginTime:", tItr->beginTime.sec_since_epoch(), ", lockedTime:",
+						tItr->lockedTime, \
+		", status:", tItr->status, ", id:", tItr->id, ", pid:", tItr->pid, \
+		", quantity:", tItr->quantity, ", xHash:", tItr->xHash, ", wanAddr:", tItr->wanAddr, " ]\t");
 #endif
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		eosio::require_auth(storeman);
-
-		htlc::pk_t pkInfo;
-		/* inredeem */
-		{
-			/* get record by xHash */
-			eosio::checksum256 xHashValue = hashHexMsg(x);
-
-			transfers transfers_table(get_self(), get_self().value);
-			auto tXHashTable = transfers_table.get_index<hTable::key::xHash>();
-			auto tItr = tXHashTable.find(xHashValue);
-			eosio::check(tItr != tXHashTable.end() and \
-            eosio::name(tItr->status).value == eosio::name(hStatus::status::inlock).value, \
-            hError::error::NOT_FOUND_RECORD.data());
-
-			/* check lockedTime */
-			auto nowTime = eosio::time_point_sec(eosio::current_time_point());
-			eosio::check((tItr->beginTime + tItr->lockedTime) >= nowTime, hError::error::REDEEM_TIMEOUT.data());
-
-			/* find from pks table by pk id */
-			eosio::check(findPK(tItr->pid, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[inredeem => pks(id:", pkInfo.id, ", pk:", pkInfo.pk, ", pkHash:", pkInfo.pkHash, ")]\t");
-#endif
-
-			addAssetTo(tItr->pid, tItr->account, tItr->quantity);
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[inredeem => beginTime:", tItr->beginTime.sec_since_epoch(), ", lockedTime:",
-						 tItr->lockedTime, \
-            ", status:", tItr->status, ", id:", tItr->id, ", pid:", tItr->pid, \
-            ", quantity:", tItr->quantity, ", xHash:", tItr->xHash, ", wanAddr:", tItr->wanAddr, " ]\t");
-#endif
-			tItr = tXHashTable.erase(tItr);
-		}
-
+		tItr = tXHashTable.erase(tItr);
 	}
 
 /// @notice               type        comment
@@ -442,20 +414,15 @@ namespace htlc {
 
 /// @notice               type        comment
 /// @param user           name        account name of user initiated the Tx
-/// @param storeman  name        storeman account name
 /// @param quantity       asset       exchange quantity
 /// @param memo           string      xHash:wanAddr:user:status
 /// coin flow: storeman -> htlc
-	ACTION htlc::outlock(eosio::name storeman, eosio::name user, eosio::name account, eosio::asset quantity, \
+	ACTION htlc::outlock(eosio::name user, eosio::name account, eosio::asset quantity, \
     std::string xHash, std::string pk, std::string r, std::string s) {
 #ifdef _DEBUG_PRINT
-		eosio::print("\t[outlock => storeman:", storeman, ", user:", user, ", account:", account, ", quantity:", \
+		eosio::print("\t[outlock => user:", user, ", account:", account, ", quantity:", \
 					 quantity, ", xHash:", xHash, ", pk:", pk, ", r:", r, ", s:", s, "]\t");
 #endif
-		eosio::check(eosio::is_account(storeman) and storeman != get_self(), hError::error::INVALID_SG_ACCOUNT.data());
-		// eosio::require_auth(storeman);
-		eosio::require_auth(eosio::permission_level{storeman, hPermission::level::active});
-
 		eosio::check(eosio::is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
 		eosio::check(quantity.is_valid() and quantity.amount > 0, hError::error::INVALID_QUANTITY.data());
 		eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
@@ -476,11 +443,6 @@ namespace htlc {
 			eosio::check(findPK(pk, &pkInfo), hError::error::NOT_FOUND_PK_RECORD.data());
 			eosio::check(!isPkDebt(pkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
 
-#ifdef _DEBUG_PRINT
-			eosio::print("\t [ outlock => storeman: ", storeman, ", user: ", user, \
-            ", account: ", account, ", quantity: ", quantity, ", xHash: ", xHash, " ]\t");
-#endif
-
 			/* pk asset should be more than cross-quantity */
 			// eosio::asset totalAsset = quantity - quantity;
 			eosio::asset totalAsset(0, quantity.symbol);
@@ -500,8 +462,6 @@ namespace htlc {
 			eosio::check(totalAsset >= (outPendAsset + quantity), hError::error::NOE_ENOUGH_QUANTITY.data());
 
 			outlockTx(pkInfo.id, user, account, quantity, xHashValue);
-
-			// eosio::require_recipient(user, storeman);
 		}
 
 		/* signature verification */
@@ -518,7 +478,6 @@ namespace htlc {
 
 /// @notice               type        comment
 /// @param user           name        account name of user initiated the Tx
-/// @param storeman       name        storeman account name
 /// @param xHash          string      hash of HTLC random number
 /// @param x              string      HTLC random number
 /// coin flow: htlc -> user
@@ -597,8 +556,6 @@ namespace htlc {
 		auto nowTime = eosio::time_point_sec(eosio::current_time_point());
 		eosio::check((tItr->beginTime + tItr->lockedTime) < nowTime, hError::error::REVOKE_TIMEOUT.data());
 
-		// notify user that storeman outrevoked
-		// eosio::require_recipient(tItr->user);
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[outrevoke => beginTime:", tItr->beginTime.sec_since_epoch(), ", lockedTime:", tItr->lockedTime, \
         ", status:", tItr->status, ", id:", tItr->id, ", user:", tItr->user, ", pid:", tItr->pid, \

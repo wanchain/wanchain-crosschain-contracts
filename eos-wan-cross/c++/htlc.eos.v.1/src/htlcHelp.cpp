@@ -209,11 +209,6 @@ namespace htlc {
 		auto dItr = dPidIndex.find(pid);
 		isBusy = (dItr != dPidIndex.end());
 
-		if (!isBusy) {
-			auto dNPidIndex = debt_table.get_index<hTable::key::npid>();
-			auto dItr = dNPidIndex.find(pid);
-			isBusy = (dItr != dNPidIndex.end());
-		}
 #ifdef _DEBUG_PRINT
 		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
 #endif
@@ -251,7 +246,7 @@ namespace htlc {
 		actionData = common::join(v, tMemo::separator);
 
 		crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-		
+
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[verifySignature => base64 Data: ", actionData, "]\t");
 		std::string decodedActionData;
