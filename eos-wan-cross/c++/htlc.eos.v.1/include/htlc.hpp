@@ -29,15 +29,9 @@ namespace htlc {
 
 		/// @notice                    type        comment
 		/// @param user                name        account name of user initiated the Tx
+		/// @param htlc                name        account name of htlc initiated the Tx
 		/// @param quantity            asset       exchange quantity
 		/// @param memo                string      status(6):xHash(64):wanAddr(40):pk(130):eosTokenAccount(12) => 256 bytes
-		///  @param memo               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
-		/// @param xHash               string      status(6):xHash(64):wanAddr(42):pk(130) => 245 bytes
-		/// @param wanAddr             string      origin chain address(42)
-		/// @param pk                  string      storemanAgent pk
-		/// coin flow: user -> htlc
-		/// memo max size <= 256 bytes by eosio.token transfer
-		// ACTION inlock(eosio::name user, eosio::asset quantity, std::string xHash, std::string wanAddr, std::string pk);
 		ACTION inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, std::string memo);
 
 		/// @notice               		type        comment
@@ -46,15 +40,12 @@ namespace htlc {
 
 		/// @notice               		type        comment
 		/// @param xHash          		string      hash of HTLC random number
-		/// memo                  		string      status(8):xHash(64):pk(130):eosTokenAccount(12) => 256 bytes
 		ACTION inrevoke(std::string xHash);
 
 		/// @notice               		type        comment
 		/// @param user           		name        account name of user initiated the Tx
 		/// @param quantity       		asset       exchange quantity
 		/// @param memo           		string      xHash:wanAddr:user:status
-		/// TOKEN locked in htlc
-		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
 		ACTION outlock(eosio::name user, eosio::name account, eosio::asset quantity, \
                     std::string xHash, std::string pk, std::string r, std::string s);
 
@@ -67,24 +58,54 @@ namespace htlc {
 		/// @param xHash          		string      hash of HTLC random number
 		ACTION outrevoke(std::string xHash);
 
-
-		/// @param sym          		string      precision,symbol_code
+		/// @notice               		type        comment
+		/// @param account        		string      token account
+		/// @param sym            		string      token symbol, format: precision,symbol_code
+		/// @param pk             		string      PK of storeman
+		/// @param timeStamp      		string      the timestamp to check if receiver expired
+		/// @param receiver       		string      account of the receiver
+		/// @param r              		string      signature
+		/// @param s              		string      signature
 		ACTION withdraw(std::string account, std::string sym, std::string pk, std::string timeStamp, \
 						eosio::name receiver,std::string r,std::string s);
 		
-		/* signature contract */
+		/* signature verification */
+		/// @notice               		type        comment
+		/// @param code           		name        the signature verification account
+		/// @param action         		name        the signature verification action
 		ACTION regsig(eosio::name code, eosio::name action);
+
+		/// @notice               		type        comment
+		/// @param code           		name        the signature verification account
+		/// @param nCode          		name        the new signature verification account
+		/// @param nAction        		name        the new signature verification action
 		ACTION updatesig(eosio::name code, eosio::name nCode, eosio::name nAction);
+
+		/// @notice               		type        comment
+		/// @param code           		name        the signature verification account
 		ACTION unregsig(eosio::name code);
 
-		/* debt storeman like inlock */
-		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
+		/* inBound debt */
+		/// @notice               		type        comment
+		/// @param npk            		string      PK of storeman that the debt receiver
+		/// @param account        		name        token account
+		/// @param quantity       		asset       exchange quantity
+		/// @param xHash          		string      hash of HTLC random number
+		/// @param pk             		string      PK of storeman
+		/// @param r              		string      signature
+		/// @param s              		string      signature
 		ACTION lockdebt(std::string npk, eosio::name account, eosio::asset quantity,  std::string xHash, std::string pk, std::string r, std::string s);
 
+		/// @notice               		type        comment
+		/// @param x              		string      HTLC random number
 		ACTION redeemdebt(std::string x);
 
+		/// @notice               		type        comment
+		/// @param xHash          		string      hash of HTLC random number
 		ACTION revokedebt(std::string xHash);
 
+		/// @notice               		type        comment
+		/// @param ratio          		uint64_t    revoke ratio
 		ACTION setratio(uint64_t ratio);
 
 
@@ -95,7 +116,9 @@ namespace htlc {
 			std::string            memo;
 		};
 
-		/* only one record */
+		/* TABLE signer
+		** record the signature verification info,  only one record
+		*/
 		TABLE signature_t {
 				eosio::name                  code;
 				eosio::name                  action;
@@ -109,7 +132,7 @@ namespace htlc {
 		/*****************************************TABLE*****************************************/
 		/* TABLE transfers
 		** one record for an cross-tx, and the record will be clean while InBound/OutBound
-		** eg
+		** eg:
 		** inlock   -> TABLE transfers add item (status is inlock, its unique index is xHash)
 		** inredeem -> TABLE transfers remove item (status is inlock, its unique index is xHash)
 		*/
@@ -189,7 +212,7 @@ namespace htlc {
 
 		/* TABLE debts
 		** one record for an cross-debt-tx, and the record will be clean while redeemdebt/revokedebt
-		** eg
+		** eg:
 		** lockdebt   -> TABLE debts add item (status is lockdebt, its unique index is xHash)
 		** redeemdebt -> TABLE debts remove item (status is lockdebt, its unique index is xHash)
 		*/
@@ -222,10 +245,7 @@ namespace htlc {
 				eosio::checksum256 xhash_key() const { return xHash; /* unique */ }
 		};
 
-
-
 		/* TABLE tokens
-		** scope code.value from TABLE accounts
 		*/
 		TABLE num64_t {
 				eosio::name             flag;
@@ -326,48 +346,6 @@ namespace htlc {
 			common::str2Hex(hexStr, (char *)outValue.data, sizeof(outValue));
 		}
 
-		bool 	hexStrToChecksum256(std::string_view hexStr, const eosio::checksum256 &outValue) {
-			if (hexStr.size() != 64)
-				return false;
-
-			std::string_view hex{"0123456789abcdef"};
-			for (int i = 0; i < 32; i++) {
-				auto d1 = hex.find(hexStr[2*i]);
-				auto d2 = hex.find(hexStr[2*i+1]);
-				if (d1 == std::string_view::npos || d2 == std::string_view::npos)
-					return false;
-
-				// checksum256 is composed of little endian int128_t
-				uint8_t idx = i / 16 * 16 + 15 - (i % 16);
-				reinterpret_cast <char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
-				// static_cast<char *>(const_cast<eosio::checksum256::word_t *>(outValue.data()))[idx] = (d1 << 4)  + d2;
-				// reinterpret_cast<char *>(outValue.data())[idx] = (d1 << 4)  + d2;
-			}
-			return true;
-		}
-
-		/* hex string to  checksum256 */
-		inline 	eosio::checksum256 hexStrToChecksum256(std::string_view hex_str, bool needHash = false) {
-			eosio::checksum256 hexValue;
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[hexStrToChecksum256=> init:", hexValue, ", size:", sizeof(hexValue.get_array()), "]\t");
-#endif
-			common::str2Hex(hex_str, (char *)hexValue.data(), sizeof(hexValue.get_array()));
-			if (!needHash) {
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[hexStrToChecksum256=> before convertEndian:", hexValue, "]\t");
-#endif
-				// eosio::checksum256 result = convertEndian(hexValue);
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[hexStrToChecksum256=> finaly:", hexValue, "]\t");
-#endif
-				return hexValue;
-			}
-			// eosio::checksum256 result = convertEndian(hexValue);
-			return eosio::sha256((char *)hexValue.data(), sizeof(hexValue.get_array()));
-			// return hexValue;
-		}
-
 		/* x-hex-string to xHash eosio::checksum256 */
 		inline 	eosio::checksum256 hashHexMsg(std::string_view hexView) {
 			internal::Uint256_t hexValue;
@@ -386,13 +364,6 @@ namespace htlc {
 
 		inline 	std::string Uint256ToHexStr(const internal::Uint256_t &value) {
 			return common::toHexStr((char *) value.data, sizeof(value));
-			// eosio::checksum256 result = convertEndian(value);
-			// return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
-		}
-		inline 	std::string checksum256ToHexStr(const eosio::checksum256 &value) {
-			return common::toHexStr((char *) value.data(), sizeof(value.get_array()));
-			// eosio::checksum256 result = convertEndian(value);
-			// return common::toHexStr((char *) result.data(), sizeof(result.get_array()));
 		}
 	};
 
