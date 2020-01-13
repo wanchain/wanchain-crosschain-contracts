@@ -41,9 +41,8 @@ namespace htlc {
 		ACTION inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, std::string memo);
 
 		/// @notice               		type        comment
-		/// @param storeman  			name        storeman account name
 		/// @param x              		string      HTLC random number
-		ACTION inredeem(eosio::name storeman, std::string x);
+		ACTION inredeem(std::string x);
 
 		/// @notice               		type        comment
 		/// @param xHash          		string      hash of HTLC random number
@@ -52,12 +51,11 @@ namespace htlc {
 
 		/// @notice               		type        comment
 		/// @param user           		name        account name of user initiated the Tx
-		/// @param storeman  			name        storeman account name
 		/// @param quantity       		asset       exchange quantity
 		/// @param memo           		string      xHash:wanAddr:user:status
 		/// TOKEN locked in htlc
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
-		ACTION outlock(eosio::name storeman, eosio::name user, eosio::name account, eosio::asset quantity, \
+		ACTION outlock(eosio::name user, eosio::name account, eosio::asset quantity, \
                     std::string xHash, std::string pk, std::string r, std::string s);
 
 		/// @notice               		type        comment
@@ -71,7 +69,7 @@ namespace htlc {
 
 
 		/// @param sym          		string      precision,symbol_code
-		ACTION withdraw(eosio::name storeman, std::string account, std::string sym, std::string pk, std::string timeStamp, \
+		ACTION withdraw(std::string account, std::string sym, std::string pk, std::string timeStamp, \
 						eosio::name receiver,std::string r,std::string s);
 		
 		/* signature contract */
@@ -81,9 +79,9 @@ namespace htlc {
 
 		/* debt storeman like inlock */
 		/// memo => xHash(64):wanAddr(42):r(65):s(65):status(7) => 247Bytes
-		ACTION lockdebt(eosio::name storeman, std::string npk, eosio::name account, eosio::asset quantity,  std::string xHash, std::string pk, std::string r, std::string s);
+		ACTION lockdebt(std::string npk, eosio::name account, eosio::asset quantity,  std::string xHash, std::string pk, std::string r, std::string s);
 
-		ACTION redeemdebt(eosio::name storeman, std::string x);
+		ACTION redeemdebt(std::string x);
 
 		ACTION revokedebt(std::string xHash);
 
