@@ -1,5 +1,9 @@
 namespace htlc {
 
+	/*
+	** notice               		type          comment
+	** param ratio          		uint64_t&     output parameter, revoke ratio
+	*/
 	void htlc::getRatio(uint64_t &ratio) {
 		longlongs ll_table(get_self(), get_self().value);
 		auto lItr = ll_table.find(hTable::key::ratio.value);
@@ -10,6 +14,10 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param xHashView      		string_view   hash of HTLC random number
+	*/
 	eosio::checksum256 htlc::parseXHash(std::string_view xHashView) {
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[parseXHash => xHashView:", static_cast<std::string>(xHashView), ", size:", xHashView.size(),
@@ -27,6 +35,10 @@ namespace htlc {
 		return xHashValue.data;
 	}
 
+	/*
+	** notice               		type          comment
+	** param symStr         		string_view   symbol string
+	*/
 	eosio::symbol htlc::stringToSymbol(std::string_view symStr) {
 		/* parse quantity */
 		std::vector <std::string_view> vSymbol;
@@ -41,6 +53,10 @@ namespace htlc {
 		return sym;
 	}
 
+	/*
+	** notice               		type          comment
+	** param qStr           		string_view   quantity string
+	*/
 	eosio::asset htlc::stringToAsset(std::string_view qStr) {
 		/* parse quantity */
 		std::vector <std::string_view> vQuantity;
@@ -69,6 +85,10 @@ namespace htlc {
 		return quantity;
 	}
 
+	/*
+	** notice               		type        comment
+	** param sigInfo         		void*       output paramter, signature verification info
+	*/
 	bool htlc::getSignature(void *sigInfo) {
 		/* get the signature contract info */
 
@@ -84,6 +104,12 @@ namespace htlc {
 		return true;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pkView         		string_view   PK of storeman
+	** param pkHash         		checksum256&  hash of PK
+	** param pkInfo         		void*         output parameter, PK info
+	*/
 	void htlc::savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo) {
 		/* add table fees */
 		pks pk_table(get_self(), get_self().value);
@@ -104,6 +130,11 @@ namespace htlc {
 		});
 	}
 
+	/*
+	** notice               		type          comment
+	** param pkView         		string_view   PK of storeman
+	** param pkInfo         		void*         output parameter, PK info
+	*/
 	bool htlc::findPK(std::string_view pkView, void *pkInfo) {
 		/* get the pks contract info */
 		eosio::check(pkInfo != nullptr, hError::error::INVALID_PARAM.data());
@@ -127,6 +158,11 @@ namespace htlc {
 		// return true;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pkHash         		checksum256&  hash of PK
+	** param pkInfo         		void*         output parameter, PK info
+	*/
 	bool htlc::findPK(const eosio::checksum256 &pkHash, void *pkInfo) {
 		/* get the pks contract info */
 		eosio::check(pkInfo != nullptr, hError::error::INVALID_PARAM.data());
@@ -146,6 +182,11 @@ namespace htlc {
 		return true;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param pkInfo         		void*         output parameter, PK info
+	*/
 	bool htlc::findPK(uint64_t pid, void *pkInfo) {
 		/* get the pks contract info */
 		eosio::check(pkInfo != nullptr, hError::error::INVALID_PARAM.data());
@@ -164,6 +205,10 @@ namespace htlc {
 		return true;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	bool htlc::hasPK(uint64_t pid) {
 		/* find from pks table by pid */
 		pks pk_table(get_self(), get_self().value);
@@ -171,6 +216,10 @@ namespace htlc {
 		return pItr != pk_table.end();
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	void htlc::cleanPk(uint64_t pid) {
 		if (existAsset(pid) or existFee(pid) or isPkInHtlc(pid) or isPkDebt(pid)) {
 			return;
@@ -184,6 +233,10 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	bool htlc::isPkInHtlc(uint64_t pid) {
 		bool isBusy = false;
 
@@ -200,6 +253,10 @@ namespace htlc {
 		return isBusy;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	bool htlc::isPkDebt(uint64_t pid) {
 		bool isBusy = false;
 
@@ -215,6 +272,12 @@ namespace htlc {
 		return isBusy;
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param sym            		symbol&       token symbol
+	*/
 	bool htlc::isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
 		bool isBusy = false;
 
@@ -237,6 +300,14 @@ namespace htlc {
 		return isBusy;
 	}
 
+	/*
+	** notice               		type                           comment
+	** param statusView     		statusView                     status
+	** param pk             		uint64_t                       PK of storeman
+	** param r              		string&                        signature
+	** param s              		string&                        signature
+	** param v              		vector<std::string_view>&      the messages
+	*/
 	void htlc::verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, std::vector<std::string_view> &v) {
 		/* signature verification */
 		// make action data
@@ -265,6 +336,12 @@ namespace htlc {
 									  static_cast<std::string>(statusView))).send();
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param quantity       		asset&        token quantity
+	*/
 	void htlc::addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity) {
 		/* add table assets */
 		uint128_t symAcctKey = common::makeU128(quantity.symbol.raw(), account.value);
@@ -291,6 +368,12 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param quantity       		asset&        token quantity
+	*/
 	void htlc::subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity) {
 		/* sub table assets */
 		uint128_t symAcctKey = common::makeU128(quantity.symbol.raw(), account.value);
@@ -312,6 +395,12 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param pQuantity      		asset*        output parameter, token quantity
+	*/
 	void htlc::getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity) {
 		eosio::asset balance(0, (*pQuantity).symbol);
 
@@ -329,6 +418,12 @@ namespace htlc {
 #endif
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param pQuantity      		asset*        output parameter, token quantity
+	*/
 	void htlc::getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity) {
 
 		debts debt_table(get_self(), get_self().value);
@@ -353,6 +448,12 @@ namespace htlc {
 #endif
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param pQuantity      		asset*        output parameter, token quantity
+	*/
 	void htlc::getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity) {
 		eosio::asset debtBalance(0, (*pQuantity).symbol);
 		eosio::asset outlockBalance(0, (*pQuantity).symbol);
@@ -364,6 +465,13 @@ namespace htlc {
 		pQuantity->set_amount(totalBalance.amount);
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param pQuantity      		asset*        output parameter, token quantity
+	** param status         		string_view   the identified status
+	*/
 	void htlc::getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity,
 									std::string_view statusView) {
 		/* check if outlock asset overflow */
@@ -391,12 +499,22 @@ namespace htlc {
 #endif
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	bool htlc::existAsset(uint64_t pid) {
 		/* check if asset exists */
 		assets asset_table(get_self(), pid);
 		return (asset_table.begin() != asset_table.end());
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param sym            		symbol&       token symbol
+	*/
 	bool htlc::existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
 		/* check if asset exists */
 		assets asset_table(get_self(), pid);
@@ -406,12 +524,22 @@ namespace htlc {
 		return (aItr != aSymAcctIndex.end());
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	*/
 	bool htlc::existFee(uint64_t pid) {
 		/* check if fees exists */
 		fees fee_table(get_self(), pid);
 		return (fee_table.begin() != fee_table.end());
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param sym            		symbol&       token symbol
+	*/
 	bool htlc::existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym) {
 		/* check if fees exists */
 
@@ -422,6 +550,12 @@ namespace htlc {
 		return (fItr != fSymAcctIndex.end());
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param fee            		asset&        token quantity
+	*/
 	void htlc::addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee) {
 		/* add table fees */
 
@@ -449,6 +583,14 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param to             		name&         token receiver
+	** param acctView       		string_view   token account, may be empty string
+	** param symView        		string_view   token symbol, may be empty string
+	** param memo           		string_view   memo for issue fee
+	*/
 	void htlc::issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView,
 							std::string_view memoView) {
 		/* sub table fees */
@@ -519,6 +661,15 @@ namespace htlc {
 		}
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param user           		name&         account name of user initiated the Tx
+	** param account        		name&         token account
+	** param quantity       		asset&        token quantity
+	** param xHashValue     		checksum256&  hash of HTLC random number
+	** param wanAddrView    		string_view   wan address
+	*/
 	void htlc::inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue, std::string_view wanAddrView) {
 
@@ -548,6 +699,14 @@ namespace htlc {
 		});
 	}
 
+	/*
+	** notice               		type          comment
+	** param pid            		uint64_t      id of PK
+	** param user           		name&         account name of user initiated the Tx
+	** param account        		name&         token account
+	** param quantity       		asset&        token quantity
+	** param xHashValue     		checksum256&  hash of HTLC random number
+	*/
 	void htlc::outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue) {
 
@@ -576,6 +735,14 @@ namespace htlc {
 		});
 	}
 
+	/*
+	** notice               		type          comment
+	** param npid           		uint64_t      nid of PK
+	** param pid            		uint64_t      id of PK
+	** param account        		name&         token account
+	** param quantity       		asset&        token quantity
+	** param xHashValue     		checksum256&  hash of HTLC random number
+	*/
 	void htlc::lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue) {
 

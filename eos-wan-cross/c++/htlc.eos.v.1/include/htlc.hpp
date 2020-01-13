@@ -129,6 +129,10 @@ namespace htlc {
 
 				uint64_t primary_key() const { return code.value; }
 		};
+		/*
+		** notice               		type        comment
+		** param sigInfo         		void*       output paramter, signature verification info
+		*/
 		inline bool getSignature(void *sigInfo);
 
 	private:
@@ -303,54 +307,226 @@ namespace htlc {
 
 		/******************************internal function*******************************************************/
 
+		/*
+		** notice               		type          comment
+		** param xHashView      		string_view   hash of HTLC random number
+		*/
 		inline eosio::checksum256 parseXHash(std::string_view xHashView);
 
+		/*
+		** notice               		type          comment
+		** param symStr         		string_view   symbol string
+		*/
 		inline eosio::symbol stringToSymbol(std::string_view symStr);
+
+		/*
+		** notice               		type          comment
+		** param qStr           		string_view   quantity string
+		*/
 		inline eosio::asset stringToAsset(std::string_view qStr);
 
+		/*
+		** notice               		type          comment
+		** param ratio          		uint64_t&     output parameter, revoke ratio
+		*/
 		inline void getRatio(uint64_t &ratio);
 
+		/*
+		** notice               		type          comment
+		** param pkView         		string_view   PK of storeman
+		** param pkHash         		checksum256&  hash of PK
+		** param pkInfo         		void*         output parameter, PK info
+		*/
 		void 	savePk(std::string_view pkView, const eosio::checksum256 &pkHash, void *pkInfo);
+		/*
+		** notice               		type          comment
+		** param pkView         		string_view   PK of storeman
+		** param pkInfo         		void*         output parameter, PK info
+		*/
 		bool 	findPK(std::string_view pkView, void *pkInfo);
+		/*
+		** notice               		type          comment
+		** param pkHash         		checksum256&  hash of PK
+		** param pkInfo         		void*         output parameter, PK info
+		*/
 		bool 	findPK(const eosio::checksum256 &pkHash, void *pkInfo);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param pkInfo         		void*         output parameter, PK info
+		*/
 		bool 	findPK(uint64_t pid, void *pkInfo);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		bool 	hasPK(uint64_t pid);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		void 	cleanPk(uint64_t pid);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		bool 	isPkInHtlc(uint64_t pid);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		bool 	isPkDebt(uint64_t pid);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param sym            		symbol&       token symbol
+		*/
 		bool 	isPkDebt(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
+		/*
+		** notice               		type                           comment
+		** param statusView     		statusView                     status
+		** param pk             		uint64_t                       PK of storeman
+		** param r              		string&                        signature
+		** param s              		string&                        signature
+		** param v              		vector<std::string_view>&      the messages
+		*/
 		void	verifySignature(std::string_view statusView, std::string &pk, std::string &r, std::string &s, std::vector<std::string_view> &v);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param quantity       		asset&        token quantity
+		*/
 		void 	addAssetTo(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param quantity       		asset&        token quantity
+		*/
 		void 	subAssetFrom(uint64_t pid, const eosio::name &account, const eosio::asset &quantity);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param pQuantity      		asset*        output parameter, token quantity
+		*/
 		void 	getOutPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param pQuantity      		asset*        output parameter, token quantity
+		*/
 		void 	getPendDebtAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param pQuantity      		asset*        output parameter, token quantity
+		** param status         		string_view   the identified status
+		*/
 		void 	getHtlcPendAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity, std::string_view status);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param pQuantity      		asset*        output parameter, token quantity
+		*/
 		void 	getAssetFrom(uint64_t pid, const eosio::name &account, eosio::asset *pQuantity);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		bool 	existAsset(uint64_t pid);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param sym            		symbol&       token symbol
+		*/
 		bool 	existAsset(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		*/
 		bool 	existFee(uint64_t pid);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param sym            		symbol&       token symbol
+		*/
 		bool 	existFee(uint64_t pid, const eosio::name &account, const eosio::symbol &sym);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param fee            		asset&        token quantity
+		*/
 		void 	addFeeTo(uint64_t pid, const eosio::name &account, const eosio::asset &fee);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param to             		name&         token receiver
+		** param acctView       		string_view   token account, may be empty string
+		** param symView        		string_view   token symbol, may be empty string
+		** param memo           		string_view   memo for issue fee
+		*/
 		void 	issueFeeFrom(uint64_t pid, eosio::name to, std::string_view acctView, std::string_view symView, std::string_view memo);
 
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param user           		name&         account name of user initiated the Tx
+		** param account        		name&         token account
+		** param quantity       		asset&        token quantity
+		** param xHashValue     		checksum256&  hash of HTLC random number
+		** param wanAddrView    		string_view   wan address
+		*/
 		void 	inlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
             		const eosio::checksum256 &xHashValue, std::string_view wanAddrView);
+		/*
+		** notice               		type          comment
+		** param pid            		uint64_t      id of PK
+		** param user           		name&         account name of user initiated the Tx
+		** param account        		name&         token account
+		** param quantity       		asset&        token quantity
+		** param xHashValue     		checksum256&  hash of HTLC random number
+		*/
 		void 	outlockTx(uint64_t pid, const eosio::name &user, const eosio::name &account, const eosio::asset &quantity, \
             		const eosio::checksum256 &xHashValue);
+		/*
+		** notice               		type          comment
+		** param npid           		uint64_t      nid of PK
+		** param pid            		uint64_t      id of PK
+		** param account        		name&         token account
+		** param quantity       		asset&        token quantity
+		** param xHashValue     		checksum256&  hash of HTLC random number
+		*/
 		void 	lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
             		const eosio::checksum256 &xHashValue);
 
+		/*
+		** notice               		type          comment
+		** param hexStr         		string_view   hex string
+		** param outValue       		Uint256_t&    output parameter, hex number
+		*/
 		void 	hexStrToUint256(std::string_view hexStr, internal::Uint256_t &outValue) {
 			common::str2Hex(hexStr, (char *)outValue.data, sizeof(outValue));
 		}
 
-		/* x-hex-string to xHash eosio::checksum256 */
+		/*
+		** notice               		type          comment
+		** param hexView        		string_view   hex string
+		*/
 		inline 	eosio::checksum256 hashHexMsg(std::string_view hexView) {
 			internal::Uint256_t hexValue;
 			hexStrToUint256(hexView, hexValue);
@@ -361,11 +537,18 @@ namespace htlc {
 			return hashValue;
 		}
 
-		/* x-hex-string to xHash eosio::checksum256 */
+		/*
+		** notice               		type          comment
+		** param msgView        		string_view   message string need to hash
+		*/
 		inline 	eosio::checksum256 hashMsg(std::string_view msgView) {
 			return eosio::sha256((char *)msgView.data(), msgView.size());
 		}
 
+		/*
+		** notice               		type          comment
+		** param value          		Uint256_t&    hex number
+		*/
 		inline 	std::string Uint256ToHexStr(const internal::Uint256_t &value) {
 			return common::toHexStr((char *) value.data, sizeof(value));
 		}
