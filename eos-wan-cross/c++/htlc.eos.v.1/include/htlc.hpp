@@ -44,8 +44,12 @@ namespace htlc {
 
 		/// @notice               		type        comment
 		/// @param user           		name        account name of user initiated the Tx
+		/// @param account        		name        token account
 		/// @param quantity       		asset       exchange quantity
-		/// @param memo           		string      xHash:wanAddr:user:status
+		/// @param xHash          		string      hash of HTLC random number
+		/// @param pk             		string      PK of storeman
+		/// @param r              		string      signature
+		/// @param s              		string      signature
 		ACTION outlock(eosio::name user, eosio::name account, eosio::asset quantity, \
                     std::string xHash, std::string pk, std::string r, std::string s);
 

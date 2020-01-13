@@ -11,6 +11,9 @@
 namespace htlc {
 
 /* register signature verification info, by htlc-self */
+	/// @notice               		type        comment
+	/// @param code           		name        the signature verification account
+	/// @param action         		name        the signature verification action
 	ACTION htlc::regsig(eosio::name code, eosio::name action) {
 		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
@@ -30,6 +33,10 @@ namespace htlc {
 		});
 	}
 
+	/// @notice               		type        comment
+	/// @param code           		name        the signature verification account
+	/// @param nCode          		name        the new signature verification account
+	/// @param nAction        		name        the new signature verification action
 	ACTION htlc::updatesig(eosio::name code, eosio::name nCode, eosio::name nAction) {
 		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
@@ -46,6 +53,8 @@ namespace htlc {
 		});
 	}
 
+	/// @notice               		type        comment
+	/// @param code           		name        the signature verification account
 	ACTION htlc::unregsig(eosio::name code) {
 		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
 
@@ -57,6 +66,14 @@ namespace htlc {
 	}
 
 	/* debt, by storeman-self and the storeman-match */
+	/// @notice               		type        comment
+	/// @param npk            		string      PK of storeman that the debt receiver
+	/// @param account        		name        token account
+	/// @param quantity       		asset       exchange quantity
+	/// @param xHash          		string      hash of HTLC random number
+	/// @param pk             		string      PK of storeman
+	/// @param r              		string      signature
+	/// @param s              		string      signature
 	ACTION htlc::lockdebt(std::string npk, eosio::name account, \
 							eosio::asset quantity,std::string xHash, \
 							std::string pk, std::string r, std::string s) {
@@ -124,9 +141,8 @@ namespace htlc {
 		}
 	}
 
-/// @notice               type        comment
-/// @param x              string      HTLC random number
-/// coin flow: htlc -> storeman
+	/// @notice               		type        comment
+	/// @param x              		string      HTLC random number
 	ACTION htlc::redeemdebt(std::string x) {
 #ifdef _DEBUG_PRINT
 		eosio::print("\t[redeemdebt => x:", x, " ]\t");
@@ -172,8 +188,9 @@ namespace htlc {
 		}
 	}
 
+	/// @notice               		type        comment
+	/// @param xHash          		string      hash of HTLC random number
 	ACTION htlc::revokedebt(std::string xHash) {
-		htlc::pk_t pkInfo;
 		{
 			/* check xHash */
 			eosio::checksum256 xHashValue = parseXHash(xHash);
@@ -193,7 +210,7 @@ namespace htlc {
 			eosio::check((dItr->beginTime + dItr->lockedTime) < nowTime, hError::error::REVOKE_TIMEOUT.data());
 
 			/* find from pks table by pk id */
-			eosio::check(findPK(dItr->pid, &pkInfo), hError::error::NOT_FOUND_RECORD.data());
+			eosio::check(hasPK(dItr->pid), hError::error::NOT_FOUND_RECORD.data());
 
 #ifdef _DEBUG_PRINT
 			eosio::print("\t[revokedebt => beginTime:", dItr->beginTime.sec_since_epoch(), ", lockedTime:",
@@ -247,11 +264,11 @@ namespace htlc {
 	}
 
 /* HTLC reference, by whoever */
-/// @notice                    type        comment
-/// @param user                name        account name of user initiated the Tx
-/// @param quantity            asset       exchange quantity
-/// @param memo                string      status(6):xHash(64):wanAddr(40):storeman(130):eosTokenAccount(12) => 256 bytes
-/// coin flow: user -> htlc
+	/// @notice                    type        comment
+	/// @param user                name        account name of user initiated the Tx
+	/// @param htlc                name        account name of htlc initiated the Tx
+	/// @param quantity            asset       exchange quantity
+	/// @param memo                string      status(6):xHash(64):wanAddr(40):pk(130):eosTokenAccount(12) => 256 bytes
 	ACTION htlc::inlock(eosio::name user, eosio::name htlc, eosio::asset quantity, std::string memo) {
 
 		eosio::check(eosio::is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
@@ -301,10 +318,8 @@ namespace htlc {
 		inlockTx(pkInfo.id, user, account, quantity, xHashValue, wanAddrView);
 	}
 
-/// @notice               	type        comment
-/// @param xHash          	string      hash of HTLC random number
-/// @param x              	string      HTLC random number
-/// coin flow: htlc -> storeman
+	/// @notice               		type        comment
+	/// @param x              		string      HTLC random number
 	ACTION htlc::inredeem(std::string x) {
 		/* get record by xHash */
 		eosio::checksum256 xHashValue = hashHexMsg(x);
@@ -333,10 +348,8 @@ namespace htlc {
 		tItr = tXHashTable.erase(tItr);
 	}
 
-/// @notice               type        comment
-/// @param user           name        account name of user initiated the Tx
-/// @param xHash          string      hash of HTLC random number
-/// coin flow: htlc -> user
+	/// @notice               		type        comment
+	/// @param xHash          		string      hash of HTLC random number
 	ACTION htlc::inrevoke(std::string xHash) {
 		eosio::checksum256 xHashValue = parseXHash(xHash);
 
@@ -412,11 +425,14 @@ namespace htlc {
 		return;
 	}
 
-/// @notice               type        comment
-/// @param user           name        account name of user initiated the Tx
-/// @param quantity       asset       exchange quantity
-/// @param memo           string      xHash:wanAddr:user:status
-/// coin flow: storeman -> htlc
+	/// @notice               		type        comment
+	/// @param user           		name        account name of user initiated the Tx
+	/// @param account        		name        token account
+	/// @param quantity       		asset       exchange quantity
+	/// @param xHash          		string      hash of HTLC random number
+	/// @param pk             		string      PK of storeman
+	/// @param r              		string      signature
+	/// @param s              		string      signature
 	ACTION htlc::outlock(eosio::name user, eosio::name account, eosio::asset quantity, \
     std::string xHash, std::string pk, std::string r, std::string s) {
 #ifdef _DEBUG_PRINT
@@ -444,7 +460,6 @@ namespace htlc {
 			eosio::check(!isPkDebt(pkInfo.id, account, quantity.symbol), hError::error::BUSY_PK.data());
 
 			/* pk asset should be more than cross-quantity */
-			// eosio::asset totalAsset = quantity - quantity;
 			eosio::asset totalAsset(0, quantity.symbol);
 			getAssetFrom(pkInfo.id, account, &totalAsset);
 #ifdef _DEBUG_PRINT
@@ -453,7 +468,6 @@ namespace htlc {
 			// eosio::check(totalAsset >= quantity, hError::error::NOE_ENOUGH_QUANTITY.data());
 
 			/* pk asset should be more than (cross-quantity add all pendingAsset) */
-			// eosio::asset outPendQuantity = quantity - quantity;
 			eosio::asset outPendAsset(0, quantity.symbol);
 			getOutPendAssetFrom(pkInfo.id, account, &outPendAsset);
 #ifdef _DEBUG_PRINT
@@ -476,11 +490,9 @@ namespace htlc {
 		}
 	}
 
-/// @notice               type        comment
-/// @param user           name        account name of user initiated the Tx
-/// @param xHash          string      hash of HTLC random number
-/// @param x              string      HTLC random number
-/// coin flow: htlc -> user
+	/// @notice               		type        comment
+	/// @param user           		name        account name of user initiated the Tx
+	/// @param x              		string      HTLC random number
 	ACTION htlc::outredeem(eosio::name user, std::string x) {
 
 		eosio::check(eosio::is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
