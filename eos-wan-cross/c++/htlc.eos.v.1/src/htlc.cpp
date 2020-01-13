@@ -651,10 +651,15 @@ extern "C" {
 #endif
 
 			// optimize code for getting status
-			std::string status;
-			common::split(unpackData.memo, tMemo::separator, tMemo::inlock::status, status);
+		std::vector <std::string_view> v;
+		common::split(unpackData.memo, tMemo::separator, v);
+
+		eosio::name account = eosio::name(v[tMemo::inlock::account]);
+		eosio::check(account.value == code, hError::error::INVALID_TOKEN_ACCOUNT.data());
+		std::string_view status = v[tMemo::inlock::status];
+
 #ifdef _DEBUG_PRINT
-			eosio::print("\t[parse memo for status:", status.data(), ", size:", status.size(), \
+			eosio::print("\t[parse memo for status:", static_cast<std::string>(status), \
                 ", status.value:", eosio::name(status).value, "]\t");
 #endif
 
