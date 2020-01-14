@@ -19,18 +19,10 @@ namespace htlc {
 	** param xHashView      		string_view   hash of HTLC random number
 	*/
 	eosio::checksum256 htlc::parseXHash(std::string_view xHashView) {
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[parseXHash => xHashView:", static_cast<std::string>(xHashView), ", size:", xHashView.size(),
-					 "]\t");
-#endif
 		eosio::check(xHashView.size() == hLimit::xHash, hError::error::INVALID_XHASH.data());
 		internal::Uint256_t xHashValue;
 		hexStrToUint256(xHashView, xHashValue);
 		std::string_view xHashValueStr = Uint256ToHexStr(xHashValue);
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[parseXHash=> xHashValue:", (eosio::checksum256) xHashValue.data, ", xHashValueStr:",
-					 static_cast<std::string>(xHashValueStr), "]\t");
-#endif
 		eosio::check(xHashView.compare(xHashValueStr) == 0, hError::error::INVALID_XHASH.data());
 		return xHashValue.data;
 	}
@@ -123,10 +115,6 @@ namespace htlc {
 				static_cast<pk_t *>(pkInfo)->pkHash = s.pkHash;
 				static_cast<pk_t *>(pkInfo)->pk = s.pk;
 			}
-
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[savePk => add pks => id:", s.id, ", pk:", s.pk, ", pkHash:", s.pkHash, "]\t");
-#endif
 		});
 	}
 
@@ -245,11 +233,6 @@ namespace htlc {
 		auto tItr = tPidIndex.find(pid);
 
 		isBusy = (tItr != tPidIndex.end());
-
-#ifdef _DEBUG_PRINT
-		eosio::print("isPkInHtlc => pk:", pid, ", isBusy:", isBusy);
-#endif
-
 		return isBusy;
 	}
 
@@ -265,10 +248,6 @@ namespace htlc {
 		auto dPidIndex = debt_table.get_index<hTable::key::pid>();
 		auto dItr = dPidIndex.find(pid);
 		isBusy = (dItr != dPidIndex.end());
-
-#ifdef _DEBUG_PRINT
-		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
-#endif
 		return isBusy;
 	}
 
@@ -294,9 +273,6 @@ namespace htlc {
 			}
 			++dItr;
 		}
-#ifdef _DEBUG_PRINT
-		eosio::print("isPkDebt => pk:", pid, ", isBusy:", isBusy);
-#endif
 		return isBusy;
 	}
 
@@ -317,14 +293,6 @@ namespace htlc {
 		actionData = common::join(v, tMemo::separator);
 
 		crypto::base64::encode(const_cast<char *>(actionData.data()), actionData.size(), encodedActionData);
-
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[verifySignature => base64 Data: ", actionData, "]\t");
-		std::string decodedActionData;
-		crypto::base64::decode(encodedActionData, decodedActionData);
-		eosio::print("\t[verifySignature => origin Data: ", actionData, "]\t");
-		eosio::print("\t[verifySignature => decode Data: ", decodedActionData, "]\t");
-#endif
 
 		// call signature contract to check mpc signature
 		signature_t sigInfo;
@@ -354,16 +322,10 @@ namespace htlc {
 				s.id = asset_table.available_primary_key();
 				s.balance = quantity;
 				s.account = account;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[addAssetTo => balance:", s.balance, ", account:", s.account, ", id:", s.id, "]\t");
-#endif
 			});
 		} else {
 			aSymAcctIndex.modify(aItr, get_self(), [&](auto &s) {
 				s.balance += quantity;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[addAssetTo => balance:", s.balance, ", account:", s.account, ", id:", s.id, "]\t");
-#endif
 			});
 		}
 	}
@@ -388,9 +350,6 @@ namespace htlc {
 		} else {
 			aSymAcctIndex.modify(aItr, get_self(), [&](auto &s) {
 				s.balance -= quantity;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[subAssetFrom => balance:", s.balance, "]\t");
-#endif
 			});
 		}
 	}
@@ -413,9 +372,6 @@ namespace htlc {
 			balance = aItr->balance;
 		}
 		(*pQuantity).set_amount(balance.amount);
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[getAssetFrom => balance:", *pQuantity, "]\t");
-#endif
 	}
 
 	/*
@@ -431,10 +387,6 @@ namespace htlc {
 		auto dPidAcctIndex = debt_table.get_index<hTable::key::pid_acct>();
 		auto dItr = dPidAcctIndex.find(pidAcctKey);
 
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[getPendDebtAssetFrom => account: ", account, " pid: ", pid, " => pidAcctKey:", pidAcctKey,
-					 "]\t");
-#endif
 		eosio::asset lockedBalance(0, (*pQuantity).symbol);
 		while (dItr != dPidAcctIndex.end()) {
 			if (dItr->quantity.symbol == (*pQuantity).symbol) {
@@ -443,9 +395,6 @@ namespace htlc {
 			++dItr;
 		}
 		pQuantity->set_amount(lockedBalance.amount);
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[getPendDebtAssetFrom => balance:", lockedBalance, "]\t");
-#endif
 	}
 
 	/*
@@ -479,10 +428,6 @@ namespace htlc {
 		transfers transfers_table(get_self(), get_self().value);
 		auto tPidAcctIndex = transfers_table.get_index<hTable::key::pid_acct>();
 		auto tItr = tPidAcctIndex.find(pidAcctKey);
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[getHtlcPendAssetFrom => pid: ", pid, ", statusView:", static_cast<std::string>(statusView), \
-        ", pidAcctKey:", pidAcctKey, "]\t");
-#endif
 		eosio::asset lockedBalance(0, (*pQuantity).symbol);
 		eosio::name status = eosio::name(statusView);
 
@@ -494,9 +439,6 @@ namespace htlc {
 		}
 		(*pQuantity).set_amount(lockedBalance.amount);
 
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[getHtlcPendAssetFrom => balance:", lockedBalance, "]\t");
-#endif
 	}
 
 	/*
@@ -569,16 +511,10 @@ namespace htlc {
 				s.id = fee_table.available_primary_key();
 				s.account = account;
 				s.fee = fee;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[addFeeTo => fee:", s.fee, "]\t");
-#endif
 			});
 		} else {
 			fSymAcctIndex.modify(fItr, get_self(), [&](auto &s) {
 				s.fee += fee;
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[addFeeTo => fee:", s.fee, "]\t");
-#endif
 			});
 		}
 	}
@@ -600,10 +536,6 @@ namespace htlc {
 		if (acctView.empty()) {
 			auto fItr = fee_table.begin();
 			while (fItr != fee_table.end()) {
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:",
-							 fItr->fee, " ]\t");
-#endif
 				auto account = fItr->account;
 				auto fee = fItr->fee;
 				fItr = fee_table.erase(fItr);
@@ -625,10 +557,6 @@ namespace htlc {
 			auto fAcctIndex = fee_table.get_index<hTable::key::acct>();
 			auto fItr = fAcctIndex.find(account.value);
 			while (fItr != fAcctIndex.end()) {
-#ifdef _DEBUG_PRINT
-				eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:",
-							 fItr->fee, "]\t");
-#endif
 				auto fee = fItr->fee;
 				fItr = fAcctIndex.erase(fItr);
 
@@ -646,10 +574,6 @@ namespace htlc {
 			auto fSymAcctIndex = fee_table.get_index<hTable::key::sym_acct>();
 			auto fItr = fSymAcctIndex.find(symAcctKey);
 			eosio::check(fItr != fSymAcctIndex.end(), hError::error::NOT_FOUND_RECORD.data());
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[issueFeeFrom => pk:", pid, ", to:", to, ", account:", fItr->account, ", fee:", fItr->fee,
-						 " ]\t");
-#endif
 
 			// eosio.token's action [transfer] will notify user that user inrevoked by memo
 			auto fee = fItr->fee;
@@ -691,11 +615,6 @@ namespace htlc {
 			s.wanAddr = static_cast<std::string>(wanAddrView);
 			s.account = account;
 
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[inlockTx => beginTime:", s.beginTime.sec_since_epoch(), ", lockedTime:", s.lockedTime, \
-            ", status:", s.status, ", id:", s.id, ", user:", s.user, ", pid:", s.pid, ", quantity:", s.quantity, \
-            ", xHash:", s.xHash, ", wanAddr:", s.wanAddr, ", account:", s.account, "]\t");
-#endif
 		});
 	}
 
@@ -726,12 +645,6 @@ namespace htlc {
 			s.quantity = quantity;
 			s.xHash = xHashValue;
 			s.account = account;
-
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[outlockTx => beginTime:", s.beginTime.sec_since_epoch(), ", lockedTime:", s.lockedTime, \
-            ", status:", s.status, ", id:", s.id, ", user:", s.user, ", pid:", s.pid, \
-            ", quantity:", s.quantity, ", xHash:", s.xHash, ", account:", s.account, "]\t");
-#endif
 		});
 	}
 
@@ -745,10 +658,6 @@ namespace htlc {
 	*/
 	void htlc::lockDebtTx(uint64_t npid, uint64_t pid, const eosio::name &account, const eosio::asset &quantity, \
     const eosio::checksum256 &xHashValue) {
-
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[lockDebtTx => pk => pid:", pid, ", npid:", npid, "]\t");
-#endif
 
 		debts debt_table(get_self(), get_self().value);
 		// check if xHash exists
@@ -766,14 +675,7 @@ namespace htlc {
 			s.xHash = xHashValue;
 			s.quantity = quantity;
 			s.account = account;
-
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[lockDebtTx => beginTime:", s.beginTime.sec_since_epoch(), ", lockedTime:", s.lockedTime, \
-            ", status:", s.status, ", id:", s.id, ", pid:", s.pid, ", npid:", s.npid, \
-            ", account:", s.account, ", xHash:", s.xHash, ", quantity:", s.quantity, "]\t");
-#endif
 		});
-
 	}
 
 } // namespace htlc

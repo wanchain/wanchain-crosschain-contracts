@@ -6,7 +6,7 @@
 #ifdef  _DEBUG_HTLC_ALL
 
 #define _DEBUG_HTLC
-#define _DEBUG_PRINT
+// #define _DEBUG_PRINT
 #define _DEBUG_API
 
 #endif  // _DEBUG_ALL
