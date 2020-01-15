@@ -1238,6 +1238,7 @@ contract('Test HTLC', async (accounts) => {
 
             let bnBeforeTotalSupply = new BN(await getTotalSupply(tokenInfo.tokenOrigAccount));
             let bnAfterTotalSupply = bnBeforeTotalSupply.sub(new BN(htlcSmgLockParams.value.toString()));
+            let smgFeeBefore = await htlcInstProxy.getStoremanFee(storemanPK1);
 
             let ret = await htlcInstProxy.outSmgRedeem(htlcSmgRedeemParamsTemp.x);
 
@@ -1258,6 +1259,9 @@ contract('Test HTLC', async (accounts) => {
                     fee: txFee.toString()
                 }
             });
+
+            let smgFeeAfter = await htlcInstProxy.getStoremanFee(storemanPK1);
+            assert.equal(smgFeeAfter.toString(), new BN(smgFeeBefore).add(new BN(txFee)).toString(), "outSmgRedeem fee not right");
 
         } catch (err) {
             assert.fail(err);
@@ -1407,6 +1411,7 @@ contract('Test HTLC', async (accounts) => {
             await sleep(2 * lockedTime);
             let balanceBeforeRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
             let beforeCoin = await web3.eth.getBalance(accounts[1]);
+            let smgFeeBefore = await htlcInstProxy.getStoremanFee(storemanPK1);
             //console.log("beforeCoin:"+beforeCoin.toString());
 
             let txRevokeRpt = await htlcInstProxy.outUserRevoke(xHash4, {from:accounts[1]});
@@ -1417,6 +1422,7 @@ contract('Test HTLC', async (accounts) => {
 
             let balanceAfterRevoke = await getValueFromContract(tokenInfo.tokenOrigAccount, accounts[1]);
             let afterCoin = await web3.eth.getBalance(accounts[1]);
+            let smgFeeAfter = await htlcInstProxy.getStoremanFee(storemanPK1);
             //console.log("afterCoin:"+afterCoin.toString());
 
             //check token
@@ -1454,6 +1460,8 @@ contract('Test HTLC', async (accounts) => {
             assert.equal(afterCoin.toString(),
                 afterCoinExpect.toString(),
                 "After lock, the balance of coin is not right!");
+
+            assert.equal(smgFeeAfter.toString(), new BN(smgFeeBefore).add(new BN(txRevokeFee)).toString(), "outUserRevoke fee not right");
         } catch (err) {
             assert.fail(err.toString());
         }
