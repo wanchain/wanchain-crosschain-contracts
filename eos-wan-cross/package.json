@@ -12,7 +12,7 @@
   "dependencies": {
     "chai": "^4.2.0",
     "circular-json": "^0.5.9",
-    "eoslime": "0.0.17",
+    "eoslime": "1.0.1",
     "keccak": "^2.0.0",
     "keosdjs": "git+https://github.com/gao623/keosdjs.git",
     "optimist": "^0.6.1",
@@ -27,7 +27,7 @@
     "iwan-sdk": "^1.1.0"
   },
   "scripts": {
-    "eos": "mocha --timeout 600000 eos-wan-cross/test/htlc.eos.v.1/auto.js -c",
+    "eos-test": "mocha --timeout 600000 c++/htlc.eos.v.1/test/HTLC.js -c -n 58 --testnet",
     "test": "./solidity/test/beforeTest.sh && cd solidity && truffle test && ../solidity/test/afterTest.sh",
     "develop": "cd solidity && truffle develop",
     "compile": "cd solidity && truffle compile",
