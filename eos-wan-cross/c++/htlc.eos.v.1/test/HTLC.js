@@ -134,7 +134,7 @@ async function startAutoTest() {
       }
     });
 
-    it("cross EOS chain: eosio.token EOS inBound, it should be success", async () => {
+    it("cross EOS chain: eosio.token EOS inBound user1 => storeman1, it should be success", async () => {
       try {
         let value = "1.0000 EOS";
         let separator = ":";
@@ -217,7 +217,54 @@ async function startAutoTest() {
         log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
 
       } catch (err) {
-        log.error("inlock failed:", err);
+        log.error("inBound failed:", err);
+        lib.assertFail(err);
+      }
+    });
+
+    
+    it("cross EOS chain: eosio.token EOS outBound storeman1 => user1, it should be success", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[1];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let pk = config.pks[0];
+        let pkHash = utils.sha256(Buffer.from(pk, 'utf8'));
+        let r = "";
+        let s = "";
+
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+        log.debug("outlock success", JSON.stringify(smg1OutlockTx));
+
+        let scope = htlcContractSmg1.name;
+        if (!isNaN(Number(scope))) {
+          scope = utils.getUint64AsNumber(scope);
+        }
+        log.debug(scope);
+
+        let tablePks = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.pks, scope);
+        let pkInfo = await tablePks.equal(pkHash).index(2, "sha256").find();
+        lib.assertStrictEqual(pkInfo.length, 1);
+        lib.assertStrictEqual(pkInfo[0].pk, pk);
+        lib.assertStrictEqual(pkInfo[0].pkHash, pkHash);
+        log.debug("before cross, limit result", JSON.stringify(pkInfo));
+
+        let tableTransfers = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.transfers, scope);
+        let crossResult = await tableTransfers.equal(xHash).index(2, "sha256").find();
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, pkInfo[0].id);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "outlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
+        log.debug("crossResult", JSON.stringify(crossResult));
+
+        let user1RedeemTx = await htlcContractUser1.outredeem(user1.name, x);
+        log.debug("outredeem success", JSON.stringify(user1RedeemTx));
+
+      } catch (err) {
+        log.error("outBound failed:", err);
         lib.assertFail(err);
       }
     });
