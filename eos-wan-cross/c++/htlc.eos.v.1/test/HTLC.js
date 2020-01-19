@@ -130,35 +130,37 @@ async function startAutoTest() {
         let value = "1.0000 EOS";
         let separator = ":";
         let xHash = utils.sha256(config.xInfo[0]);
-        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(config.wanAddrs[0])
-          .concat(separator).concat(config.pks[0]).concat(separator).concat(config.sysTokenContract.name);
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
         log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
 
-        let eosTokenTran = await eoslime.Provider.eos.transaction({
-          actions:[
-            {
-              account: config.sysTokenContract.name,
-              name: config.sysTokenContract.action,
-              authorization:[
-                {
-                  actor: user1.name,
-                  permission: config.permissionDict.active
-                }
-              ],
-              data: {
-                from:user1.name,
-                to: htlcContract.name,
-                quantity: value,
-                memo: memo
-              }
-            }
-          ]
-        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
-        // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
+        // let eosTokenTran = await eoslime.Provider.eos.transaction({
+        //   actions:[
+        //     {
+        //       account: config.sysTokenContract.name,
+        //       name: config.sysTokenContract.action,
+        //       authorization:[
+        //         {
+        //           actor: user1.name,
+        //           permission: config.permissionDict.active
+        //         }
+        //       ],
+        //       data: {
+        //         from:user1.name,
+        //         to: htlcContract.name,
+        //         quantity: value,
+        //         memo: memo
+        //       }
+        //     }
+        //   ]
+        // }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        // // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
 
-        // var tx = await eosioTokenContract.transfer(user1.name, htlcContract.name, value, memo);
-        log.debug(JSON.stringify(eosTokenTran));
-        log.debug("inlock success", eosTokenTran.transaction_id);
+        // // var tx = await eosioTokenContract.transfer(user1.name, htlcContract.name, value, memo);
+        // log.debug(JSON.stringify(eosTokenTran));
+        // log.debug("inlock success", eosTokenTran.transaction_id);
 
         let scope = htlcContract.name;
         if (!isNaN(Number(scope))) {
@@ -166,8 +168,20 @@ async function startAutoTest() {
         }
         log.debug(scope);
         let pkInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:scope, table:config.htlcTblDict.pks});
-        // lib.assertCommonEqual(pkInfo.length, 1);
+        lib.assertStrictEqual(pkInfo.rows.length > 0, true);
         log.debug("before cross, limit result", JSON.stringify(pkInfo));
+
+        let pkId = -1;
+        let pkHash;
+        for (let info of pkInfo.rows) {
+          if (info.pk === pk) {
+            pkId = info.id;
+            pkHash = info.pkHash;
+            break;
+          }
+        }
+        lib.assertNotStrictEqual(pkId, -1);
+        lib.assertStrictEqual(pkHash, utils.sha256(pk));
 
         let tableTransfers = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.transfers, scope);
         // result = await tableTransfers.find();
@@ -176,13 +190,14 @@ async function startAutoTest() {
 
         // log.debug("result", JSON.stringify(result));
         let crossResult = await tableTransfers.equal(xHash).index(2, "sha256").find();
-        lib.assertCommonEqual(crossResult.length, 1);
-        lib.assertCommonEqual(crossResult[0].user, user1.name);
-        lib.assertCommonEqual(crossResult[0].quantity, value);
-        lib.assertCommonEqual(crossResult[0].status, "inlock");
-        lib.assertCommonEqual(crossResult[0].xHash, xHash);
-        lib.assertCommonEqual(crossResult[0].wanAddr, config.wanAddrs[0]);
-        lib.assertCommonEqual(crossResult[0].account, config.sysTokenContract.name);
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, pkId);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "inlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].wanAddr, config.wanAddrs[0]);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
         log.debug("crossResult", JSON.stringify(crossResult));
       } catch (err) {
         log.error("inlock failed:", err);

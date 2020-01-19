@@ -26,15 +26,11 @@ const pks = [
 ];
 
 const htlcContractFile = {
-  // WASM : path.join(process.cwd(), "eos-wan-cross/c++/htlc.eos.v.1/build/htlc.wasm"),
-  // ABI : path.join(process.cwd(), "eos-wan-cross/c++/htlc.eos.v.1/build/htlc.abi"),
   WASM : path.join(process.cwd(), "c++/htlc.eos.v.1/build/htlc.wasm"),
   ABI : path.join(process.cwd(), "c++/htlc.eos.v.1/build/htlc.abi"),
 };
 
 const signContractFile = {
-  // WASM : path.join(process.cwd(), "eos-wan-cross/c++/htlc.eos.v.1/test/signature/sig.wasm"),
-  // ABI : path.join(process.cwd(), "eos-wan-cross/c++/htlc.eos.v.1/test/signature/sig.abi"),
   WASM : path.join(process.cwd(), "c++/htlc.eos.v.1/test/signature/sig.wasm"),
   ABI : path.join(process.cwd(), "c++/htlc.eos.v.1/test/signature/sig.abi"),
 };
