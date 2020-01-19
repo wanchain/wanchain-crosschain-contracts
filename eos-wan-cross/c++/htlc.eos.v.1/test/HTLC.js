@@ -67,6 +67,10 @@ async function startAutoTest() {
     let eoslime;
     let htlcAccount;
     let htlcContract;
+    let htlcContractUser1;
+    let htlcContractUser2;
+    let htlcContractSmg1;
+    let htlcContractSmg2;
     let tokenContract;
     let signAccount;
     let signContract;
@@ -111,6 +115,11 @@ async function startAutoTest() {
         htlcContract = await utils.contractAtFromAbiFile(eoslime, config.htlcContractFile.ABI, global.htlc.name, htlcAccount);
         htlcContract.makeInline();//set eosio.code
 
+        htlcContractUser1 = await utils.getContractInstance(eoslime, htlcAccount.name, user1);
+        htlcContractUser2 = await utils.getContractInstance(eoslime, htlcAccount.name, user2);
+        htlcContractSmg1 = await utils.getContractInstance(eoslime, htlcAccount.name, storeman1);
+        htlcContractSmg2 = await utils.getContractInstance(eoslime, htlcAccount.name, storeman2);
+
       // 注册signature合约
         let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
         log.debug("regsig", config.customSignContract.name, config.customSignContract.action, regSigTx);
@@ -125,42 +134,45 @@ async function startAutoTest() {
       }
     });
 
-    it("inlock eosio.token EOS, it should be success", async () => {
+    it("cross EOS chain: eosio.token EOS inBound, it should be success", async () => {
       try {
         let value = "1.0000 EOS";
         let separator = ":";
-        let xHash = utils.sha256(config.xInfo[0]);
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
         let wanAddr = config.wanAddrs[0];
         let pk = config.pks[0];
         let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
           .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
         log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
 
-        // let eosTokenTran = await eoslime.Provider.eos.transaction({
-        //   actions:[
-        //     {
-        //       account: config.sysTokenContract.name,
-        //       name: config.sysTokenContract.action,
-        //       authorization:[
-        //         {
-        //           actor: user1.name,
-        //           permission: config.permissionDict.active
-        //         }
-        //       ],
-        //       data: {
-        //         from:user1.name,
-        //         to: htlcContract.name,
-        //         quantity: value,
-        //         memo: memo
-        //       }
-        //     }
-        //   ]
-        // }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
-        // // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
 
-        // // var tx = await eosioTokenContract.transfer(user1.name, htlcContract.name, value, memo);
-        // log.debug(JSON.stringify(eosTokenTran));
-        // log.debug("inlock success", eosTokenTran.transaction_id);
+        // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
+        // var tx = await eosioTokenContract.transfer(user1.name, htlcContract.name, value, memo);
+        log.debug(JSON.stringify(eosTokenTran));
+        log.debug("inlock success", eosTokenTran.transaction_id);
 
         let scope = htlcContract.name;
         if (!isNaN(Number(scope))) {
@@ -181,14 +193,15 @@ async function startAutoTest() {
           }
         }
         lib.assertNotStrictEqual(pkId, -1);
-        lib.assertStrictEqual(pkHash, utils.sha256(pk));
+        lib.assertStrictEqual(pkHash, utils.sha256(Buffer.from(pk)));
 
         let tableTransfers = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.transfers, scope);
+
         // result = await tableTransfers.find();
+        // log.debug("result", JSON.stringify(result));
         // let result = await htlcContract.provider.select(global.htlc.name).from("transfers").limit(10).find();
         // log.debug("after cross, limit result", JSON.stringify(result));
 
-        // log.debug("result", JSON.stringify(result));
         let crossResult = await tableTransfers.equal(xHash).index(2, "sha256").find();
         lib.assertStrictEqual(crossResult.length, 1);
         lib.assertStrictEqual(crossResult[0].pid, pkId);
@@ -196,9 +209,13 @@ async function startAutoTest() {
         lib.assertStrictEqual(crossResult[0].quantity, value);
         lib.assertStrictEqual(crossResult[0].status, "inlock");
         lib.assertStrictEqual(crossResult[0].xHash, xHash);
-        lib.assertStrictEqual(crossResult[0].wanAddr, config.wanAddrs[0]);
+        lib.assertStrictEqual(crossResult[0].wanAddr, wanAddr);
         lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
         log.debug("crossResult", JSON.stringify(crossResult));
+
+        let smg1RedeemTx = await htlcContractSmg1.inredeem(x);
+        log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
+
       } catch (err) {
         log.error("inlock failed:", err);
         lib.assertFail(err);
