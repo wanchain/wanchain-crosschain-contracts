@@ -222,7 +222,6 @@ async function startAutoTest() {
       }
     });
 
-    
     it("cross EOS chain: eosio.token EOS outBound storeman1 => user1, it should be success", async () => {
       try {
         let value = "1.0000 EOS";
@@ -268,6 +267,455 @@ async function startAutoTest() {
         lib.assertFail(err);
       }
     });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence xhash, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence xhash, it should be throw error");
+      } catch (err) {
+        lib.assertExists(err);
+        // lib.expectToBeAnInstanceOf(err, Error);
+        // lib.assertInclude(err.message, "invalid token account", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence wanAddr, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence wanAddr, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));
+        // log.debug(err);
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "invalid memo", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence pk, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(config.sysTokenContract.name);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence pk, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));
+        // log.debug(err);
+        lib.assertExists(err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence token account, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence token account, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));
+        // log.debug(err);
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "invalid token account", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, invalid token account, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.customTokenContract.name);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence token account, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));
+        // log.debug(err);
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "invalid token account", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, invalid memo, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let memo = "inlock".concat("afrgbtrhbazsrhbsz");
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, invalid memo, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));
+        // log.debug(err);
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "invalid token account", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, inrevoke in redeem time, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
+        log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        log.debug("x:", x);
+        log.debug("xHash:", xHash);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+
+        // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
+        // var tx = await eosioTokenContract.transfer(user1.name, htlcContract.name, value, memo);
+        log.debug(JSON.stringify(eosTokenTran));
+        log.debug("inlock success", eosTokenTran.transaction_id);
+
+        let scope = htlcContract.name;
+        if (!isNaN(Number(scope))) {
+          scope = utils.getUint64AsNumber(scope);
+        }
+        log.debug(scope);
+        let pkInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:scope, table:config.htlcTblDict.pks});
+        lib.assertStrictEqual(pkInfo.rows.length > 0, true);
+        log.debug("before cross, limit result", JSON.stringify(pkInfo));
+
+        let pkId = -1;
+        let pkHash;
+        for (let info of pkInfo.rows) {
+          if (info.pk === pk) {
+            pkId = info.id;
+            pkHash = info.pkHash;
+            break;
+          }
+        }
+        lib.assertNotStrictEqual(pkId, -1);
+        lib.assertStrictEqual(pkHash, utils.sha256(Buffer.from(pk)));
+
+        let tableTransfers = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.transfers, scope);
+
+        // result = await tableTransfers.find();
+        // log.debug("result", JSON.stringify(result));
+        // let result = await htlcContract.provider.select(global.htlc.name).from("transfers").limit(10).find();
+        // log.debug("after cross, limit result", JSON.stringify(result));
+
+        let crossResult = await tableTransfers.equal(xHash).index(2, "sha256").find();
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, pkId);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "inlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].wanAddr, wanAddr);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
+        log.debug("crossResult", JSON.stringify(crossResult));
+
+        try {
+          let user1RevokeTx = await htlcContractUser1.inrevoke(xHash);
+          lib.assertFail("cross EOS chain: eosio.token EOS inlock user1 => storeman1, inrevoke in redeem time, it should be throw error");
+        } catch (err) {
+          let smg1RedeemTx = await htlcContractSmg1.inredeem(x);
+          log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
+        }
+      } catch (err) {
+        log.error("inBound failed:", err);
+        lib.assertFail(err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, invalid token account, it should be throw error", async () => {
+      let value = "1.0000 EOS";
+      let x = config.xInfo[1];
+      let xHash = utils.sha256(Buffer.from(x, 'hex'));
+      let pk = config.pks[0];
+      let r = "";
+      let s = "";
+
+      try {
+        // invalid token account
+        let tokenAccount = "invalidtoken"
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, tokenAccount, value, xHash, pk, r, s);
+        lib.assertFail("eosio.token EOS outlock storeman1 => user1, invalid token account contract, it should be throw error");
+      } catch (err) {
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "invalid token account", err);
+      }
+
+      try {
+        // invalid token account name, length overflow
+        let tokenAccount = "invalid.token";
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, tokenAccount, value, xHash, pk, r, s);
+        lib.assertFail("eosio.token EOS outlock storeman1 => user1, invalid token account name, it should be throw error");
+      } catch (err) {
+        lib.assertExists(err);
+        // lib.assertInclude(err.message, "A name can be up to 12 characters long", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, invalid symbol, it should be throw error", async () => {
+        let x = config.xInfo[1];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let pk = config.pks[0];
+        let r = "";
+        let s = "";
+
+        try {
+          // invalid token precision
+          let value = "1.00 EOS";
+          let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+          lib.assertFail("eosio.token EOS outlock storeman1 => user1, invalid symbol precision, it should be throw error");
+        } catch (err) {
+          lib.assertExists(err);
+          // lib.assertInclude(err.message, "not enough quantity", err);
+        }
+
+        try {
+          // invalid token symbol_code
+          let value = "1.0000 EoS";
+          let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+          lib.assertFail("eosio.token EOS outlock storeman1 => user1, invalid symbol_code, it should be throw error");
+        } catch (err) {
+          lib.assertExists(err);
+        }
+    });
+
+    it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, outrevoke in redeem time, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[1];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let pk = config.pks[0];
+        let pkHash = utils.sha256(Buffer.from(pk, 'utf8'));
+        let r = "";
+        let s = "";
+
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+        log.debug("outlock success", JSON.stringify(smg1OutlockTx));
+
+        let scope = htlcContractSmg1.name;
+        if (!isNaN(Number(scope))) {
+          scope = utils.getUint64AsNumber(scope);
+        }
+        log.debug(scope);
+
+        let tablePks = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.pks, scope);
+        let pkInfo = await tablePks.equal(pkHash).index(2, "sha256").find();
+        lib.assertStrictEqual(pkInfo.length, 1);
+        lib.assertStrictEqual(pkInfo[0].pk, pk);
+        lib.assertStrictEqual(pkInfo[0].pkHash, pkHash);
+        log.debug("before cross, limit result", JSON.stringify(pkInfo));
+
+        let tableTransfers = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.transfers, scope);
+        let crossResult = await tableTransfers.equal(xHash).index(2, "sha256").find();
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, pkInfo[0].id);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "outlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
+        log.debug("crossResult", JSON.stringify(crossResult));
+
+        try {
+          let smg1RevokeTx = await htlcContractSmg1.outrevoke(xHash);
+          lib.assertFail("eosio.token EOS outlock storeman1 => user1, outrevoke in redeem time, it should be throw error");
+        } catch (err) {
+          // only can revoke after lockedTime
+          lib.assertExists(err);
+        }
+
+        let user1RedeemTx = await htlcContractUser1.outredeem(user1.name, x);
+        log.debug("outredeem success", JSON.stringify(user1RedeemTx));
+
+      } catch (err) {
+        log.error("outBound failed:", err);
+        lib.assertFail(err);
+      }
+    });
+
   });
 }
 
