@@ -1,10 +1,18 @@
 
 const lib = require("./lib");
 const {
-  sleepTimeDict,
+  // sleepTimeDict,
   permissionDict,
   eosERROR
 } = require("./config");
+
+async function sleepMs(time) {
+  return new Promise(function (resolve, reject) {
+      setTimeout(function () {
+          resolve();
+      }, time);
+  });
+};
 
 function getEosLime(eosConfig) {
   var eoslime = require("eoslime");
@@ -42,54 +50,54 @@ function ignoreError(ignoreCode, err) {
   return false;
 }
 
-var deployContract = async (log, eoslime, wasm, abi, account, options, retry) => {
-  let contract;
-  try {
-    contract = await newContract(wasm, abi, account, options);
-  } catch (err) {
-    let parseError = (err) => {
-      if (typeof(err) === "string") {
-        try {
-          return JSON.parse(err);
-        } catch (innerErr) {
-        }
-      }
-      return err;
-    };
-    let isIgnoreError = (errCode) => {
-      let ignore = false;
-      switch (errCode) {
-        case 3160008: {
-        // case eosERROR["3160008"]: {
-          ignore = true;
-        }
-      }
-      return ignore;
-    }
+// var deployContract = async (log, eoslime, wasm, abi, account, options, retry) => {
+//   let contract;
+//   try {
+//     contract = await newContract(wasm, abi, account, options);
+//   } catch (err) {
+//     let parseError = (err) => {
+//       if (typeof(err) === "string") {
+//         try {
+//           return JSON.parse(err);
+//         } catch (innerErr) {
+//         }
+//       }
+//       return err;
+//     };
+//     let isIgnoreError = (errCode) => {
+//       let ignore = false;
+//       switch (errCode) {
+//         case 3160008: {
+//         // case eosERROR["3160008"]: {
+//           ignore = true;
+//         }
+//       }
+//       return ignore;
+//     }
 
-    err = parseError(err);
-    log.debug("\n\n err => ", typeof(err));
-    if (err.hasOwnProperty("error") && isIgnoreError(err["error"]["code"])) {
-      log.debug("the contract ", account, "already deployment");
-      return contract; /* undefined */
-    }
-    if (typeof(retry) === "undefined") {
-      log.error("deployContract => AccountDeployer error, ", err);
-      log.error("retry");
-      await lib.sleep(sleepTimeDict[1000]);
-      return await deployContract(eoslime, wasm, abi, account, options, retry);
-    }
-    if (--retry > 0) {
-      log.error("deployContract => AccountDeployer error, ", err);
-      log.error("retry", retry);
-      await lib.sleep(sleepTimeDict[1000]);
-      return await deployContract(eoslime, wasm, abi, account, options, retry);
-    } else {
-      log.error("deployContract => AccountDeployer error, ", err);
-    }
-  }
-  return contract; 
-}
+//     err = parseError(err);
+//     log.debug("\n\n err => ", typeof(err));
+//     if (err.hasOwnProperty("error") && isIgnoreError(err["error"]["code"])) {
+//       log.debug("the contract ", account, "already deployment");
+//       return contract; /* undefined */
+//     }
+//     if (typeof(retry) === "undefined") {
+//       log.error("deployContract => AccountDeployer error, ", err);
+//       log.error("retry");
+//       await sleepMs(sleepTimeDict[1000]);
+//       return await deployContract(eoslime, wasm, abi, account, options, retry);
+//     }
+//     if (--retry > 0) {
+//       log.error("deployContract => AccountDeployer error, ", err);
+//       log.error("retry", retry);
+//       await sleepMs(sleepTimeDict[1000]);
+//       return await deployContract(eoslime, wasm, abi, account, options, retry);
+//     } else {
+//       log.error("deployContract => AccountDeployer error, ", err);
+//     }
+//   }
+//   return contract; 
+// }
 
 function sha256(message) {
   const crypto = require('crypto');
@@ -205,13 +213,14 @@ function getUint64AsNumber(name, littleEndian = false) {
 }
 
 module.exports = {
+  sleepMs: sleepMs,
   sha256: sha256,
   keccak: keccak,
   ignoreError: ignoreError,
   newContract: newContract,
   contractAtFromAbiFile: contractAtFromAbiFile,
   contractAt: contractAt,
-  deployContract: deployContract,
+  // deployContract: deployContract,
   getEosLime: getEosLime,
   getContractInstance: getContractInstance,
   getContractInstanceFromAbiFile: getContractInstanceFromAbiFile,
