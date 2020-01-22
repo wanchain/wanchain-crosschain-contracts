@@ -1205,6 +1205,46 @@ async function startAutoTest() {
       }
     });
 
+    it("cross EOS chain: HTLC regsig, updatesig, unregsig, it should be success", async () => {
+      try {
+        let scope = utils.getUint64AsNumber(htlcContract.name);
+
+        let tableSig = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.signer, scope);
+        let sigInfo = await tableSig.find();
+        lib.assertStrictEqual(sigInfo.length, 1);
+        lib.assertStrictEqual(sigInfo[0].code, config.customSignContract.name);
+        lib.assertStrictEqual(sigInfo[0].action, config.customSignContract.action);
+        log.debug("before update signature", JSON.stringify(sigInfo));
+
+        let invalidSigner = {
+          name:"invalidaccnt",
+          action: config.customSignContract.action
+        };
+
+        let updateSigTx = await htlcContract.updatesig(config.customSignContract.name, invalidSigner.name, invalidSigner.action);
+        sigInfo = await tableSig.find();
+        lib.assertStrictEqual(sigInfo.length, 1);
+        lib.assertStrictEqual(sigInfo[0].code, invalidSigner.name);
+        lib.assertStrictEqual(sigInfo[0].action, invalidSigner.action);
+        // log.debug("update signature", JSON.stringify(sigInfo));
+
+        let unregSigTx = await htlcContract.unregsig(invalidSigner.name);
+        sigInfo = await tableSig.find();
+        lib.assertStrictEqual(sigInfo.length, 0);
+        // log.debug("unregister signature", JSON.stringify(sigInfo));
+
+        let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
+        sigInfo = await tableSig.find();
+        lib.assertStrictEqual(sigInfo.length, 1);
+        lib.assertStrictEqual(sigInfo[0].code, config.customSignContract.name);
+        lib.assertStrictEqual(sigInfo[0].action, config.customSignContract.action);
+        // log.debug("register signature", JSON.stringify(sigInfo));
+
+      } catch(err) {
+        lib.assertFail(err);
+      }
+    });
+
     it("cross EOS chain: HTLC regsig, duplicate register, it should be throw error", async () => {
       try {
         let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
