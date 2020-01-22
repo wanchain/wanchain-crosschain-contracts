@@ -44,7 +44,9 @@ namespace htlc {
 		auto dItr = sig_table.find(code.value);
 		eosio::check(dItr != sig_table.end(), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
 
-		sig_table.modify(dItr, get_self(), [&](auto &s) {
+		dItr = sig_table.erase(dItr);
+
+		sig_table.emplace(get_self(), [&](auto &s) {
 			s.code = nCode;
 			s.action = nAction;
 #ifdef _DEBUG_PRINT
