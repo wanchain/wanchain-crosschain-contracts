@@ -377,9 +377,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("absence xhash, it should be throw error");
       } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("absence xhash, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.expectToBeAnInstanceOf(err, Error);
-        // lib.assertInclude(err.message, "invalid token account", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
     });
 
@@ -418,10 +420,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("absence wanAddr, it should be throw error");
       } catch (err) {
-        // log.debug(typeof(err));
-        // log.debug(err);
+        // log.debug(typeof(err));//string
+        // log.debug("absence pk, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "invalid memo", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid memo", err);
       }
     });
 
@@ -460,9 +463,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("absence pk, it should be throw error");
       } catch (err) {
-        // log.debug(typeof(err));
-        // log.debug(err);
+        // log.debug(typeof(err));//string
+        // log.debug("absence pk, it should be throw error:", err);
         lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
     });
 
@@ -502,10 +507,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("absence token account, it should be throw error");
       } catch (err) {
-        // log.debug(typeof(err));
-        // log.debug(err);
+        // log.debug(typeof(err));//string
+        // log.debug("absence token account, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "invalid token account", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
     });
 
@@ -545,10 +551,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("absence token account, it should be throw error");
       } catch (err) {
-        // log.debug(typeof(err));
-        // log.debug(err);
+        // log.debug(typeof(err));//string
+        // log.debug("invalid memo, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "invalid token account", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
     });
 
@@ -584,10 +591,11 @@ async function startAutoTest() {
         }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
         lib.assertFail("invalid memo, it should be throw error");
       } catch (err) {
-        // log.debug(typeof(err));
-        // log.debug(err);
+        // log.debug(typeof(err));//string
+        // log.debug("invalid memo, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "invalid token account", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
     });
 
@@ -664,21 +672,28 @@ async function startAutoTest() {
           let user1RevokeTx = await htlcContractUser1.inrevoke(xHash);
           lib.assertFail("inrevoke in redeem time, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("inrevoke in redeem time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "only can revoke after lockedTime", err);
         }
 
         try {
           let smg1RedeemTx = await htlcContractSmg1.inredeem(nonX);
           lib.assertFail("inredeem with invalid parameter about x, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("inredeem with invalid parameter about x, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not found valid record", err);
         }
 
         let smg1RedeemTx = await htlcContractSmg1.inredeem(x);
         // log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
     } catch (err) {
-        log.error("inBound failed:", err);
+        // log.error("inBound failed:", err);
         lib.assertFail(err);
       }
     });
@@ -756,15 +771,22 @@ async function startAutoTest() {
           let user1RevokeTx = await htlcContractUser1.inrevoke(xHash);
           lib.assertFail("inrevoke in redeem time, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("inrevoke in redeem time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "only can revoke after lockedTime", err);
         }
 
         try {
           let smg1RedeemTx = await htlcContractSmg1.inredeem(nonX);
           lib.assertFail("inredeem with invalid parameter about x, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("inredeem with invalid parameter about x, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not found valid record", err);
         }
 
         let smg1RedeemTx = await htlcContractSmg1.inredeem(x);
@@ -789,8 +811,11 @@ async function startAutoTest() {
         let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, tokenAccount, value, xHash, pk, r, s);
         lib.assertFail("invalid token account contract, it should be throw error");
       } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("invalid token account contract, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "invalid token account", err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid token account", err);
       }
 
       try {
@@ -799,8 +824,11 @@ async function startAutoTest() {
         let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, tokenAccount, value, xHash, pk, r, s);
         lib.assertFail("invalid token account name, it should be throw error");
       } catch (err) {
+        // log.debug(typeof(err));//Object
+        // log.debug("invalid token account name, it should be throw error:", err);
         lib.assertExists(err);
-        // lib.assertInclude(err.message, "A name can be up to 12 characters long", err);
+        lib.expectToBeAnInstanceOf(err, TypeError);
+        lib.assertInclude(err.message, "A name can be up to 12 characters long", err);
       }
     });
 
@@ -817,8 +845,11 @@ async function startAutoTest() {
           let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
           lib.assertFail("invalid symbol precision, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("invalid symbol precision, it should be throw error:", err);
           lib.assertExists(err);
-          // lib.assertInclude(err.message, "not enough quantity", err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not enough quantity", err);
         }
 
         try {
@@ -827,8 +858,12 @@ async function startAutoTest() {
           let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
           lib.assertFail("invalid symbol_code, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//Object
+          // log.debug("invalid symbol_code, it should be throw error:", err);
           lib.assertExists(err);
-        }
+          lib.expectToBeAnInstanceOf(err, Error);
+          lib.assertInclude(err.message, "symbol is a required string outlock.quantity action.data transaction.actions", err);
+          }
     });
 
     it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, outrevoke in redeem time, it should be throw error", async () => {
@@ -870,23 +905,33 @@ async function startAutoTest() {
           lib.assertFail("outrevoke in redeem time, it should be throw error");
         } catch (err) {
           // only can revoke after lockedTime
+          // log.debug(typeof(err));//string
+          // log.debug("outrevoke in redeem time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "only can revoke after lockedTime", err);
         }
 
         try {
           let user2RedeemTx = await htlcContractUser2.outredeem(user2.name, x);
           lib.assertFail("outredeem with invalid parameter about user, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("outredeem with invalid parameter about user, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not found valid record", err);
         }
 
         try {
           let user1RedeemTx = await htlcContractUser1.outredeem(user1.name, nonX);
           lib.assertFail("outredeem with invalid parameter about x, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("outredeem with invalid parameter about x, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not found valid record", err);
         }
 
         let user1RedeemTx = await htlcContractUser1.outredeem(user1.name, x);
@@ -936,7 +981,11 @@ async function startAutoTest() {
           lib.assertFail("outrevoke in redeem time, it should be throw error");
         } catch (err) {
           // only can revoke after lockedTime
+          // log.debug(typeof(err));//string
+          // log.debug("outrevoke in redeem time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "only can revoke after lockedTime", err);
         }
 
         let user1RedeemTx = await htlcContractUser1.outredeem(user1.name, x);
@@ -992,8 +1041,11 @@ async function startAutoTest() {
           let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
           lib.assertFail("storeman1 has not enough quantity, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("storeman1 has not enough quantity, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not enough quantity", err);
         }
       } catch (err) {
         // log.error("outBound failed:", err);
@@ -1078,8 +1130,11 @@ async function startAutoTest() {
           let smg1RedeemTx = await htlcContractSmg1.inredeem(x);
           lib.assertFail("inredeem in revoke time, it should be throw error");
         } catch (err) {
+          // log.debug(typeof(err));//string
           // log.debug("inredeem in revoke time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "redeem timeout, only can redeem in lockedTime", err);
         }
 
         let user1RevokeTx = await htlcContractUser1.inrevoke(xHash);
@@ -1134,8 +1189,11 @@ async function startAutoTest() {
           lib.assertFail("outredeem in revoke time, it should be throw error");
         } catch (err) {
           // only can revoke after lockedTime
+          // log.debug(typeof(err));//string
           // log.debug("outredeem in revoke time, it should be throw error:", err);
           lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "redeem timeout, only can redeem in lockedTime", err);
         }
 
         let smg1RevokeTx = await htlcContractSmg1.outrevoke(xHash);
@@ -1152,8 +1210,161 @@ async function startAutoTest() {
         let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
         lib.assertFail("HTLC regsig, duplicate register, it should be throw error");
       } catch(err) {
+        // log.debug(typeof(err));//string
         // log.debug("HTLC regsig, duplicate register, it should be throw error:", err);
         lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "reduplicative record", err);
+      }
+    });
+
+    it("cross EOS chain: HTLC storeman1 withdraw, it should be success", async () => {
+      try {
+        let pk = config.pks[0];
+        let pkHash = utils.sha256(Buffer.from(pk, 'utf8'));
+
+        let scope = utils.getUint64AsNumber(htlcContract.name);
+        let tablePks = await utils.getContractTable(htlcContract, htlcAccount.name, config.htlcTblDict.pks, scope);
+        let pkInfo = await tablePks.equal(pkHash).index(2, "sha256").find();
+        lib.assertStrictEqual(pkInfo.length, 1);
+        lib.assertStrictEqual(pkInfo[0].pk, pk);
+        lib.assertStrictEqual(pkInfo[0].pkHash, pkHash);
+
+        try {
+          let smgFeeReceiverTimeout = 0;
+          let r = "";
+          let s = "";
+          let withdrawTx = await htlcContractSmg1.withdraw(config.sysTokenContract.name, "EOS", pk, smgFeeReceiverTimeout, storeman1.name, r, s);
+          lib.assertFail("timestamp too short, it should be throw error");
+        } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("timestamp too short, it should be throw error:", err);
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "time stamp (uint:s) is too big", err);
+        }
+
+        try {
+          let smgFeeReceiverTimeout = Date.now() / 1000;;
+          let r = "";
+          let s = "";
+          let withdrawTx = await htlcContractSmg1.withdraw(config.sysTokenContract.name, "ERR", pk, smgFeeReceiverTimeout, storeman1.name, r, s);
+          lib.assertFail("invalid symbol, it should be throw error");
+        } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("invalid symbol, it should be throw error:", err);
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "invalid symbol", err);
+        }
+
+        try {
+          let smgFeeReceiverTimeout = Date.now() / 1000;;
+          let r = "";
+          let s = "";
+          let withdrawTx = await htlcContractSmg1.withdraw(config.sysTokenContract.name, "4,ERR", pk, smgFeeReceiverTimeout, storeman1.name, r, s);
+          lib.assertFail("not found valid record, it should be throw error");
+        } catch (err) {
+          // log.debug(typeof(err));//string
+          // log.debug("not found valid record, it should be throw error:", err);
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "not found valid record", err);
+        }
+
+        let timestamp = Date.now() / 1000;//new Date().getTime();
+        let smgFeeReceiverTimeout = 10;
+        let r = "";
+        let s = "";
+
+        let packedTx = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: htlcContract.name,
+              name: "withdraw",
+              authorization:[
+                {
+                  actor: storeman1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                // account:config.sysTokenContract.name,
+                // sym: "4,EOS",
+                account:"",
+                sym: "",
+                pk: pk,
+                timeStamp: timestamp,
+                receiver: storeman1.name,
+                r: r,
+                s: s,
+              }
+            }
+          ]
+        }, { broadcast: false, sign: true, keyProvider: storeman1.privateKey });
+        // log.debug("pack tx:", JSON.stringify(packedTx));
+
+        try {
+          let tx = await eoslime.Provider.eos.pushTransaction(packedTx.transaction);
+          // log.debug("withdraw success:", tx);
+        } catch(err) {
+          lib.assertFail(err);
+        }
+
+        let sleepTime = (smgFeeReceiverTimeout + 1) * 1000;
+        log.debug("await withdraw timeout", sleepTime, "ms");
+        await utils.sleepMs(sleepTime)
+
+        try {
+          tx = await eoslime.Provider.eos.pushTransaction(packedTx.transaction);
+          lib.assertFail("duplicate withdraw while timeout, it should be throw error");
+        } catch (err) {
+          // log.debug(typeof(err));//Object
+          // log.debug("duplicate withdraw while timeout, it should be throw error:", err);
+          lib.assertExists(err);
+          lib.expectToBeAnInstanceOf(err, Error);
+          lib.assertInclude(err.message, "Duplicate transaction", err);
+        }
+
+        try {
+          let replyTx = await eoslime.Provider.eos.transaction({
+            actions:[
+              {
+                account: htlcContract.name,
+                name: "withdraw",
+                authorization:[
+                  {
+                    actor: storeman1.name,
+                    permission: config.permissionDict.active
+                  }
+                ],
+                data: {
+                  account:"",
+                  sym: "",
+                  pk: pk,
+                  timeStamp: timestamp,
+                  receiver: storeman1.name,
+                  r: r,
+                  s: s,
+                }
+              }
+            ]
+          }, { broadcast: false, sign: false, keyProvider: storeman1.privateKey });
+          // log.debug("reply tx:", JSON.stringify(replyTx));
+
+          replyTx.transaction.signatures = packedTx.transaction.signatures;
+          tx = await eoslime.Provider.eos.pushTransaction(replyTx.transaction);
+          lib.assertFail("not satisfy withdraw while timeout, it should be throw error");
+        } catch (err) {
+          // log.debug(typeof(err));//Object
+          // log.debug("not satisfy withdraw while timeout, it should be throw error:", err);
+          lib.assertExists(err);
+          lib.expectToBeAnInstanceOf(err, Error);
+          lib.assertInclude(err.message, "Provided keys, permissions, and delays do not satisfy declared authorizations", err);
+        }
+
+      } catch(err) {
+        lib.assertFail(err);
       }
     });
 
