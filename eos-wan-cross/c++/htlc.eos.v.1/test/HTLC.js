@@ -345,6 +345,130 @@ async function startAutoTest() {
       }
     });
 
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, xhash too long, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex')) + "a";
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("xhash too long, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("xhash too long, it should be throw error:", err);
+        lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid xHash", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, xhash too short, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let separator = ":";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'))
+        xHash = xHash.slice(0, xHash.length - 1);
+        let wanAddr = config.wanAddrs[0];
+        let pk = config.pks[0];
+        let memo = "inlock".concat(separator).concat(xHash).concat(separator).concat(wanAddr)
+          .concat(separator).concat(pk).concat(separator).concat(config.sysTokenContract.name);
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+
+        let eosTokenTran = await eoslime.Provider.eos.transaction({
+          actions:[
+            {
+              account: config.sysTokenContract.name,
+              name: config.sysTokenContract.action,
+              authorization:[
+                {
+                  actor: user1.name,
+                  permission: config.permissionDict.active
+                }
+              ],
+              data: {
+                from:user1.name,
+                to: htlcContract.name,
+                quantity: value,
+                memo: memo
+              }
+            }
+          ]
+        }, { broadcast: true, sign: true, keyProvider: user1.privateKey });
+        lib.assertFail("xhash too short, it should be throw error");
+      } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("xhash too short, it should be throw error:", err);
+        lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid xHash", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, xhash too long, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[1];
+        let xHash = utils.sha256(Buffer.from(x, 'hex')) + "a";
+        let pk = config.pks[0];
+        let r = "";
+        let s = "";
+
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+      } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("xhash too long, it should be throw error:", err);
+        lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid xHash", err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, xhash too short, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[1];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        xHash = xHash.slice(0, xHash.length - 1);
+        let pk = config.pks[0];
+        let r = "";
+        let s = "";
+
+        let smg1OutlockTx = await htlcContractSmg1.outlock(user1.name, config.sysTokenContract.name, value, xHash, pk, r, s);
+      } catch (err) {
+        // log.debug(typeof(err));//string
+        // log.debug("xhash too short, it should be throw error:", err);
+        lib.assertExists(err);
+        lib.assertStrictEqual(typeof(err), "string");
+        lib.assertInclude(err, "invalid xHash", err);
+      }
+    });
+
     it("cross EOS chain: eosio.token EOS inlock user1 => storeman1, absence xhash, it should be throw error", async () => {
       try {
         let value = "1.0000 EOS";
@@ -1254,7 +1378,7 @@ async function startAutoTest() {
         // log.debug("HTLC regsig, duplicate register, it should be throw error:", err);
         lib.assertExists(err);
         lib.assertStrictEqual(typeof(err), "string");
-        lib.assertInclude(err, "reduplicative record", err);
+        lib.assertInclude(err, "duplicate transaction", err);
       }
     });
 
@@ -1363,7 +1487,7 @@ async function startAutoTest() {
           // log.debug("duplicate withdraw while timeout, it should be throw error:", err);
           lib.assertExists(err);
           lib.expectToBeAnInstanceOf(err, Error);
-          lib.assertInclude(err.message, "Duplicate transaction", err);
+          lib.assertInclude(err.message, "duplicate transaction", err);
         }
 
         try {
