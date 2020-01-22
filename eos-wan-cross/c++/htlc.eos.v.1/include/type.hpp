@@ -61,7 +61,11 @@ namespace htlc {
 #endif
 		static constexpr time_t doubleLockedTime = lockedTime * 2;
 
+#ifndef _DEBUG_UT
 		static constexpr time_t smgFeeReceiverTimeout = time_t(600);
+#else
+		static constexpr time_t smgFeeReceiverTimeout = time_t(10);
+#endif
 	}
 
 	// htlc status description
