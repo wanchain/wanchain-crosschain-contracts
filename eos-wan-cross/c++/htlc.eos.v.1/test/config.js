@@ -20,9 +20,18 @@ const wanAddrs = [
   "293e86756d8d4cf38493ce6881eb3a8f2966bb27"
 ];
 
-const pks = [
-  "042c672cbf9858cd77e33f7a1660027e549873ce25caffd877f955b5158a50778f7c852bbab6bd76eb83cac51132ccdbb5e6747ef6732abbb2135ed0da1c341619",
-  "047a5380730dde59cc2bffb432293d22364beb250912e0e73b11b655bf51fd7a8adabdffea4047d7ff2a9ec877815e12116a47236276d54b5679b13792719eebb9"
+const skSmg1            = Buffer.from("097e961933fa62e3fef5cedef9a728a6a927a4b29f06a15c6e6c52c031a6cb2b", 'hex');
+const skSmg2            = Buffer.from("e6a00fb13723260102a6937fc86b0552eac9abbe67240d7147f31fdef151e18a", 'hex');
+const skSrcSmg          = Buffer.from("0de99c2552e85e51fd7491a14ad340f92a02db92983178929b100776197bc4f6", 'hex');
+const skSrcSmg1         = Buffer.from("55aa70e9a9d984c91bd75d4793db2cd2d998dc8fcaebcb864202fb17a9a6d5b9", 'hex');
+const skDstSmg          = Buffer.from("b3ba835eae481e6af0219a9cda3769622eea512aacfb7ea4eb0e9426ff800dc5", 'hex');
+
+const skSmgs = [
+  skSmg1,
+  skSmg2,
+  skSrcSmg,
+  skSrcSmg1,
+  skDstSmg
 ];
 
 const htlcContractFile = {
@@ -348,7 +357,7 @@ module.exports = {
   nodeDict        : nodeDict,
   eosERROR        : eosERROR,
   wanAddrs        : wanAddrs,
-  pks             : pks,
+  skSmgs          : skSmgs,
   htlcTblDict     : htlcTblDict,
   signContractFile    : signContractFile,
   htlcContractFile    : htlcContractFile,
