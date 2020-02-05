@@ -1,11 +1,10 @@
 const crypto 			= require('crypto');
 const BigInteger 	    = require('bigi');
 const ecurve 			= require('ecurve');
-const Web3EthAbi 	    = require('web3-eth-abi');
 const  ecparams 	    = ecurve.getCurveByName('secp256k1');
 
 // buffer
-const r 			    = new Buffer("e7e59bebdcee876e84d03832544f5a517e96a9e3f60cd8f564bece6719d5af52", 'hex');
+const r 			    = Buffer.from("e7e59bebdcee876e84d03832544f5a517e96a9e3f60cd8f564bece6719d5af52", 'hex');
 // buffer
 let R					= baseScarMulti(r);
 
@@ -56,24 +55,31 @@ function computem(M1, R) {
     return h(m)
 }
 
-//typesArray:['uint256','string']
-//parameters: ['2345675643', 'Hello!%']
+function encodeBase64(data) {
+  return Buffer.from(data).toString('base64');
+}
+
+//parameters: ['1580921440', '3edcwertdfgh']
 //return : buff
-function computeM(typesArray, parameters) {
-    let mStrHex = Web3EthAbi.encodeParameters(typesArray, parameters);
-    return new Buffer(mStrHex.substring(2), 'hex');
+function computeM(parameters) {
+    let data = '';
+    if (Array.isArray(parameters)) {
+        data = parameters.join(':');
+    } else {
+        data = parameters;
+    }
+    let base64Str = encodeBase64(data);
+    return Buffer.from(base64Str, 'utf8');
 }
 
 // return : hexString
 function getR() {
     return R.toString('hex');
-    // return "0x" + R.toString('hex');
 }
 
 // return: hexString
 function bufferToHexString(buff) {
     return buff.toString('hex');
-    // return "0x" + buff.toString('hex');
 }
 
 // sk: buff
@@ -82,11 +88,10 @@ function getPKBySk(sk) {
     return bufferToHexString(baseScarMulti(sk));
 }
 
-//typesArray:['uint256','string']
-//parameters: ['2345675643', 'Hello!%']
+//parameters: ['1580921440', '3edcwertdfgh']
 //return :hexString
-function getS(sk, typesArray, parameters) {
-    let MBuff = computeM(typesArray, parameters);
+function getS(sk, parameters) {
+    let MBuff = computeM(parameters);
     let M1Buff = computeM1(MBuff);
     let mBuff = computem(M1Buff, R);
     let sBuff = getSBuff(sk, mBuff);

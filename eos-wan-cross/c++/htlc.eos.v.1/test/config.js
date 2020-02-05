@@ -70,7 +70,31 @@ const customAccount = {
     "htlc": {
       name: "512332155123",
       privateKey: "5JyyPpjBXYBRDz4g9wT3VFPvU9p9whyWSghEia1D5b7owgn47nP",
-    }
+    },
+    "sign": {
+      name: "3214ertyytre",
+      privateKey: "5JpABcR3r1zwwGLUhZ6oykpZhoMRorUE9jCEErcLRHYVfY3Y4C6",
+    },
+    "token": {
+      name: "edcrfvtgbyhn",
+      privateKey: "5JMrg3FpW8KHteh3amSvkm9k3dfvYyEhWqNe3MhR4bQFLZqQQ1C",
+    },
+    "user1": {
+      name: "wsxedcrfvtgb",
+      privateKey: "5KBnqsEaMEeZwVguC3mFrkc28BhQEdfuFL3YZQAk7AbuzY3bFxb",
+    },
+    "user2": {
+      name: "2345fghjvcxz",
+      privateKey: "5JpABcR3r1zwwGLUhZ6oykpZhoMRorUE9jCEErcLRHYVfY3Y4C6",
+    },
+    "storeman1": {
+      name: "3edcwertdfgh",
+      privateKey: "5JyyPpjBXYBRDz4g9wT3VFPvU9p9whyWSghEia1D5b7owgn47nP",
+    },
+    "storeman2": {
+      name: "mnbvcxzasdfg",
+      privateKey: "5JU9uiA2r5cJtbvErWkKGvb77Y4xd6H5UfP5XhHGsBCk8wwaYCJ",
+    },
   },
   testnet: {
     "htlc": {
@@ -92,10 +116,6 @@ const customAccount = {
     "user2": {
       name: "2345fghjvcxz",
       privateKey: "5JpABcR3r1zwwGLUhZ6oykpZhoMRorUE9jCEErcLRHYVfY3Y4C6",
-    },
-    "user3": {
-      name: "wangluaccnt1",
-      privateKey: "5K1csZUYhnJtrDcGACXGP4dASFZVi8NjbjnXSaw3c8nxrToLPcy",
     },
     "storeman1": {
       name: "3edcwertdfgh",
