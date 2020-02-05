@@ -64,7 +64,7 @@ namespace htlc {
 #ifndef _DEBUG_UT
 		static constexpr time_t smgFeeReceiverTimeout = time_t(600);
 #else
-		static constexpr time_t smgFeeReceiverTimeout = time_t(10);
+		static constexpr time_t smgFeeReceiverTimeout = time_t(20);
 #endif
 	}
 
