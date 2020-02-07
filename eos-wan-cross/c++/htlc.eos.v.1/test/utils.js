@@ -125,8 +125,8 @@ async function loadAccount(eoslime, name, privateKey, authorityName) {
   return await eoslime.Account.load(name, privateKey, authorityName);
 }
 
-async function getContractTable(contractInstance, accountName, tableName, scopeName) {
-  return await contractInstance.provider.select(tableName).from(accountName).scope(scopeName);
+async function getContractTable(contractInstance, tableName, scopeName) {
+  return await contractInstance.provider.select(tableName).from(contractInstance.name).scope(scopeName);
 }
 
 async function createActiveSubAuthority(account, permission) {
