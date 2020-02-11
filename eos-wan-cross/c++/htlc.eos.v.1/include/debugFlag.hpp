@@ -5,10 +5,10 @@
 
 #ifdef  _DEBUG_HTLC_ALL
 
-#define _DEBUG_HTLC
-#define _DEBUG_PRINT
-#define _DEBUG_API
-#define _DEBUG_UT
+// #define _DEBUG_HTLC
+// #define _DEBUG_PRINT
+// #define _DEBUG_API
+// #define _DEBUG_UT
 
 #endif  // _DEBUG_ALL
 
