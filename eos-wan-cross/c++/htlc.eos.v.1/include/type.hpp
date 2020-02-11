@@ -53,8 +53,8 @@ namespace htlc {
 		#ifdef _DEBUG_HTLC
 				static constexpr time_t lockedTime 	= time_t(3600);
 		#else
-				//static constexpr time_t lockedTime 	= time_t(3600 * 36);
-				static constexpr time_t lockedTime 	= time_t(3600);
+				static constexpr time_t lockedTime 	= time_t(3600 * 36);
+				// static constexpr time_t lockedTime 	= time_t(3600);
 		#endif
 #else
 		static constexpr time_t lockedTime 	= time_t(20);
