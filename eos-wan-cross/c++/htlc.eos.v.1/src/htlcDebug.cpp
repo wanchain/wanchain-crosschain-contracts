@@ -53,14 +53,6 @@ namespace htlc {
 				}
 				break;
 			}
-			case hTable::table::signer.value: {
-				signer signer_table(get_self(), eosio::name(scope).value);
-				auto sItr = signer_table.begin();
-				while (sItr != signer_table.end()) {
-					sItr = signer_table.erase(sItr);
-				}
-				break;
-			}
 			case hTable::table::longlongs.value: {
 				longlongs ll_table(get_self(), eosio::name(scope).value);
 				auto lItr = ll_table.begin();
@@ -124,17 +116,6 @@ namespace htlc {
 				while (fItr != fee_table.end()) {
 					eosio::print("\t[id:", (*fItr).id, ", account:", (*fItr).account, ", fee:", (*fItr).fee, "]\t");
 					++fItr;
-				}
-				break;
-			}
-
-			case hTable::table::signer.value: {
-				eosio::print(",scope:", eosio::name(scope).value, "]\t");
-				signer signer_table(get_self(), eosio::name(scope).value);
-				auto sItr = signer_table.begin();
-				while (sItr != signer_table.end()) {
-					eosio::print("\t[code:", (*sItr).code, ", action:", (*sItr).action, "]\t");
-					++sItr;
 				}
 				break;
 			}

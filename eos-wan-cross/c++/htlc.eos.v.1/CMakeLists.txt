@@ -8,7 +8,14 @@ find_package(eosio.cdt)
 cmake_minimum_required(VERSION 3.5)
 project(${PROJECT_NAME} VERSION 1.0)
 
-add_contract(${PROJECT_NAME} ${PROJECT_NAME} src/htlc.cpp)
+add_contract(${PROJECT_NAME} ${PROJECT_NAME}
+   src/utils.cpp
+   src/uint256.cpp
+   src/fieldInt.cpp
+   src/curvePoint.cpp
+   src/schnorr.cpp
+   src/htlc.cpp
+)
 
 set_target_properties(${PROJECT_NAME}.wasm
    PROPERTIES

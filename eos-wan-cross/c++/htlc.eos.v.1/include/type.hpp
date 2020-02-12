@@ -92,7 +92,6 @@ namespace htlc {
 			static constexpr eosio::name assets 			= eosio::name("assets");
 			static constexpr eosio::name fees 				= eosio::name("fees");
 			static constexpr eosio::name debts 				= eosio::name("debts");
-			static constexpr eosio::name signer 			= eosio::name("signer");
 			static constexpr eosio::name longlongs 			= eosio::name("longlongs");
 		} table;
 
@@ -114,7 +113,6 @@ namespace htlc {
 		typedef struct error_t {
 			static constexpr std::string_view NOT_FOUND_RECORD 					= "not found valid record";
 			static constexpr std::string_view NOT_FOUND_PK_RECORD 				= "not found the pk record";
-			static constexpr std::string_view NOT_FOUND_SIGNATURE_RECORD 		= "not found the signature record";
 			static constexpr std::string_view NOT_FOUND_TOKEN_ACCOUNT_RECORD 	= "not found the token account record";
 			static constexpr std::string_view NOT_FOUND_TOKEN_RECORD 			= "not found the token record";
 

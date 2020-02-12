@@ -1,3 +1,5 @@
+#include "../include/schnorr.hpp"
+
 namespace htlc {
 
 	/*
@@ -83,25 +85,6 @@ namespace htlc {
 		uint64_t qAmount = qInteger * p10 + qDecimal;
 		eosio::asset quantity(qAmount, eosio::symbol(eosio::symbol_code(qSym), qPrecision));
 		return quantity;
-	}
-
-	/*
-	** notice               		type        comment
-	** param sigInfo         		void*       output paramter, signature verification info
-	*/
-	bool htlc::getSignature(void *sigInfo) {
-		/* get the signature contract info */
-
-		eosio::check(sigInfo != nullptr, hError::error::INVALID_PARAM.data());
-		signer sig_table(get_self(), get_self().value);
-		if (sig_table.begin() == sig_table.end()) {
-			return false;
-		}
-
-		auto sItr = sig_table.begin();
-		static_cast<signature_t *>(sigInfo)->code = sItr->code;
-		static_cast<signature_t *>(sigInfo)->action = sItr->action;
-		return true;
 	}
 
 	/*
@@ -326,14 +309,7 @@ namespace htlc {
 		eosio::print("\t[verifySignature => decode Data: ", decodedActionData, "]\t");
 #endif
 
-		// call signature contract to check mpc signature
-		signature_t sigInfo;
-		eosio::check(getSignature(&sigInfo), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-		eosio::action(eosio::permission_level{this->get_self(), hPermission::level::active}, sigInfo.code,
-					  sigInfo.action,
-					  std::make_tuple(this->get_self(), r, s, pk, encodedActionData,
-									  static_cast<std::string>(statusView))).send();
+		schnorr::verify(r, s, pk, encodedActionData);
 	}
 
 	/*

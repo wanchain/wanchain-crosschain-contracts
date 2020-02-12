@@ -72,22 +72,6 @@ namespace htlc {
 		/// @param s              		string      signature
 		ACTION withdraw(std::string account, std::string sym, std::string pk, std::string timeStamp, \
 						eosio::name receiver,std::string r,std::string s);
-		
-		/* signature verification */
-		/// @notice               		type        comment
-		/// @param code           		name        the signature verification account
-		/// @param action         		name        the signature verification action
-		ACTION regsig(eosio::name code, eosio::name action);
-
-		/// @notice               		type        comment
-		/// @param code           		name        the signature verification account
-		/// @param nCode          		name        the new signature verification account
-		/// @param nAction        		name        the new signature verification action
-		ACTION updatesig(eosio::name code, eosio::name nCode, eosio::name nAction);
-
-		/// @notice               		type        comment
-		/// @param code           		name        the signature verification account
-		ACTION unregsig(eosio::name code);
 
 		/* inBound debt */
 		/// @notice               		type        comment
@@ -119,21 +103,6 @@ namespace htlc {
 			eosio::asset           quantity;
 			std::string            memo;
 		};
-
-		/* TABLE signer
-		** record the signature verification info,  only one record
-		*/
-		TABLE signature_t {
-				eosio::name                  code;
-				eosio::name                  action;
-
-				uint64_t primary_key() const { return code.value; }
-		};
-		/*
-		** notice               		type        comment
-		** param sigInfo         		void*       output paramter, signature verification info
-		*/
-		inline bool getSignature(void *sigInfo);
 
 	private:
 
@@ -261,8 +230,6 @@ namespace htlc {
 
 				uint64_t primary_key() const { return flag.value; }
 		};
-
-		typedef eosio::multi_index<hTable::table::signer, signature_t> signer;
 
 		typedef eosio::multi_index<hTable::table::longlongs, num64_t> longlongs;
 

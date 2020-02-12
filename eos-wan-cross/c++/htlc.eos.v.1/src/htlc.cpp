@@ -10,63 +10,6 @@
 
 namespace htlc {
 
-/* register signature verification info, by htlc-self */
-	/// @notice               		type        comment
-	/// @param code           		name        the signature verification account
-	/// @param action         		name        the signature verification action
-	ACTION htlc::regsig(eosio::name code, eosio::name action) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
-
-#ifdef _DEBUG_PRINT
-		eosio::print("\t[regsig => code:", code, ", action:", action, "]\t");
-#endif
-		signer sig_table(get_self(), get_self().value);
-		auto dItr = sig_table.find(code.value);
-		eosio::check(dItr == sig_table.end(), hError::error::REDUPLICATIVE_RECORD.data());
-
-		sig_table.emplace(get_self(), [&](auto &s) {
-			s.code = code;
-			s.action = action;
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[regsig => code ", s.code, " and action ", s.action, "]\t");
-#endif
-		});
-	}
-
-	/// @notice               		type        comment
-	/// @param code           		name        the signature verification account
-	/// @param nCode          		name        the new signature verification account
-	/// @param nAction        		name        the new signature verification action
-	ACTION htlc::updatesig(eosio::name code, eosio::name nCode, eosio::name nAction) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
-
-		signer sig_table(get_self(), get_self().value);
-		auto dItr = sig_table.find(code.value);
-		eosio::check(dItr != sig_table.end(), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-		dItr = sig_table.erase(dItr);
-
-		sig_table.emplace(get_self(), [&](auto &s) {
-			s.code = nCode;
-			s.action = nAction;
-#ifdef _DEBUG_PRINT
-			eosio::print("\t[updatesig => code ", s.code, " and action ", s.action, "]\t");
-#endif
-		});
-	}
-
-	/// @notice               		type        comment
-	/// @param code           		name        the signature verification account
-	ACTION htlc::unregsig(eosio::name code) {
-		eosio::require_auth(eosio::permission_level{get_self(), hPermission::level::active});
-
-		signer sig_table(get_self(), get_self().value);
-		auto dItr = sig_table.find(code.value);
-		eosio::check(dItr != sig_table.end(), hError::error::NOT_FOUND_SIGNATURE_RECORD.data());
-
-		dItr = sig_table.erase(dItr);
-	}
-
 	/* debt, by storeman-self and the storeman-match */
 	/// @notice               		type        comment
 	/// @param npk            		string      PK of storeman that the debt receiver
@@ -662,10 +605,8 @@ extern "C" {
 		eosio::check(action != "onerror"_n.value, hError::error::SYSTEM_ERROR.data());
 
 		auto self = receiver;
-		htlc::signature_t sigInfo;
-		//htlc::account_t tokenAccountInfo;
 
-		htlc _htlc(eosio::name(receiver), eosio::name(code), eosio::datastream<const char *>(nullptr, 0));
+		htlc _htlc(eosio::name(self), eosio::name(code), eosio::datastream<const char *>(nullptr, 0));
 
 		if (action == TRANSFER_NAME.value) {
 #ifdef _DEBUG_PRINT
@@ -675,7 +616,7 @@ extern "C" {
 			/* eosio.token transfer trigger htlc action */
 			/* inlock */
 			/* Originator is user wallet */
-			applyTransferAction(receiver, code, action);
+			applyTransferAction(self, code, action);
 
 		} else if (self == code) {
 #ifdef _DEBUG_PRINT
@@ -685,12 +626,10 @@ extern "C" {
 			switch (action) {
 #ifdef _DEBUG_API
 				EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-                (lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig) \
-                (setratio)(printratio)(query)(truncate)(leftlocktime)(gethash))
+                (lockdebt)(redeemdebt)(revokedebt)(setratio)(printratio)(query)(truncate)(leftlocktime)(gethash))
 #else
 				EOSIO_DISPATCH_HELPER(htlc, (inredeem)(inrevoke)(outlock)(outredeem)(outrevoke)(withdraw)\
-				(lockdebt)(redeemdebt)(revokedebt)(regsig)(updatesig)(unregsig) \
-				(setratio))
+				(lockdebt)(redeemdebt)(revokedebt)(setratio))
 #endif
 			}
 		}
