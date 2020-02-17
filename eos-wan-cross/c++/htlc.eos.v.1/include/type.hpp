@@ -66,6 +66,10 @@ namespace htlc {
 #else
 		static constexpr time_t smgFeeReceiverTimeout = time_t(20);
 #endif
+
+#ifdef USING_SMG_PERM
+		static constexpr eosio::name smgAccount 			= eosio::name("3edcwertdfgh");
+#endif
 	}
 
 	// htlc status description
