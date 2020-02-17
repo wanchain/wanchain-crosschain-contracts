@@ -441,7 +441,9 @@ namespace htlc {
 		eosio::print("\t[outlock => user:", user, ", account:", account, ", quantity:", \
 					 quantity, ", xHash:", xHash, ", pk:", pk, ", r:", r, ", s:", s, "]\t");
 #endif
+#ifdef USING_OUTLOCK_PERM
 		eosio::require_auth(eosio::permission_level{this->get_self(), hPermission::level::outlock});
+#endif
 		eosio::check(eosio::is_account(user) and user != get_self(), hError::error::INVALID_USER_ACCOUNT.data());
 		eosio::check(quantity.is_valid() and quantity.amount > 0, hError::error::INVALID_QUANTITY.data());
 		eosio::check(eosio::is_account(account) and account != get_self(), hError::error::INVALID_TOKEN_ACCOUNT.data());
@@ -483,6 +485,7 @@ namespace htlc {
 
 		/* signature verification */
 		{
+			#ifndef USING_OUTLOCK_PERM
 			std::vector<std::string_view> v;
 			v.push_back(user.to_string());
 			v.push_back(account.to_string());
@@ -490,6 +493,7 @@ namespace htlc {
 			v.push_back(xHash);
 
 			verifySignature(hStatus::status::outlock, pk, r, s, v);
+			#endif
 		}
 	}
 

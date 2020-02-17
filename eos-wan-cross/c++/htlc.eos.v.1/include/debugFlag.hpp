@@ -9,6 +9,7 @@
 // #define _DEBUG_PRINT
 // #define _DEBUG_API
 // #define _DEBUG_UT
+#define USING_OUTLOCK_PERM
 
 #endif  // _DEBUG_ALL
 
