@@ -31,6 +31,7 @@ namespace htlc {
 		typedef struct level_t {
 			/* should less than 12 charapters */
 			static constexpr eosio::name active 	= eosio::name("active");
+			static constexpr eosio::name outlock 	= eosio::name("outlock");
 		} level;
 	};
 
