@@ -1,16 +1,19 @@
-const crypto 			= require('crypto');
-const BigInteger 	    = require('bigi');
-const ecurve 			= require('ecurve');
-const Web3EthAbi 	    = require('web3-eth-abi');
-const ecparams 	        = ecurve.getCurveByName('secp256k1');
-const Point            = ecurve.Point;
-const LenPtHexString   = 130;
-const ByteLenOfSk      = 32;
+const crypto = require('crypto');
+const BigInteger = require('bigi');
+const ecurve = require('ecurve');
+const Web3EthAbi = require('web3-eth-abi');
+const ecparams = ecurve.getCurveByName('secp256k1');
+const Point = ecurve.Point;
+const LenPtHexString = 130;
+const ByteLenOfSk = 32;
+const ErrPointNotOnCurve = "Point is not on curve";
+const ErrInvalidHexString = "not a hex string";
+const ErrInvalidHexStringLen = "Invalid hex string length";
 
 // buffer
-const r 			    = new Buffer("e7e59bebdcee876e84d03832544f5a517e96a9e3f60cd8f564bece6719d5af52", 'hex');
+const r = new Buffer("e7e59bebdcee876e84d03832544f5a517e96a9e3f60cd8f564bece6719d5af52", 'hex');
 // buffer
-let R					= baseScarMulti(r);
+let R = baseScarMulti(r);
 
 // sk*G
 // return: buff
@@ -103,15 +106,23 @@ function getS(sk, typesArray, parameters) {
 }
 
 function getSByRawMsg(sk, rawMsg) {
-    let MBuff   = new Buffer(removePrefix(rawMsg), 'hex');
+    let MBuff = new Buffer(removePrefix(rawMsg), 'hex');
     //console.log("getSByRawMsg M",bufferToHexString(MBuff));
-    let M1Buff  = computeM1(MBuff);
+    let M1Buff = computeM1(MBuff);
     //console.log("getSByRawMsg M1",bufferToHexString(M1Buff));
-    let mBuff   = computem(M1Buff, R);
+    let mBuff = computem(M1Buff, R);
     //console.log("getSByRawMsg m",bufferToHexString(mBuff));
-    let sBuff   = getSBuff(sk, mBuff);
+    let sBuff = getSBuff(sk, mBuff);
     //console.log("after getSBuff");
     return bufferToHexString(sBuff);
+}
+
+function isHexString(hexStr) {
+    let str = removePrefix(hexStr);
+    if (str.length == 0) {
+        return false;
+    }
+    return /^[A-Fa-f0-9]+$/.test(str) && str.length % 2 == 0;
 }
 
 //  random      :hexstring
@@ -120,24 +131,36 @@ function getSByRawMsg(sk, rawMsg) {
 //  pk          :hexstring
 // return true,false
 function verifySig(random, sigS, rawMessage, pk) {
+    if (!isHexString(random)) {
+        throw "random:" + ErrInvalidHexString;
+    }
+    if (!isHexString(sigS)) {
+        throw "sigS:" + ErrInvalidHexString;
+    }
+    if (!isHexString(rawMessage)) {
+        throw "rawMessage:" + ErrInvalidHexString;
+    }
+    if (!isHexString(pk)) {
+        throw "pk:" + ErrInvalidHexString;
+    }
     // compute  left sG
-    let sBuffer = new Buffer(removePrefix(sigS),'hex');
+    let sBuffer = new Buffer(removePrefix(sigS), 'hex');
     //console.log("sigS",bufferToHexString(sBuffer));
     let left = baseScarMultiPt(sBuffer);
 
     // compute  right R+m*pk
     let ptR;
     ptR = ptFromHex(random);
-    let isOnCurve = false;
-    isOnCurve = ecparams.isOnCurve(ptR);
-    if(!isOnCurve){
-        throw "Point is not on curve";
+    let isOnCurve = ecparams.isOnCurve(ptR);
+    if (!isOnCurve) {
+        throw "random:" + ErrPointNotOnCurve;
     }
+
     let ptMPk;
     ptMPk = ptFromHex(pk);
     isOnCurve = ecparams.isOnCurve(ptMPk);
-    if(!isOnCurve){
-        throw "Point is not on curve";
+    if (!isOnCurve) {
+        throw "pk:" + ErrPointNotOnCurve;
     }
 
     let bnm = getbnMFromRaw(random, rawMessage);
@@ -148,12 +171,12 @@ function verifySig(random, sigS, rawMessage, pk) {
     right = ptR.add(ptMPk);
 
     isOnCurve = ecparams.isOnCurve(left);
-    if(!isOnCurve){
-        throw "Point is not on curve";
+    if (!isOnCurve) {
+        throw "left sG:" + ErrPointNotOnCurve;
     }
     isOnCurve = ecparams.isOnCurve(right);
-    if(!isOnCurve){
-        throw "Point is not on curve";
+    if (!isOnCurve) {
+        throw "right R+m*PK:" + ErrPointNotOnCurve;
     }
     return left.equals(right);
 }
@@ -170,8 +193,8 @@ function getbnMFromRaw(random, rawMsg) {
 function ptFromHex(hexStr) {
     let hexStrTemp = removePrefix(hexStr);
     let bnX, bnY;
-    if (hexStrTemp.length < LenPtHexString) {
-        throw "not valid point string";
+    if (hexStrTemp.length !== LenPtHexString) {
+        throw ErrInvalidHexStringLen;
     }
     bnX = BigInteger.fromBuffer(new Buffer(hexStrTemp.substring(2, 66), 'hex'));
     bnY = BigInteger.fromBuffer(new Buffer(hexStrTemp.substring(66, LenPtHexString), 'hex'));
@@ -182,7 +205,7 @@ function ptFromHex(hexStr) {
 }
 
 function removePrefix(hexStr) {
-    if (hexStr.length < 2) throw "not valid hex string";
+    if (hexStr.length < 2) throw ErrInvalidHexString;
     if (hexStr.substring(0, 2) === "0x" || hexStr.substring(0, 2) === "0X") {
         return hexStr.substring(2);
     } else {
@@ -194,6 +217,6 @@ module.exports = {
     getS: getS,
     getPKBySk: getPKBySk,
     getR: getR,
-    verifySig:verifySig,
-    getSByRawMsg:getSByRawMsg
+    verifySig: verifySig,
+    getSByRawMsg: getSByRawMsg
 };
