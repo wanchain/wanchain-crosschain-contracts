@@ -30,15 +30,19 @@ function assertFullMatch(expect, actual) {
 }
 
 function assertStrictEqual(x, y) {
-  return assert.strictEqual(x, y, x + " should be equal " + y);
+  return assert.strictEqual(x, y, x + " should be strict equal " + y);
 }
 
 function assertNotStrictEqual(x, y) {
-  return assert.notStrictEqual(x, y, x + " should be not equal " + y);
+  return assert.notStrictEqual(x, y, x + " should be not strict equal " + y);
+}
+
+function assertDeepEqual(x, y) {
+  return assert.deepEqual(x, y, x + " should be deep equal " + y);
 }
 
 function assertNotDeepEqual(x, y) {
-  return assert.notDeepEqual(x, y, x + " should be not equal " + y);
+  return assert.notDeepEqual(x, y, x + " should be not deep equal " + y);
 }
 
 function assertExists(x) {
@@ -94,6 +98,7 @@ module.exports = {
   assertInstanceOf: assertInstanceOf,
   assertStrictEqual: assertStrictEqual,
   assertNotStrictEqual: assertNotStrictEqual,
+  assertDeepEqual: assertDeepEqual,
   assertNotDeepEqual: assertNotDeepEqual,
   assertPartialMatch: assertPartialMatch,
   assertFullMatch: assertFullMatch,

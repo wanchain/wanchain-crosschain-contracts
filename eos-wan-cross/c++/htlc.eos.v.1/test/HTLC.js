@@ -66,6 +66,7 @@ async function startAutoTest() {
     let log = console;
     let eoslime;
     let htlcAccount;
+    let htlcAccountOutlock;
     let htlcContract;
     let htlcContractUser1;
     let htlcContractUser2;
@@ -82,6 +83,7 @@ async function startAutoTest() {
     let getTblGlobalScope;
     let findTblPks;
     let findTblTransfers;
+    let findTblDebts;
     let findTblAssets;
     let inlockAct;
     let inredeemAct;
@@ -90,6 +92,9 @@ async function startAutoTest() {
     let outredeemAct;
     let outrevokeAct;
     let withdrawAct;
+    let lockDebtAct;
+    let redeemDebtAct;
+    let revokeDebtAct;
 
     before(async () => {
 
@@ -124,6 +129,7 @@ async function startAutoTest() {
       try {
         // log.debug("init htlc contract", JSON.stringify(global.htlc));
         htlcAccount = await utils.loadAccount(eoslime, global.htlc.name, global.htlc.privateKey, config.permissionDict.active);
+        htlcAccountOutlock = await utils.loadAccount(eoslime, global.htlc.name, global.htlc.privateKey, config.permissionDict.outlock);
         htlcContract = await utils.contractAtFromAbiFile(eoslime, config.htlcContractFile.ABI, global.htlc.name, htlcAccount);
         htlcContract.makeInline();//set eosio.code
 
@@ -133,7 +139,7 @@ async function startAutoTest() {
         htlcContractSmg2 = await utils.getContractInstance(eoslime, htlcAccount.name, storeman2);
 
       // 注册signature合约
-        let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
+        // let regSigTx = await htlcContract.regsig(config.customSignContract.name, config.customSignContract.action);
         // log.debug("regsig", config.customSignContract.name, config.customSignContract.action, regSigTx);
       } catch (err) {
         if (!utils.ignoreError(3050003, err)) {
@@ -187,10 +193,29 @@ async function startAutoTest() {
         return crossResult;
       }
 
-      findTblAssets = async (contract, pkId) => {
+      findTblDebts = async (contract, scope, xHash) => {
+        let tableDebts = await utils.getContractTable(contract, config.htlcTblDict.debts, scope);
+
+        // result = await tableDebts.find();
+        // log.debug("result", JSON.stringify(result));
+        // let result = await htlcContract.provider.select(global.htlc.name).from("debts").limit(10).find();
+        // log.debug("after cross, limit result", JSON.stringify(result));
+
+        let debtResult = await tableDebts.equal(xHash).index(2, "sha256").find();
+        // log.debug("debtResult", JSON.stringify(debtResult));
+        return debtResult;
+      }
+
+      findTblAssets = async (contract, pkId, tokenAccount) => {
           let assetScope = String(pkId);
           let tableAssets = await utils.getContractTable(contract, config.htlcTblDict.assets, assetScope);
           let assetInfo = await tableAssets.find();
+          if (tokenAccount) {
+            let result = assetInfo.filter(v => {
+              return v.account === tokenAccount;
+            });
+            return result;
+          }
           // // let assetInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:assetScope, table:config.htlcTblDict.assets});
           // // log.debug(pkInfo[0].pk, "assets", JSON.stringify(assetInfo));
           return assetInfo;
@@ -205,7 +230,7 @@ async function startAutoTest() {
           //   .concat(separator).concat(pk).concat(separator).concat(tokenContractName);
           // log.debug("eosio.token transfer from", fromAccount.name, "to", htlcAccount.name, value, memo);
           // log.debug("xHash:", xHash);
-  
+
           let userInlockTx = await eoslime.Provider.eos.transaction({
             actions:[
               {
@@ -226,7 +251,7 @@ async function startAutoTest() {
               }
             ]
           }, { broadcast: true, sign: true, keyProvider: fromAccount.privateKey });
-  
+
           // let eosioTokenContract = await utils.getContractInstance(eoslime, config.sysTokenContract.name, user1);
           // var userInlockTx = await eosioTokenContract.transfer(fromAccount.name, htlcContract.name, value, memo);
           // log.debug(JSON.stringify(userInlockTx));
@@ -278,6 +303,27 @@ async function startAutoTest() {
           return withdrawTx;
       }
 
+      lockDebtAct = async (htlcContractSmg, tokenContractName, value, xHash, pkId, newPkId) => {
+        let sk = config.skSmgs[pkId];
+        let pk = globalPks[pkId];
+        let pkNew = globalPks[newPkId];
+        let {R, s} = buildMpcSign(sk, pkNew, tokenContractName, value, xHash);
+        let smgOutlockTx = await htlcContractSmg.lockdebt(pkNew, tokenContractName, value, xHash, pk, R, s);
+        // log.debug("outlock success", JSON.stringify(smgOutlockTx));
+        return smgOutlockTx;
+      }
+
+      redeemDebtAct = async (htlcContractSmg, x) => {
+          let smgRedeemTx = await htlcContractSmg.redeemdebt(x);
+          // log.debug("inredeem success", JSON.stringify(smgRedeemTx));
+          return smgRedeemTx;
+      }
+
+      revokeDebtAct = async (htlcContractSmg, xHash) => {
+          let smgRevokeTx = await htlcContractSmg.revokedebt(xHash);
+          // log.debug("inredeem success", JSON.stringify(userRevokeTx));
+          return smgRevokeTx;
+      }
     });
 
     it("cross EOS chain: eosio.token EOS inBound user1 => storeman1, it should be success", async () => {
@@ -965,7 +1011,7 @@ async function startAutoTest() {
 
     it("cross EOS chain: eosio.token EOS outlock storeman1 => user1, storeman1 has not enough quantity, it should be throw error", async () => {
       try {
-        let value;
+        let asset = utils.setAsset(config.sysTokenContract.name, 1, config.sysTokenContract.token.EOS);
         let x = config.xInfo[1];
         let xHash = utils.sha256(Buffer.from(x, 'hex'));
         let pkId = 0;
@@ -980,30 +1026,19 @@ async function startAutoTest() {
         lib.assertStrictEqual(pkInfo[0].pkHash, pkHash);
         // log.debug("before cross, limit result", JSON.stringify(pkInfo));
 
-        let assetInfo = await findTblAssets(htlcContract, pkInfo[0].id);
+        let assetInfo = await findTblAssets(htlcContract, pkInfo[0].id, config.sysTokenContract.name);
         // let assetScope = String(pkInfo[0].id);
         // let tableAssets = await utils.getContractTable(htlcContract, config.htlcTblDict.assets, assetScope);
         // let assetInfo = await tableAssets.find();
         // let assetInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:assetScope, table:config.htlcTblDict.assets});
         // log.debug(pkInfo[0].pk, "assets", JSON.stringify(assetInfo));
-
-        assetInfo.some(asset => {
-          let assetEles = asset.balance.split(" ");
-          let symCode = assetEles[1];
-          if (asset.account === config.sysTokenContract.name && symCode === "EOS") {
-            let amount = Number(assetEles[0]) + 1;
-            value = amount.toFixed(4) + " " + symCode;
-            return true;
-          }
-          return false;
-        });
-        if (!value) {
-          value = "1.0000 EOS";
+        if (assetInfo.length) {
+          asset = utils.addAsset(asset, assetInfo[0]);
         }
-        // log.debug("outlock ", value);
+        // log.debug("outlock ", JSON.stringify(asset));
 
         try {
-          let smg1OutlockTx = await outlockAct(htlcContractSmg1, user1, config.sysTokenContract.name, value, xHash, pkId);
+          let smg1OutlockTx = await outlockAct(htlcContractSmg1, user1, config.sysTokenContract.name, asset.balance, xHash, pkId);
           lib.assertFail("storeman1 has not enough quantity, it should be throw error");
         } catch (err) {
           // log.debug(typeof(err));//string
@@ -1359,6 +1394,333 @@ async function startAutoTest() {
         }
 
       } catch(err) {
+        lib.assertFail(err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inBound debt storeman1 => storeman2, it should be success", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let smg1PkId = 0;
+        let smg1Pk = globalPks[smg1PkId];
+        let smg1PkHash = utils.sha256(Buffer.from(smg1Pk, 'utf8'));
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        // log.debug("x:", x);
+        // log.debug("xHash:", xHash);
+
+        let eosTokenTran = await inlockAct(eoslime, config.sysTokenContract.name, config.sysTokenContract.action, user1, htlcContract, value, xHash, wanAddr, smg1Pk, config.sysTokenContract.name);
+        // log.debug(JSON.stringify(eosTokenTran));
+        // log.debug("inlock success", eosTokenTran.transaction_id);
+
+        let scope = getTblGlobalScope(htlcContract);
+        // let scope = htlcContract.name;
+        // if (!isNaN(Number(scope))) {
+        //   scope = getTblGlobalScope(scope);
+        // }
+        // log.debug(scope);
+
+        let smg1PkInfo = await findTblPks(htlcContract, scope, smg1PkHash);
+        lib.assertStrictEqual(smg1PkInfo.length, 1);
+        lib.assertStrictEqual(smg1PkInfo[0].pk, smg1Pk);
+        lib.assertStrictEqual(smg1PkInfo[0].pkHash, smg1PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg1PkInfo));
+
+        let crossResult = await findTblTransfers(htlcContract, scope, xHash);
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, smg1PkInfo[0].id);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "inlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].wanAddr, wanAddr);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
+        // log.debug("crossResult", JSON.stringify(crossResult));
+
+        let smg1RedeemTx = await inredeemAct(htlcContractSmg1, x);
+        // log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
+
+        let smg1AssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg1AssetInfo.length, 1);
+        // let assetScope = String(smg1PkInfo[0].id);
+        // let tableAssets = await utils.getContractTable(htlcContract, config.htlcTblDict.assets, assetScope);
+        // let smg1AssetInfo = await tableAssets.find();
+        // let smg1AssetInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:assetScope, table:config.htlcTblDict.assets});
+        // log.debug(smg1PkInfo[0].pk, "assets", JSON.stringify(smg1AssetInfo));
+
+        let xDebt = config.xInfo[1];
+        let xHashDebt = utils.sha256(Buffer.from(xDebt, 'hex'));
+        let smg2PkId = 1;
+        let smg2Pk = globalPks[smg2PkId];
+        let smg2PkHash = utils.sha256(Buffer.from(smg2Pk, 'utf8'));
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        // log.debug("xDebt:", xDebt);
+        // log.debug("xHashDebt:", xHashDebt);
+        // htlcContractSmg, tokenContractName, value, xHash, pkId, newPkId
+        let smg1DebtLockTx = await lockDebtAct(htlcContractSmg1, config.sysTokenContract.name, value, xHashDebt, smg1PkId, smg2PkId);
+        // let {R, s} = buildMpcSign(config.skSmgs[smg1PkId], smg2Pk, config.sysTokenContract.name, value, xHashDebt);
+        // let smg1DebtLockTx = await htlcContractSmg1.lockdebt(smg2Pk, config.sysTokenContract.name, value, xHashDebt, smg1Pk, R, s);
+
+        let smg2PkInfo = await findTblPks(htlcContract, scope, smg2PkHash);
+        lib.assertStrictEqual(smg2PkInfo.length, 1);
+        lib.assertStrictEqual(smg2PkInfo[0].pk, smg2Pk);
+        lib.assertStrictEqual(smg2PkInfo[0].pkHash, smg2PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg1PkInfo));
+
+        let debtResult = await findTblDebts(htlcContract, scope, xHashDebt);
+        lib.assertStrictEqual(debtResult.length, 1);
+        lib.assertStrictEqual(debtResult[0].pid, smg1PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].npid, smg2PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].quantity, value);
+        lib.assertStrictEqual(debtResult[0].status, "lockdebt");
+        lib.assertStrictEqual(debtResult[0].xHash, xHashDebt);
+        lib.assertStrictEqual(debtResult[0].account, config.sysTokenContract.name);
+        // log.debug("debtResult", JSON.stringify(debtResult));
+
+        let smg2AssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg2AssetInfo.length) {
+          let asset = utils.setAsset(smg1AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg2AssetInfo.push(asset);
+        }
+
+        try {
+          let smg1DebtRevokeTx = await revokeDebtAct(htlcContractSmg1, xHashDebt);
+          lib.assertFail("revoke debt in redeem time, it should be throw error");
+        } catch (err) {
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "only can revoke after lockedTime", err);
+        }
+
+        let smg2DebtRedeemTx = await redeemDebtAct(htlcContractSmg2, xDebt);
+        // let smg2DebtRedeemTx = await htlcContractSmg2.redeemdebt(xDebt);
+
+        let smg1DebtAssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg1DebtAssetInfo.length) {
+          let asset = utils.setAsset(smg1AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg1DebtAssetInfo.push(asset);
+        }
+
+        let smg2DebtAssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg2DebtAssetInfo.length, 1);
+
+        lib.assertStrictEqual(smg1AssetInfo[0].account, smg2DebtAssetInfo[0].account);
+        lib.assertStrictEqual(utils.subAsset(smg1AssetInfo[0], smg1DebtAssetInfo[0]).balance, value);
+        lib.assertStrictEqual(utils.subAsset(smg2DebtAssetInfo[0], smg2AssetInfo[0]).balance, value);
+      } catch (err) {
+        // log.error("inBound failed:", err);
+        lib.assertFail(err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inBound revoke debt storeman1 => storeman2, it should be success", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let smg1PkId = 0;
+        let smg1Pk = globalPks[smg1PkId];
+        let smg1PkHash = utils.sha256(Buffer.from(smg1Pk, 'utf8'));
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        // log.debug("x:", x);
+        // log.debug("xHash:", xHash);
+
+        let eosTokenTran = await inlockAct(eoslime, config.sysTokenContract.name, config.sysTokenContract.action, user1, htlcContract, value, xHash, wanAddr, smg1Pk, config.sysTokenContract.name);
+        // log.debug(JSON.stringify(eosTokenTran));
+        // log.debug("inlock success", eosTokenTran.transaction_id);
+
+        let scope = getTblGlobalScope(htlcContract);
+        // let scope = htlcContract.name;
+        // if (!isNaN(Number(scope))) {
+        //   scope = getTblGlobalScope(scope);
+        // }
+        // log.debug(scope);
+
+        let smg1PkInfo = await findTblPks(htlcContract, scope, smg1PkHash);
+        lib.assertStrictEqual(smg1PkInfo.length, 1);
+        lib.assertStrictEqual(smg1PkInfo[0].pk, smg1Pk);
+        lib.assertStrictEqual(smg1PkInfo[0].pkHash, smg1PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg1PkInfo));
+
+        let crossResult = await findTblTransfers(htlcContract, scope, xHash);
+        lib.assertStrictEqual(crossResult.length, 1);
+        lib.assertStrictEqual(crossResult[0].pid, smg1PkInfo[0].id);
+        lib.assertStrictEqual(crossResult[0].user, user1.name);
+        lib.assertStrictEqual(crossResult[0].quantity, value);
+        lib.assertStrictEqual(crossResult[0].status, "inlock");
+        lib.assertStrictEqual(crossResult[0].xHash, xHash);
+        lib.assertStrictEqual(crossResult[0].wanAddr, wanAddr);
+        lib.assertStrictEqual(crossResult[0].account, config.sysTokenContract.name);
+        // log.debug("crossResult", JSON.stringify(crossResult));
+
+        let smg1RedeemTx = await inredeemAct(htlcContractSmg1, x);
+        // log.debug("inredeem success", JSON.stringify(smg1RedeemTx));
+
+        let smg1AssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg1AssetInfo.length, 1);
+        // let assetScope = String(smg1PkInfo[0].id);
+        // let tableAssets = await utils.getContractTable(htlcContract, config.htlcTblDict.assets, assetScope);
+        // let smg1AssetInfo = await tableAssets.find();
+        // let smg1AssetInfo = await eoslime.Provider.eos.getTableRows({json:true, code:htlcContract.name, scope:assetScope, table:config.htlcTblDict.assets});
+        // log.debug(smg1PkInfo[0].pk, "assets", JSON.stringify(smg1AssetInfo));
+
+        let xDebt = config.xInfo[1];
+        let xHashDebt = utils.sha256(Buffer.from(xDebt, 'hex'));
+        let smg2PkId = 1;
+        let smg2Pk = globalPks[smg2PkId];
+        let smg2PkHash = utils.sha256(Buffer.from(smg2Pk, 'utf8'));
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        // log.debug("xDebt:", xDebt);
+        // log.debug("xHashDebt:", xHashDebt);
+        // htlcContractSmg, tokenContractName, value, xHash, pkId, newPkId
+        let smg1DebtLockTx = await lockDebtAct(htlcContractSmg1, config.sysTokenContract.name, value, xHashDebt, smg1PkId, smg2PkId);
+        // let {R, s} = buildMpcSign(config.skSmgs[smg1PkId], smg2Pk, config.sysTokenContract.name, value, xHashDebt);
+        // let smg1DebtLockTx = await htlcContractSmg1.lockdebt(smg2Pk, config.sysTokenContract.name, value, xHashDebt, smg1Pk, R, s);
+
+        let smg2PkInfo = await findTblPks(htlcContract, scope, smg2PkHash);
+        lib.assertStrictEqual(smg2PkInfo.length, 1);
+        lib.assertStrictEqual(smg2PkInfo[0].pk, smg2Pk);
+        lib.assertStrictEqual(smg2PkInfo[0].pkHash, smg2PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg1PkInfo));
+
+        let debtResult = await findTblDebts(htlcContract, scope, xHashDebt);
+        lib.assertStrictEqual(debtResult.length, 1);
+        lib.assertStrictEqual(debtResult[0].pid, smg1PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].npid, smg2PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].quantity, value);
+        lib.assertStrictEqual(debtResult[0].status, "lockdebt");
+        lib.assertStrictEqual(debtResult[0].xHash, xHashDebt);
+        lib.assertStrictEqual(debtResult[0].account, config.sysTokenContract.name);
+        // log.debug("debtResult", JSON.stringify(debtResult));
+
+        let smg2AssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg2AssetInfo.length) {
+          let asset = utils.setAsset(smg1AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg2AssetInfo.push(asset);
+        }
+
+        // s -> ms
+        let sleepTime = (debtResult[0].lockedTime + 1)* 1000;
+
+        log.debug("await lockdebt", sleepTime, "ms");
+        await utils.sleepMs(sleepTime);
+
+        try {
+          let smg2DebtRedeemTx = await redeemDebtAct(htlcContractSmg2, xDebt);
+          lib.assertFail("redeem debt in revoke time, it should be throw error");
+        } catch (err) {
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "redeem timeout, only can redeem in lockedTime", err);
+        }
+
+        let smg1DebtRevokeTx = await revokeDebtAct(htlcContractSmg1, xHashDebt);
+        // log.debug("inredeem success", JSON.stringify(smg1DebtRevokeTx));
+
+        let smg1DebtAssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg1DebtAssetInfo.length, 1);
+
+        let smg2DebtAssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg2DebtAssetInfo.length) {
+          let asset = utils.setAsset(smg1AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg2DebtAssetInfo.push(asset);
+        }
+
+        lib.assertDeepEqual(smg1AssetInfo, smg1DebtAssetInfo);
+        lib.assertDeepEqual(smg2AssetInfo, smg2DebtAssetInfo);
+      } catch (err) {
+        // log.error("inBound failed:", err);
+        lib.assertFail(err);
+      }
+    });
+
+    it("cross EOS chain: eosio.token EOS inBound debt storeman2 => storeman1, pk busy, it should be throw error", async () => {
+      try {
+        let value = "1.0000 EOS";
+        let x = config.xInfo[0];
+        let xHash = utils.sha256(Buffer.from(x, 'hex'));
+        let wanAddr = config.wanAddrs[0];
+        let smg1PkId = 0;
+        let smg1Pk = globalPks[smg1PkId];
+        let smg1PkHash = utils.sha256(Buffer.from(smg1Pk, 'utf8'));
+
+        let xDebt = config.xInfo[1];
+        let xHashDebt = utils.sha256(Buffer.from(xDebt, 'hex'));
+        let smg2PkId = 1;
+        let smg2Pk = globalPks[smg2PkId];
+        let smg2PkHash = utils.sha256(Buffer.from(smg2Pk, 'utf8'));
+
+        // log.debug("eosio.token transfer from", user1.name, "to", htlcAccount.name, value, memo);
+        // log.debug("x:", x);
+        // log.debug("xHash:", xHash);
+
+        let scope = getTblGlobalScope(htlcContract);
+
+
+        let smg2PkInfo = await findTblPks(htlcContract, scope, smg2PkHash);
+        lib.assertStrictEqual(smg2PkInfo.length, 1);
+        lib.assertStrictEqual(smg2PkInfo[0].pk, smg2Pk);
+        lib.assertStrictEqual(smg2PkInfo[0].pkHash, smg2PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg2PkInfo));
+
+        let smg2AssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg2AssetInfo.length, 1);
+
+        let smg2DebtLockTx = await lockDebtAct(htlcContractSmg2, config.sysTokenContract.name, value, xHashDebt, smg2PkId, smg1PkId);
+        // let {R, s} = buildMpcSign(config.skSmgs[smg1PkId], smg2Pk, config.sysTokenContract.name, value, xHashDebt);
+        // let smg1DebtLockTx = await htlcContractSmg1.lockdebt(smg2Pk, config.sysTokenContract.name, value, xHashDebt, smg1Pk, R, s);
+
+        let smg1PkInfo = await findTblPks(htlcContract, scope, smg1PkHash);
+        lib.assertStrictEqual(smg1PkInfo.length, 1);
+        lib.assertStrictEqual(smg1PkInfo[0].pk, smg1Pk);
+        lib.assertStrictEqual(smg1PkInfo[0].pkHash, smg1PkHash);
+        // log.debug("before cross, limit result", JSON.stringify(smg1PkInfo));
+
+        let smg1AssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg1AssetInfo.length) {
+          let asset = utils.setAsset(smg2AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg1DebtAssetInfo.push(asset);
+        }
+
+        let debtResult = await findTblDebts(htlcContract, scope, xHashDebt);
+        lib.assertStrictEqual(debtResult.length, 1);
+        lib.assertStrictEqual(debtResult[0].pid, smg2PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].npid, smg1PkInfo[0].id);
+        lib.assertStrictEqual(debtResult[0].quantity, value);
+        lib.assertStrictEqual(debtResult[0].status, "lockdebt");
+        lib.assertStrictEqual(debtResult[0].xHash, xHashDebt);
+        lib.assertStrictEqual(debtResult[0].account, config.sysTokenContract.name);
+        // log.debug("debtResult", JSON.stringify(debtResult));
+
+        try {
+          let smg1OutlockTx = await outlockAct(htlcContractSmg2, user1, config.sysTokenContract.name, value, xHash, smg2PkId);
+          lib.assertFail("outlock in debt, it should be throw error");
+        } catch (err) {
+          lib.assertExists(err);
+          lib.assertStrictEqual(typeof(err), "string");
+          lib.assertInclude(err, "pk is busy", err);
+        }
+
+        let smg1DebtRedeemTx = await redeemDebtAct(htlcContractSmg1, xDebt);
+        // let smg1DebtRedeemTx = await smg1DebtRedeemTx.redeemdebt(xDebt);
+
+        let smg1DebtAssetInfo = await findTblAssets(htlcContract, smg1PkInfo[0].id, config.sysTokenContract.name);
+        lib.assertStrictEqual(smg1DebtAssetInfo.length, 1);
+
+        let smg2DebtAssetInfo = await findTblAssets(htlcContract, smg2PkInfo[0].id, config.sysTokenContract.name);
+        if (!smg2DebtAssetInfo.length) {
+          let asset = utils.setAsset(smg2AssetInfo[0].account, 0, config.sysTokenContract.token.EOS);
+          smg2DebtAssetInfo.push(asset);
+        }
+
+        lib.assertStrictEqual(smg2AssetInfo[0].account, smg1DebtAssetInfo[0].account);
+        lib.assertStrictEqual(utils.subAsset(smg2AssetInfo[0], smg2DebtAssetInfo[0]).balance, value);
+        lib.assertStrictEqual(utils.subAsset(smg1DebtAssetInfo[0], smg1AssetInfo[0]).balance, value);
+      } catch (err) {
+        // log.error("inBound failed:", err);
         lib.assertFail(err);
       }
     });

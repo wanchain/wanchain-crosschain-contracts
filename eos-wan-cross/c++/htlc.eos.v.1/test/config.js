@@ -132,7 +132,8 @@ const sysTokenContract = {
   name: "eosio.token",
   action: 'transfer',
   token: {
-    EOS: "4,EOS"
+    // EOS: "4,EOS"
+    EOS: "EOS"
   }
 };
 
@@ -140,8 +141,10 @@ const customTokenContract = {
   name: customAccount[global.network].token.name,
   action: "transfer",
   token: {
-    EOS: "4,EOS",
-    NS: "0,NS",
+    EOS: "EOS",
+    NS: "NS",
+    // EOS: "4,EOS",
+    // NS: "0,NS",
   }
 };
 
@@ -155,6 +158,7 @@ const permissionDict = {
   active: "active",
   sign: "sign",
   token: "token",
+  outlock: "outlock"
 };
 
 const htlcTblDict = {

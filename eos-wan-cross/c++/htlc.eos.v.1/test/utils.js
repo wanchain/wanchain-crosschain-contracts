@@ -212,6 +212,85 @@ function getUint64AsNumber(name, littleEndian = false) {
   return ulName.toString()
 }
 
+function fromAsset(balance, account) {
+  if (typeof(account) !== "string") {
+    throw new TypeError('Invalid token account ' + account);
+  }
+  if (typeof(balance) !== "string") {
+    throw new TypeError('Invalid balance ' + balance);
+  }
+  let assetEles = balance.split(" ");
+  return {
+    account: account,
+    amount: Number(assetEles[0]),
+    symbol: assetEles[1]
+  }
+}
+
+function toAsset(asset) {
+  if (typeof(asset) !== "object" || !asset.hasOwnProperty("amount") || !asset.hasOwnProperty("symbol")) {
+    throw new TypeError('toAsset: Invalid asset ' + asset);
+  }
+  return {
+    account: asset.account,
+    balance: asset.amount.toFixed(4) + " " + asset.symbol
+  };
+}
+
+function subAsset(asset1, asset2) {
+  let a1 = fromAsset(asset1.balance, asset1.account);
+  let a2 = fromAsset(asset2.balance, asset2.account);
+
+  if ((!a1.account && !a2.account) || (a1.account !== a2.account)) {
+    throw new TypeError('Invalid subtraction token account between ' + asset1.account + " and " + asset2.account);
+  }
+
+  if (!a1.symbol && !a2.symbol) {
+    throw new TypeError('Invalid subtraction symbol between ' + asset1.symbol + " and " + asset2.symbol);
+  }
+
+  if (a1.symbol && a2.symbol && a1.symbol !== a2.symbol) {
+    throw new TypeError('Invalid subtraction symbol between ' + asset1.symbol + " and " + asset2.symbol);
+  }
+
+  return toAsset({
+    account: a1.account,
+    amount: a1.amount - a2.amount,
+    symbol: a1.symbol ? a1.symbol : a2.symbol
+  });
+}
+
+function addAsset(asset1, asset2) {
+  let a1 = fromAsset(asset1.balance, asset1.account);
+  let a2 = fromAsset(asset2.balance, asset2.account);
+
+  if ((!a1.account && !a2.account) || (a1.account !== a2.account)) {
+    throw new TypeError('Invalid subtraction token account between ' + asset1.account + " and " + asset2.account);
+  }
+
+  if (!a1.symbol && !a2.symbol) {
+    throw new TypeError('Invalid subtraction symbol between ' + asset1.symbol + " and " + asset2.symbol);
+  }
+
+  if (a1.symbol && a2.symbol && a1.symbol !== a2.symbol) {
+    throw new TypeError('Invalid subtraction symbol between ' + asset1.symbol + " and " + asset2.symbol);
+  }
+
+  return toAsset({
+    account: a1.account,
+    amount: a1.amount + a2.amount,
+    symbol: a1.symbol ? a1.symbol : a2.symbol
+  });
+}
+
+function setAsset(tokenAccount, value, symbol) {
+  return toAsset({
+    account: tokenAccount,
+    amount: value,
+    symbol: symbol
+  });
+}
+
 module.exports = {
   sleepMs: sleepMs,
   sha256: sha256,
@@ -230,4 +309,7 @@ module.exports = {
   setActionPermission: setActionPermission,
   setMultiActionsPermission: setMultiActionsPermission,
   getUint64AsNumber: getUint64AsNumber,
+  subAsset: subAsset,
+  addAsset: addAsset,
+  setAsset: setAsset
 };
